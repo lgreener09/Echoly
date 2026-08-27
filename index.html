@@ -262,6 +262,79 @@
     color: #b91c1c; font-size: 13.5px; display: none;
   }
   .error-banner.shown { display: block; }
+
+  /* -------- Lesson intro screen -------- */
+  .intro-body { flex: 1; overflow-y: auto; padding: 22px 20px 20px; max-width: 640px; margin: 0 auto; width: 100%; }
+  .intro-body .error-banner { max-width: none; padding: 0 0 14px; }
+  .intro-loading { color: var(--ink-soft); font-size: 14px; padding: 8px 0; }
+  .intro-blurb { color: var(--ink-soft); font-size: 15px; margin: 0 0 26px; }
+  .intro-section-label {
+    font-family: 'Bricolage Grotesque', sans-serif; font-size: 12.5px; font-weight: 700; color: var(--ink-soft);
+    text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 10px;
+  }
+  .intro-objectives { list-style: none; margin: 0 0 28px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .intro-objectives li {
+    display: flex; align-items: center; gap: 10px; font-size: 14.5px; font-weight: 600;
+    padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 12px; background: var(--surface);
+  }
+  .intro-objectives li::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0;
+  }
+  .intro-phrases { display: flex; flex-direction: column; gap: 6px; }
+  .intro-phrase-item {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 9px 13px; font-size: 13.5px;
+  }
+  .intro-phrase-item .phrase-native { font-weight: 600; }
+  .intro-phrase-item .phrase-en { color: var(--ink-soft); font-size: 12.5px; flex-shrink: 0; text-align: right; }
+  .intro-footer { padding: 16px 20px; border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; max-width: 640px; margin: 0 auto; width: 100%; }
+  .start-btn {
+    width: 100%; background: var(--accent); color: var(--accent-ink); border: none; border-radius: 12px;
+    padding: 13px 18px; font-weight: 700; font-size: 15px; cursor: pointer; font-family: inherit;
+  }
+  .start-btn:disabled { opacity: 0.5; cursor: default; }
+
+  /* -------- Objectives checklist (inside the chat) -------- */
+  .objectives-card { border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+  .objectives-card-header {
+    display: flex; align-items: center; gap: 10px; width: 100%; max-width: 640px; margin: 0 auto;
+    background: none; border: none; cursor: pointer; padding: 12px 20px; font-family: inherit; text-align: left;
+  }
+  .objectives-card-title { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 13.5px; }
+  .objectives-card-frac { font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; margin-right: auto; }
+  .objectives-chevron { color: var(--ink-soft); font-size: 11px; transition: transform 0.15s ease; }
+  .objectives-card.collapsed .objectives-chevron { transform: rotate(-90deg); }
+  .objectives-list {
+    list-style: none; margin: 0 auto; padding: 0 20px 14px; max-width: 640px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .objectives-card.collapsed .objectives-list { display: none; }
+  .objective-item {
+    display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--ink-soft);
+  }
+  .objective-check {
+    width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--border); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 11px; color: transparent;
+  }
+  .objective-item.done { color: var(--ink); }
+  .objective-item.done .objective-check { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .objectives-phrases {
+    margin: 0 auto; padding: 0 20px 14px; max-width: 640px;
+    display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--border); padding-top: 12px;
+  }
+  .objectives-card.collapsed .objectives-phrases { display: none; }
+  .objectives-phrases:empty { display: none; border-top: none; padding-top: 0; }
+  .objectives-phrases-label {
+    font-family: 'Bricolage Grotesque', sans-serif; font-size: 11px; font-weight: 700; color: var(--ink-soft);
+    text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 2px;
+  }
+  .objectives-phrase-item {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 9px; padding: 7px 11px; font-size: 13px;
+  }
+  .objectives-phrase-item .phrase-native { font-weight: 600; }
+  .objectives-phrase-item .phrase-en { color: var(--ink-soft); font-size: 12px; flex-shrink: 0; text-align: right; }
 </style>
 </head>
 <body>
@@ -305,6 +378,30 @@
   </div>
 </div>
 
+<div id="introScreen" class="screen">
+  <div class="topbar">
+    <button class="back-btn" id="introBackBtn" aria-label="Back">←</button>
+    <div class="topbar-title">
+      <b id="introScenarioTitle">Scenario</b>
+      <span id="introLanguageLabel">Language</span>
+    </div>
+  </div>
+  <div class="intro-body">
+    <div class="error-banner" id="introErrorBanner"></div>
+    <p class="intro-loading" id="introLoading">Preparing your lesson…</p>
+    <div class="intro-content" id="introContent" style="display:none">
+      <p class="intro-blurb" id="introBlurb"></p>
+      <p class="intro-section-label">Your goals</p>
+      <ul class="intro-objectives" id="introObjectives"></ul>
+      <p class="intro-section-label">Useful phrases</p>
+      <div class="intro-phrases" id="introPhrases"></div>
+    </div>
+  </div>
+  <div class="intro-footer">
+    <button class="start-btn" id="startLessonBtn" disabled>Start lesson</button>
+  </div>
+</div>
+
 <div id="chatScreen" class="screen">
   <div class="topbar">
     <button class="back-btn" id="backBtn" aria-label="Back">←</button>
@@ -320,6 +417,15 @@
       <button class="lookup-submit" id="lookupSubmitBtn">Search</button>
     </div>
     <div class="lookup-results" id="lookupResults"></div>
+  </div>
+  <div class="objectives-card" id="objectivesCard" style="display:none">
+    <button class="objectives-card-header" id="objectivesToggleBtn">
+      <span class="objectives-card-title">Lesson goals</span>
+      <span class="objectives-card-frac" id="objectivesFrac"></span>
+      <span class="objectives-chevron">▾</span>
+    </button>
+    <ul class="objectives-list" id="objectivesList"></ul>
+    <div class="objectives-phrases" id="objectivesPhrases"></div>
   </div>
   <div class="error-banner" id="errorBanner"></div>
   <div class="chat-log" id="chatLog"></div>
@@ -354,13 +460,37 @@
   let userMessageCount = 0;
   let lookupSending = false;
 
+  // Lesson intro + objectives tracking
+  let introLesson = null; // the lesson currently shown on the intro screen
+  let introObjectives = []; // objectives fetched for introLesson, passed to startConversation on "Start"
+  let introKeyPhrases = []; // key phrases fetched for introLesson, passed to startConversation on "Start"
+  let currentObjectives = []; // objectives for the ACTIVE lesson (empty once the objectives card is dismissed/not applicable)
+  let currentKeyPhrases = []; // key phrases for the ACTIVE lesson — kept visible during the chat, not just on the intro screen
+  let completedObjectiveIndices = []; // cumulative, as reported by the server each /converse turn
+
   const homeScreen = document.getElementById("homeScreen");
+  const introScreen = document.getElementById("introScreen");
   const chatScreen = document.getElementById("chatScreen");
   const langSelectEl = document.getElementById("langSelect");
   const tierNavEl = document.getElementById("tierNav");
   const mainTierTitleEl = document.getElementById("mainTierTitle");
   const mainTierFracEl = document.getElementById("mainTierFrac");
   const lessonRowsEl = document.getElementById("lessonRows");
+  const introBackBtn = document.getElementById("introBackBtn");
+  const introScenarioTitleEl = document.getElementById("introScenarioTitle");
+  const introLanguageLabelEl = document.getElementById("introLanguageLabel");
+  const introErrorBanner = document.getElementById("introErrorBanner");
+  const introLoadingEl = document.getElementById("introLoading");
+  const introContentEl = document.getElementById("introContent");
+  const introBlurbEl = document.getElementById("introBlurb");
+  const introObjectivesEl = document.getElementById("introObjectives");
+  const introPhrasesEl = document.getElementById("introPhrases");
+  const startLessonBtn = document.getElementById("startLessonBtn");
+  const objectivesCardEl = document.getElementById("objectivesCard");
+  const objectivesToggleBtn = document.getElementById("objectivesToggleBtn");
+  const objectivesFracEl = document.getElementById("objectivesFrac");
+  const objectivesListEl = document.getElementById("objectivesList");
+  const objectivesPhrasesEl = document.getElementById("objectivesPhrases");
   const chatLogEl = document.getElementById("chatLog");
   const lookupToggleBtn = document.getElementById("lookupToggleBtn");
   const lookupPanel = document.getElementById("lookupPanel");
@@ -497,7 +627,7 @@
     const btn = e.target.closest(".lesson-row");
     if (!btn || btn.disabled) return;
     const lesson = PATH.find(l => l.id === btn.dataset.lesson);
-    if (lesson) startConversation(lesson);
+    if (lesson) openIntro(lesson);
   });
 
   document.getElementById("backBtn").addEventListener("click", () => {
@@ -506,8 +636,123 @@
     renderHome(); // reflect any lesson just completed / newly unlocked
   });
 
-  function startConversation(lesson) {
+  // -------- Lesson intro screen (goal + key phrases, shown before the chat) --------
+  function showIntroError(msg) {
+    introErrorBanner.textContent = msg;
+    introErrorBanner.classList.add("shown");
+  }
+  function hideIntroError() {
+    introErrorBanner.classList.remove("shown");
+  }
+
+  function renderIntroContent(objectives, keyPhrases) {
+    introObjectivesEl.innerHTML = objectives.map(o => `<li>${o}</li>`).join("");
+    introPhrasesEl.innerHTML = keyPhrases.map(item => `
+      <div class="intro-phrase-item">
+        <span class="phrase-native">${item.phrase}</span>
+        <span class="phrase-en">${item.translation}</span>
+      </div>`).join("");
+  }
+
+  async function openIntro(lesson) {
+    introLesson = lesson;
+    introObjectives = [];
+    introKeyPhrases = [];
+    introScenarioTitleEl.textContent = `${lesson.icon} ${lesson.title}`;
+    introLanguageLabelEl.textContent = `Practicing ${selectedLanguage}`;
+    introBlurbEl.textContent = lesson.blurb;
+    introContentEl.style.display = "none";
+    introLoadingEl.style.display = "block";
+    introLoadingEl.textContent = "Preparing your lesson…";
+    hideIntroError();
+    startLessonBtn.disabled = true;
+    startLessonBtn.textContent = "Start lesson";
+    startLessonBtn.onclick = null;
+
+    homeScreen.classList.remove("active");
+    introScreen.classList.add("active");
+
+    try {
+      const res = await fetch(`${API_BASE}/lesson-intro`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scenarioId: lesson.id, language: selectedLanguage })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Couldn't prepare this lesson.");
+      }
+
+      introObjectives = Array.isArray(data.objectives) ? data.objectives : [];
+      introKeyPhrases = Array.isArray(data.keyPhrases) ? data.keyPhrases : [];
+      renderIntroContent(introObjectives, introKeyPhrases);
+      introLoadingEl.style.display = "none";
+      introContentEl.style.display = "block";
+      startLessonBtn.disabled = false;
+      startLessonBtn.onclick = () => {
+        introScreen.classList.remove("active");
+        startConversation(lesson, introObjectives, introKeyPhrases);
+      };
+
+    } catch (err) {
+      introLoadingEl.style.display = "none";
+      showIntroError(err.message || "Couldn't prepare this lesson. Please try again.");
+      // Don't let a flaky /lesson-intro call block practice entirely — let
+      // the learner start without goals if they'd rather not wait/retry.
+      startLessonBtn.disabled = false;
+      startLessonBtn.textContent = "Start without goals";
+      startLessonBtn.onclick = () => {
+        introScreen.classList.remove("active");
+        startConversation(lesson, [], []);
+      };
+    }
+  }
+
+  introBackBtn.addEventListener("click", () => {
+    introScreen.classList.remove("active");
+    homeScreen.classList.add("active");
+  });
+
+  // -------- Objectives + key phrases (rendered inside the chat) --------
+  // Key phrases are shown here too, not just on the intro screen — for an
+  // Intro-tier lesson especially, once you're mid-chat you need somewhere to
+  // glance back at the exact words you were just taught.
+  function renderObjectivesCard() {
+    if (!currentObjectives.length && !currentKeyPhrases.length) {
+      objectivesCardEl.style.display = "none";
+      return;
+    }
+    objectivesCardEl.style.display = "block";
+    objectivesFracEl.textContent = currentObjectives.length
+      ? `${completedObjectiveIndices.length}/${currentObjectives.length}`
+      : "";
+    objectivesListEl.innerHTML = currentObjectives.map((o, i) => {
+      const done = completedObjectiveIndices.includes(i);
+      return `
+        <li class="objective-item${done ? " done" : ""}">
+          <span class="objective-check">${done ? "✓" : ""}</span>
+          <span>${o}</span>
+        </li>`;
+    }).join("");
+    objectivesPhrasesEl.innerHTML = currentKeyPhrases.length ? `
+      <p class="objectives-phrases-label">Phrases to use</p>
+      ${currentKeyPhrases.map(item => `
+        <div class="objectives-phrase-item">
+          <span class="phrase-native">${item.phrase}</span>
+          <span class="phrase-en">${item.translation}</span>
+        </div>`).join("")}
+    ` : "";
+  }
+
+  objectivesToggleBtn.addEventListener("click", () => {
+    objectivesCardEl.classList.toggle("collapsed");
+  });
+
+  function startConversation(lesson, objectives, keyPhrases) {
     currentScenario = lesson;
+    currentObjectives = objectives || [];
+    currentKeyPhrases = keyPhrases || [];
+    completedObjectiveIndices = [];
     history = [];
     userMessageCount = 0;
     chatLogEl.innerHTML = "";
@@ -516,6 +761,8 @@
     lookupToggleBtn.classList.remove("active");
     lookupInput.value = "";
     lookupResultsEl.innerHTML = "";
+    objectivesCardEl.classList.remove("collapsed");
+    renderObjectivesCard();
     chatScenarioTitleEl.textContent = `${lesson.icon} ${lesson.title}`;
     chatLanguageLabelEl.textContent = `Practicing ${selectedLanguage}`;
     homeScreen.classList.remove("active");
@@ -619,7 +866,8 @@
           scenarioId: currentScenario.id,
           language: selectedLanguage,
           history,
-          message: text
+          message: text,
+          objectives: currentObjectives
         })
       });
       const data = await res.json();
@@ -630,13 +878,23 @@
         return;
       }
 
+      if (Array.isArray(data.completedObjectives)) {
+        completedObjectiveIndices = data.completedObjectives;
+        renderObjectivesCard();
+      }
+
       let justCompleted = false;
       if (!opts.silent) {
         history.push({ role: "user", content: text });
         trackEvent("message_sent", { scenario: currentScenario.id, language: selectedLanguage });
         userMessageCount++;
         const alreadyDone = getCompletedLessons(selectedLanguage).includes(currentScenario.id);
-        if (!alreadyDone && userMessageCount >= LESSON_COMPLETE_AFTER) {
+        // A lesson finishes either by hitting all of its objectives, or by
+        // the message-count fallback — whichever happens first. The fallback
+        // keeps things moving if the learner takes the conversation somewhere
+        // the objectives don't quite anticipate.
+        const allObjectivesDone = currentObjectives.length > 0 && completedObjectiveIndices.length >= currentObjectives.length;
+        if (!alreadyDone && (allObjectivesDone || userMessageCount >= LESSON_COMPLETE_AFTER)) {
           markLessonComplete(selectedLanguage, currentScenario.id);
           trackEvent("lesson_completed", { scenario: currentScenario.id, language: selectedLanguage });
           justCompleted = true;
@@ -721,7 +979,12 @@
       text.textContent = `Practice this in "${data.suggestedLesson.icon} ${data.suggestedLesson.title}"`;
       const btn = document.createElement("button");
       btn.textContent = "Go to lesson";
-      btn.addEventListener("click", () => startConversation(data.suggestedLesson));
+      btn.addEventListener("click", () => {
+        // data.suggestedLesson is a slim {id, tier, title, icon} from /lookup —
+        // resolve the full lesson (with blurb) from PATH before opening the intro.
+        const fullLesson = PATH.find(l => l.id === data.suggestedLesson.id);
+        if (fullLesson) openIntro(fullLesson);
+      });
       sugg.appendChild(text);
       sugg.appendChild(btn);
       lookupResultsEl.appendChild(sugg);

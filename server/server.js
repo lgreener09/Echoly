@@ -62,6 +62,17 @@ const lookupLimiter = rateLimit({
     message: { error: "Too many lookups recently. Please wait a few minutes and try again." }
 });
 
+// /lesson-intro is called once per lesson entry (same frequency as starting
+// a conversation), so it shares conversationLimiter's cap rather than
+// getting a tighter one.
+const introLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many lessons opened recently. Please wait a few minutes and try again." }
+});
+
 // Serves the frontend (index.html, one level up from this server/ folder)
 // from this same Express app — one service, one URL, no CORS setup needed
 // between two different domains. Locally, open http://localhost:3000 during
@@ -78,8 +89,99 @@ app.use(express.static(path.join(__dirname, "..")));
 // here, not building out new screens or content.
 // Ordered as a single progression path — index order matters here (it's
 // mirrored in index.html's PATH array) since lessons unlock sequentially,
-// one at a time, grouped visually into three difficulty tiers.
+// one at a time, grouped visually into four tiers: Intro, Beginner,
+// Intermediate, Advanced.
+//
+// The "Intro" tier exists for learners who don't know any of the language
+// yet — a roleplay scenario (order coffee, book a hotel room) doesn't work
+// if you have zero vocabulary to start from. These aren't roleplay so much
+// as short, guided vocabulary primers: the "character" is a patient tutor
+// rather than a barista/clerk/etc, and buildSystemPrompt below gives Intro
+// lessons extra instructions to always hand the learner the exact phrase to
+// try next (see isIntro below) rather than expecting them to produce
+// language from nothing. They come first in the path, so a brand new
+// learner works through these before unlocking the roleplay scenarios.
 const SCENARIOS = {
+    greetings_farewells: {
+        tier: "Intro",
+        title: "Greetings & Farewells",
+        blurb: "Learn how to say hello and goodbye.",
+        icon: "👋",
+        character: "a warm, patient language tutor giving the learner their very first words",
+        opening: "warmly welcome the learner, teach them a simple way to say hello, and invite them to try it back"
+    },
+    yes_no_please_thanks: {
+        tier: "Intro",
+        title: "Yes, No, Please, Thank You",
+        blurb: "The small words you'll use constantly in almost every conversation.",
+        icon: "🙏",
+        character: "a warm, patient language tutor teaching the most essential everyday words",
+        opening: "greet the learner briefly, then teach them how to say \"yes\" and invite them to try it"
+    },
+    introduce_yourself_basics: {
+        tier: "Intro",
+        title: "Introduce Yourself",
+        blurb: "Say your name and where you're from.",
+        icon: "🙋",
+        character: "a warm, patient language tutor helping the learner introduce themselves for the first time",
+        opening: "greet the learner and teach them a simple phrase for saying their own name"
+    },
+    numbers_basics: {
+        tier: "Intro",
+        title: "Numbers 1–20",
+        blurb: "Count and use numbers in everyday situations.",
+        icon: "🔢",
+        character: "a warm, patient language tutor teaching numbers one at a time",
+        opening: "greet the learner and teach them how to count to three, then invite them to try"
+    },
+    how_are_you_basics: {
+        tier: "Intro",
+        title: "Asking How Someone Is",
+        blurb: "Ask how someone's doing, and answer when they ask you.",
+        icon: "😊",
+        character: "a warm, patient language tutor teaching a common everyday exchange",
+        opening: "greet the learner and teach them how to ask someone how they're doing"
+    },
+    question_words_basics: {
+        tier: "Intro",
+        title: "Common Question Words",
+        blurb: "Who, what, where, when, why, how — the words that unlock almost any conversation.",
+        icon: "❓",
+        character: "a warm, patient language tutor teaching the core question words one at a time",
+        opening: "greet the learner and teach them the word for \"what\", then invite them to try it"
+    },
+    days_of_week_basics: {
+        tier: "Intro",
+        title: "Days of the Week",
+        blurb: "Talk about today, tomorrow, and the days of the week.",
+        icon: "📅",
+        character: "a warm, patient language tutor teaching the days of the week",
+        opening: "greet the learner and teach them the word for \"today\""
+    },
+    basic_adjectives: {
+        tier: "Intro",
+        title: "Describing Things",
+        blurb: "Common describing words like good, bad, big, and small.",
+        icon: "🎨",
+        character: "a warm, patient language tutor teaching simple describing words",
+        opening: "greet the learner and teach them the word for \"good\", then invite them to try it"
+    },
+    family_members_basics: {
+        tier: "Intro",
+        title: "Family Members",
+        blurb: "Talk about your family — mother, father, sibling, and more.",
+        icon: "👪",
+        character: "a warm, patient language tutor teaching family vocabulary",
+        opening: "greet the learner and teach them the word for \"mother\", then invite them to try it"
+    },
+    asking_for_help_basics: {
+        tier: "Intro",
+        title: "Asking for Help",
+        blurb: "Say you don't understand and ask someone to slow down or repeat themselves.",
+        icon: "🆘",
+        character: "a warm, patient language tutor teaching phrases every beginner needs early on",
+        opening: "greet the learner and teach them how to say \"I don't understand\""
+    },
     cafe_order: {
         tier: "Beginner",
         title: "Order a coffee",
@@ -813,7 +915,26 @@ const LANGUAGES = [
     "Greek", "Turkish", "Polish", "Swedish", "Vietnamese", "Thai", "Indonesian", "Hebrew"
 ];
 
-function buildSystemPrompt(language, scenario) {
+// `objectives` (from /lesson-intro, echoed back by the client on every
+// /converse call) turns this from an open-ended chat into something with a
+// goal: the model is asked to grade the learner's progress against them each
+// turn, not just reply in character.
+function buildSystemPrompt(language, scenario, objectives) {
+    const hasObjectives = Array.isArray(objectives) && objectives.length > 0;
+    const objectivesSection = hasObjectives
+        ? `\n\nThis conversation also has a short list of lesson objectives the learner is trying to accomplish:\n${objectives.map((o, i) => `${i}. ${o}`).join("\n")}\nAfter the learner's latest message, and considering the whole conversation so far (not just this one message), decide which of these objectives (by their 0-based index above) have now been reasonably satisfied — be a little generous about it, not a strict grader; near enough counts. Once an objective is satisfied, keep including its index in every later turn too, even if the conversation has moved on. Put the full, cumulative list of satisfied indices in "completedObjectives" (empty array if none yet).`
+        : `\n\nThere are no lesson objectives being tracked for this conversation — always return an empty array for "completedObjectives".`;
+
+    // Intro-tier lessons are for someone who may know zero words of the
+    // language yet — a normal roleplay turn (where the learner is expected to
+    // produce a reply on their own) doesn't work for them. So instead of the
+    // usual "correct them after the fact" coaching, the tutor hands over the
+    // exact phrase to try BEFORE expecting a response, every single turn.
+    const isIntro = scenario.tier === "Intro";
+    const introGuidance = isIntro
+        ? `\n\nThis is a BASICS lesson — assume the learner may not know any ${language} yet. This overrides the usual "tip" rules above: every turn in this lesson, including the very first ("__START__") turn, use "tip" to explicitly hand them the next phrase to try — the exact ${language} phrase plus its English meaning, e.g. "Try saying: ¡Hola! — it means Hello." Never leave "tip" empty in this lesson, not even on a good attempt or the first turn — there should always be a next phrase to try. Keep "reply" itself very short and simple, and be warm and encouraging about any attempt, even an imperfect one.`
+        : "";
+
     return `You are roleplaying as ${scenario.character}, to help someone practice having a real, natural conversation in ${language}. Scenario: ${scenario.blurb}
 
 Rules for every turn:
@@ -821,7 +942,7 @@ Rules for every turn:
 - "replyTranslation" is a plain English translation of exactly what you wrote in "reply", so the learner can check their understanding. Never put English in "reply" itself.
 - Look at the learner's last message (in ${language}). If anything was unnatural, grammatically off, or not how a native speaker would actually say it, put ONE short, specific, encouraging coaching note in "tip" (English, max 2 sentences) — show what they said and a more natural way to say it. If their message was already good, or this is the very first turn, leave "tip" as an empty string. Never put coaching inside "reply" — that field is 100% in-character.
 - If the learner writes in English or seems stuck, stay in character in ${language} but simplify your reply, and use "tip" to gently suggest a phrase they could use.
-- The learner's message will be exactly "__START__" only to signal the very start of the conversation — when you see that, ${scenario.opening}, as your character naturally would, and leave "tip" empty. Never mention "__START__" or break character to acknowledge it.`;
+- The learner's message will be exactly "__START__" only to signal the very start of the conversation — when you see that, ${scenario.opening}, as your character naturally would, and leave "tip" empty. Never mention "__START__" or break character to acknowledge it.${introGuidance}${objectivesSection}`;
 }
 
 const CONVERSATION_JSON_SCHEMA = {
@@ -833,9 +954,58 @@ const CONVERSATION_JSON_SCHEMA = {
         properties: {
             reply: { type: "string" },
             replyTranslation: { type: "string" },
-            tip: { type: "string" }
+            tip: { type: "string" },
+            completedObjectives: { type: "array", items: { type: "integer" } }
         },
-        required: ["reply", "replyTranslation", "tip"],
+        required: ["reply", "replyTranslation", "tip", "completedObjectives"],
+        additionalProperties: false
+    }
+};
+
+// ==============================
+// Lesson intro
+// ==============================
+// Generated once, right before a lesson starts, so the learner sees a goal
+// and a few useful phrases before diving into an open chat — rather than
+// tapping a lesson and landing straight in a blank conversation. Objectives
+// are generated here (not stored per-scenario) for the same reason
+// buildSystemPrompt generates dialogue dynamically: no per-scenario,
+// per-language content to hand-author and keep in sync across 90 lessons.
+function buildLessonIntroPrompt(language, scenario) {
+    if (scenario.tier === "Intro") {
+        return `The learner is an absolute beginner about to learn some of their very first words of ${language}, on this topic: ${scenario.blurb}
+
+- "objectives": exactly 3 short, concrete goals for this lesson (in English, each under 8 words, phrased like a checklist item) — focused on LEARNING and trying out new words on this topic, not on accomplishing a task (e.g. "Learn to say hello", "Learn to say goodbye", "Try greeting the tutor").
+- "keyPhrases": 5 to 8 essential ${language} words or phrases for this specific topic, each with its plain English translation — exactly the vocabulary this lesson is meant to teach, simple and commonly used, ordered from most to least essential.`;
+    }
+    return `The learner is about to practice this scenario in ${language}: ${scenario.blurb} They'll be roleplaying with ${scenario.character}.
+
+- "objectives": exactly 3 short, concrete goals for what the learner should try to accomplish during this conversation (in English, each under 8 words, phrased like a checklist item — e.g. "Greet the barista", "Order a drink", "Ask the price"). Make them specific to this scenario, not generic filler.
+- "keyPhrases": 4 to 6 short, useful phrases in ${language} the learner will likely want for this scenario, each with its plain English translation — natural, everyday phrasing a native speaker would actually use, not textbook-formal.`;
+}
+
+const LESSON_INTRO_JSON_SCHEMA = {
+    type: "json_schema",
+    name: "lesson_intro",
+    strict: true,
+    schema: {
+        type: "object",
+        properties: {
+            objectives: { type: "array", items: { type: "string" } },
+            keyPhrases: {
+                type: "array",
+                items: {
+                    type: "object",
+                    properties: {
+                        phrase: { type: "string" },
+                        translation: { type: "string" }
+                    },
+                    required: ["phrase", "translation"],
+                    additionalProperties: false
+                }
+            }
+        },
+        required: ["objectives", "keyPhrases"],
         additionalProperties: false
     }
 };
@@ -948,7 +1118,7 @@ app.get("/scenarios", (req, res) => {
 // empty history.
 app.post("/converse", conversationLimiter, async (req, res) => {
     try {
-        const { scenarioId, language, history, message } = req.body;
+        const { scenarioId, language, history, message, objectives } = req.body;
 
         const scenario = SCENARIOS[scenarioId];
         if (!scenario) {
@@ -975,10 +1145,17 @@ app.post("/converse", conversationLimiter, async (req, res) => {
             .slice(-20) // keep the request small; recent context is what matters for a natural reply
             .map(turn => ({ role: turn.role, content: turn.content }));
 
+        // Echoed back by the client from /lesson-intro — sanitized here since
+        // it's client-supplied. Capped to a sane length; the app only ever
+        // sends 3, this just guards against a malformed request.
+        const safeObjectives = Array.isArray(objectives)
+            ? objectives.filter(o => typeof o === "string").slice(0, 10)
+            : [];
+
         const response = await getClient().responses.create({
             model: MODEL,
             input: [
-                { role: "system", content: buildSystemPrompt(language, scenario) },
+                { role: "system", content: buildSystemPrompt(language, scenario, safeObjectives) },
                 ...historyInput,
                 { role: "user", content: message }
             ],
@@ -992,6 +1169,51 @@ app.post("/converse", conversationLimiter, async (req, res) => {
         console.error(error);
         res.status(500).json({
             error: "Couldn't get a reply: " + (error.message || "unknown error")
+        });
+    }
+});
+
+// ==============================
+// Lesson intro — real OpenAI call
+// ==============================
+// Called once, right when the learner taps into a lesson (before the chat
+// starts): returns the goal checklist and a handful of useful phrases so the
+// intro screen has something to show. See buildLessonIntroPrompt above for
+// why this is generated per-request rather than stored per-scenario.
+app.post("/lesson-intro", introLimiter, async (req, res) => {
+    try {
+        const { scenarioId, language } = req.body;
+
+        const scenario = SCENARIOS[scenarioId];
+        if (!scenario) {
+            return res.status(400).json({ error: "Unknown scenario." });
+        }
+        if (!LANGUAGES.includes(language)) {
+            return res.status(400).json({ error: "Unsupported language." });
+        }
+
+        if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.startsWith("YOUR_")) {
+            return res.status(500).json({
+                error: "OPENAI_API_KEY is missing or still the placeholder value in server/.env."
+            });
+        }
+
+        const response = await getClient().responses.create({
+            model: MODEL,
+            input: [
+                { role: "system", content: buildLessonIntroPrompt(language, scenario) },
+                { role: "user", content: "Generate the lesson intro." }
+            ],
+            text: { format: LESSON_INTRO_JSON_SCHEMA }
+        });
+
+        const result = JSON.parse(response.output_text);
+        res.json({ success: true, ...result });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            error: "Couldn't prepare this lesson: " + (error.message || "unknown error")
         });
     }
 });
