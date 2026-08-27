@@ -103,6 +103,23 @@
   .sidebar-brand { display: flex; align-items: center; gap: 8px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
   .sidebar-tagline { font-size: 12.5px; color: rgba(242,236,230,0.65); margin: 8px 0 22px; line-height: 1.4; }
 
+  .streak-card { background: var(--plum-soft); border-radius: 14px; padding: 14px; margin-bottom: 22px; }
+  .streak-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .streak-flame { font-size: 24px; opacity: 0.35; filter: grayscale(1); transition: opacity 0.2s ease, filter 0.2s ease; }
+  .streak-flame.streak-flame--lit { opacity: 1; filter: none; }
+  .streak-top-text { display: flex; flex-direction: column; line-height: 1.2; }
+  .streak-count { font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; font-weight: 800; }
+  .streak-label { font-size: 11.5px; color: rgba(242,236,230,0.65); }
+  .streak-goal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; gap: 8px; }
+  .streak-goal-frac { font-size: 11.5px; color: rgba(242,236,230,0.75); font-variant-numeric: tabular-nums; }
+  .streak-goal-select {
+    appearance: none; -webkit-appearance: none; background: rgba(255,255,255,0.08); color: rgba(242,236,230,0.85);
+    border: none; border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 600; font-family: inherit; cursor: pointer;
+  }
+  .streak-goal-select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .streak-goal-track { height: 5px; border-radius: 999px; background: rgba(255,255,255,0.14); overflow: hidden; }
+  .streak-goal-fill { height: 100%; background: #f5a623; border-radius: 999px; transition: width 0.3s ease; }
+
   .lang-select-wrap { display: block; margin-bottom: 24px; }
   .lang-select-label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.55; margin-bottom: 6px; }
   .lang-select {
@@ -482,6 +499,28 @@
       </span>
       <p class="sidebar-tagline">Practice real conversations, not word lists.</p>
 
+      <div class="streak-card" id="streakCard">
+        <div class="streak-top">
+          <span class="streak-flame" id="streakFlameIcon">🔥</span>
+          <div class="streak-top-text">
+            <span class="streak-count" id="streakCount">0</span>
+            <span class="streak-label">day streak</span>
+          </div>
+        </div>
+        <div class="streak-goal">
+          <div class="streak-goal-header">
+            <span class="streak-goal-frac" id="streakGoalFrac">0/1 today</span>
+            <select class="streak-goal-select" id="streakGoalSelect" aria-label="Daily goal">
+              <option value="1">1/day</option>
+              <option value="2">2/day</option>
+              <option value="3">3/day</option>
+              <option value="5">5/day</option>
+            </select>
+          </div>
+          <div class="streak-goal-track"><div class="streak-goal-fill" id="streakGoalFill"></div></div>
+        </div>
+      </div>
+
       <label class="lang-select-wrap">
         <span class="lang-select-label">Language</span>
         <select class="lang-select" id="langSelect"></select>
@@ -649,6 +688,11 @@
   const introScreen = document.getElementById("introScreen");
   const chatScreen = document.getElementById("chatScreen");
   const langSelectEl = document.getElementById("langSelect");
+  const streakFlameIconEl = document.getElementById("streakFlameIcon");
+  const streakCountEl = document.getElementById("streakCount");
+  const streakGoalFracEl = document.getElementById("streakGoalFrac");
+  const streakGoalSelectEl = document.getElementById("streakGoalSelect");
+  const streakGoalFillEl = document.getElementById("streakGoalFill");
   const tierNavEl = document.getElementById("tierNav");
   const mainTierTitleEl = document.getElementById("mainTierTitle");
   const mainTierFracEl = document.getElementById("mainTierFrac");
@@ -725,6 +769,91 @@
       saveAllProgress(all);
     }
   }
+
+  // ---------- Streaks + daily goal (global across all languages, stored in this browser only) ----------
+  const STREAK_KEY = "echoly_streak_v1";
+  const DEFAULT_DAILY_GOAL = 1;
+
+  function todayDateStr() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  function daysBetween(dateStrA, dateStrB) {
+    const a = new Date(dateStrA + "T00:00:00");
+    const b = new Date(dateStrB + "T00:00:00");
+    return Math.round((b - a) / 86400000);
+  }
+  function loadStreakData() {
+    try {
+      const raw = localStorage.getItem(STREAK_KEY);
+      const data = raw ? JSON.parse(raw) : {};
+      return {
+        lastActiveDate: data.lastActiveDate || null,
+        currentStreak: typeof data.currentStreak === "number" ? data.currentStreak : 0,
+        longestStreak: typeof data.longestStreak === "number" ? data.longestStreak : 0,
+        todayCount: typeof data.todayCount === "number" ? data.todayCount : 0,
+        dailyGoal: (typeof data.dailyGoal === "number" && data.dailyGoal > 0) ? data.dailyGoal : DEFAULT_DAILY_GOAL
+      };
+    } catch (e) {
+      return { lastActiveDate: null, currentStreak: 0, longestStreak: 0, todayCount: 0, dailyGoal: DEFAULT_DAILY_GOAL };
+    }
+  }
+  function saveStreakData(data) {
+    try { localStorage.setItem(STREAK_KEY, JSON.stringify(data)); } catch (e) { /* non-fatal */ }
+  }
+  // Called once per completed lesson (any language). A streak is about
+  // showing up daily, not any one language, so it's tracked globally rather
+  // than per-language like lesson progress is.
+  function recordDailyActivity() {
+    const data = loadStreakData();
+    const today = todayDateStr();
+    if (data.lastActiveDate === today) {
+      data.todayCount += 1;
+    } else {
+      const gap = data.lastActiveDate ? daysBetween(data.lastActiveDate, today) : null;
+      data.currentStreak = (gap === 1) ? data.currentStreak + 1 : 1;
+      data.todayCount = 1;
+      data.lastActiveDate = today;
+    }
+    data.longestStreak = Math.max(data.longestStreak, data.currentStreak);
+    saveStreakData(data);
+    return data;
+  }
+  // Read-only view for rendering — reflects a gap since the last visit
+  // immediately, without waiting for the next lesson completion to actually
+  // reset the stored streak.
+  function getDisplayStreakData() {
+    const data = loadStreakData();
+    if (!data.lastActiveDate) return Object.assign({}, data, { currentStreak: 0, todayCount: 0 });
+    const gap = daysBetween(data.lastActiveDate, todayDateStr());
+    if (gap === 0) return data; // already active today
+    if (gap === 1) return Object.assign({}, data, { todayCount: 0 }); // streak still alive, nothing done today yet
+    return Object.assign({}, data, { currentStreak: 0, todayCount: 0 }); // gap too big — streak broken
+  }
+  function setDailyGoal(n) {
+    const data = loadStreakData();
+    data.dailyGoal = n;
+    saveStreakData(data);
+  }
+
+  function renderStreakCard() {
+    const data = getDisplayStreakData();
+    streakCountEl.textContent = data.currentStreak;
+    streakFlameIconEl.classList.toggle("streak-flame--lit", data.currentStreak > 0);
+    const doneToday = Math.min(data.todayCount, data.dailyGoal);
+    streakGoalFracEl.textContent = `${doneToday}/${data.dailyGoal} today`;
+    streakGoalFillEl.style.width = `${Math.round((doneToday / data.dailyGoal) * 100)}%`;
+    streakGoalSelectEl.value = String(data.dailyGoal);
+  }
+
+  streakGoalSelectEl.addEventListener("change", () => {
+    setDailyGoal(Number(streakGoalSelectEl.value));
+    renderStreakCard();
+  });
+
   function getNodeState(index, completed) {
     const lesson = PATH[index];
     if (completed.includes(lesson.id)) return "completed";
@@ -1337,10 +1466,12 @@
     scrollToBottom();
   }
 
-  function addCompletionBanner() {
+  function addCompletionBanner(streakIncreased, streakCount) {
     const div = document.createElement("div");
     div.className = "completion-banner";
-    div.textContent = "🎉 Lesson complete — next one unlocked!";
+    div.textContent = streakIncreased
+      ? `🎉 Lesson complete — next one unlocked! 🔥 ${streakCount} day streak!`
+      : "🎉 Lesson complete — next one unlocked!";
     chatLogEl.appendChild(div);
     scrollToBottom();
   }
@@ -1409,6 +1540,8 @@
       }
 
       let justCompleted = false;
+      let streakIncreased = false;
+      let streakAfter = 0;
       if (!opts.silent) {
         history.push({ role: "user", content: text });
         trackEvent("message_sent", { scenario: currentScenario.id, language: selectedLanguage });
@@ -1423,11 +1556,16 @@
           markLessonComplete(selectedLanguage, currentScenario.id);
           trackEvent("lesson_completed", { scenario: currentScenario.id, language: selectedLanguage });
           justCompleted = true;
+          const streakBefore = getDisplayStreakData().currentStreak;
+          const streakData = recordDailyActivity();
+          renderStreakCard();
+          streakAfter = streakData.currentStreak;
+          streakIncreased = streakAfter > streakBefore;
         }
       }
       history.push({ role: "assistant", content: data.reply });
       addAiTurn(data.reply, data.replyTranslation, data.tip);
-      if (justCompleted) addCompletionBanner();
+      if (justCompleted) addCompletionBanner(streakIncreased, streakAfter);
 
     } catch (err) {
       hideTyping();
@@ -1568,6 +1706,7 @@
   });
 
   async function init() {
+    renderStreakCard(); // independent of the /scenarios fetch below — render it regardless
     try {
       const res = await fetch(`${API_BASE}/scenarios`);
       const data = await res.json();
