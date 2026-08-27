@@ -73,6 +73,16 @@ const introLimiter = rateLimit({
     message: { error: "Too many lessons opened recently. Please wait a few minutes and try again." }
 });
 
+// /lesson-practice is also called once per lesson entry (right alongside
+// /lesson-intro), so it gets the same cap.
+const practiceLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many practice rounds started recently. Please wait a few minutes and try again." }
+});
+
 // Serves the frontend (index.html, one level up from this server/ folder)
 // from this same Express app — one service, one URL, no CORS setup needed
 // between two different domains. Locally, open http://localhost:3000 during
@@ -1011,6 +1021,124 @@ const LESSON_INTRO_JSON_SCHEMA = {
 };
 
 // ==============================
+// Lesson practice round
+// ==============================
+// Generated once, right alongside the lesson intro, so the learner does a
+// short warm-up of structured exercises BEFORE the open-ended roleplay chat
+// — multiple choice, fill-in-the-blank, word-bank sentence building, true/
+// false, and matching, one of each so every lesson mixes it up rather than
+// being five multiple-choice questions in a row. Generated per-request for
+// the same reason buildLessonIntroPrompt is: no per-scenario, per-language
+// content to hand-author and keep in sync across 100 lessons.
+function buildLessonPracticePrompt(language, scenario) {
+    const isIntro = scenario.tier === "Intro";
+    const levelNote = isIntro
+        ? `The learner is an absolute beginner — keep every word and sentence extremely simple, using only vocabulary a total beginner would already have been taught for this exact topic.`
+        : `The learner already knows some ${language} — keep vocabulary and sentence complexity appropriate for a ${scenario.tier.toLowerCase()}-level learner.`;
+
+    return `Before roleplaying this scenario in ${language}, the learner does a short warm-up practice round testing vocabulary and phrases for this topic: ${scenario.blurb}
+${levelNote}
+
+Generate exactly 5 practice exercises, one of each of these types, in this exact order: "multiple_choice", "fill_blank", "word_bank", "true_false", "matching". Every exercise must be tightly focused on vocabulary and phrases relevant to this specific topic, and each exercise's "kind" field must be set to exactly the matching type name below.
+
+- multiple_choice: "prompt" is a short ${language} word or phrase. "options" is an array of exactly 4 short English translations, only one of which is correct. "correctIndex" is the 0-based index of the correct option.
+- fill_blank: "sentence" is a short ${language} sentence with exactly one blank shown as "___". "correctAnswer" is the single ${language} word or short phrase that correctly fills the blank. "translation" is the English translation of the complete, correct sentence.
+- word_bank: "englishPrompt" is a short English sentence. "words" is that sentence's ${language} translation split into individual words/tokens, given in SCRAMBLED (shuffled) order. "correctOrder" is an array of the same length giving the 0-based indices into "words" that puts them back into a grammatically correct ${language} sentence.
+- true_false: "statement" is one English sentence claiming that a specific ${language} word or phrase means something — sometimes make the claim true, sometimes false. "isTrue" is whether the claim is actually correct.
+- matching: "pairs" is an array of exactly 4 objects, each with a "term" (a ${language} word or phrase for this topic) and its "meaning" (the correct English translation).
+
+Every exercise also needs a short "instruction" field in plain English telling the learner what to do, e.g. "Choose the correct meaning", "Fill in the blank", "Put the words in order", "True or false?", "Match each word to its meaning".`;
+}
+
+const PRACTICE_JSON_SCHEMA = {
+    type: "json_schema",
+    name: "lesson_practice",
+    strict: true,
+    schema: {
+        type: "object",
+        properties: {
+            exercises: {
+                type: "array",
+                items: {
+                    anyOf: [
+                        {
+                            type: "object",
+                            properties: {
+                                kind: { type: "string", enum: ["multiple_choice"] },
+                                instruction: { type: "string" },
+                                prompt: { type: "string" },
+                                options: { type: "array", items: { type: "string" } },
+                                correctIndex: { type: "integer" }
+                            },
+                            required: ["kind", "instruction", "prompt", "options", "correctIndex"],
+                            additionalProperties: false
+                        },
+                        {
+                            type: "object",
+                            properties: {
+                                kind: { type: "string", enum: ["fill_blank"] },
+                                instruction: { type: "string" },
+                                sentence: { type: "string" },
+                                correctAnswer: { type: "string" },
+                                translation: { type: "string" }
+                            },
+                            required: ["kind", "instruction", "sentence", "correctAnswer", "translation"],
+                            additionalProperties: false
+                        },
+                        {
+                            type: "object",
+                            properties: {
+                                kind: { type: "string", enum: ["word_bank"] },
+                                instruction: { type: "string" },
+                                englishPrompt: { type: "string" },
+                                words: { type: "array", items: { type: "string" } },
+                                correctOrder: { type: "array", items: { type: "integer" } }
+                            },
+                            required: ["kind", "instruction", "englishPrompt", "words", "correctOrder"],
+                            additionalProperties: false
+                        },
+                        {
+                            type: "object",
+                            properties: {
+                                kind: { type: "string", enum: ["true_false"] },
+                                instruction: { type: "string" },
+                                statement: { type: "string" },
+                                isTrue: { type: "boolean" }
+                            },
+                            required: ["kind", "instruction", "statement", "isTrue"],
+                            additionalProperties: false
+                        },
+                        {
+                            type: "object",
+                            properties: {
+                                kind: { type: "string", enum: ["matching"] },
+                                instruction: { type: "string" },
+                                pairs: {
+                                    type: "array",
+                                    items: {
+                                        type: "object",
+                                        properties: {
+                                            term: { type: "string" },
+                                            meaning: { type: "string" }
+                                        },
+                                        required: ["term", "meaning"],
+                                        additionalProperties: false
+                                    }
+                                }
+                            },
+                            required: ["kind", "instruction", "pairs"],
+                            additionalProperties: false
+                        }
+                    ]
+                }
+            }
+        },
+        required: ["exercises"],
+        additionalProperties: false
+    }
+};
+
+// ==============================
 // Phrase lookup
 // ==============================
 // A learner can search any word, phrase, or saying while inside a lesson —
@@ -1214,6 +1342,52 @@ app.post("/lesson-intro", introLimiter, async (req, res) => {
         console.error(error);
         res.status(500).json({
             error: "Couldn't prepare this lesson: " + (error.message || "unknown error")
+        });
+    }
+});
+
+// ==============================
+// Lesson practice round — real OpenAI call
+// ==============================
+// Called once, right when the learner taps into a lesson (alongside
+// /lesson-intro): returns 5 short, mixed-format practice exercises the
+// learner works through before the open-ended roleplay chat starts. See
+// buildLessonPracticePrompt above for why this is generated per-request
+// rather than stored per-scenario.
+app.post("/lesson-practice", practiceLimiter, async (req, res) => {
+    try {
+        const { scenarioId, language } = req.body;
+
+        const scenario = SCENARIOS[scenarioId];
+        if (!scenario) {
+            return res.status(400).json({ error: "Unknown scenario." });
+        }
+        if (!LANGUAGES.includes(language)) {
+            return res.status(400).json({ error: "Unsupported language." });
+        }
+
+        if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.startsWith("YOUR_")) {
+            return res.status(500).json({
+                error: "OPENAI_API_KEY is missing or still the placeholder value in server/.env."
+            });
+        }
+
+        const response = await getClient().responses.create({
+            model: MODEL,
+            input: [
+                { role: "system", content: buildLessonPracticePrompt(language, scenario) },
+                { role: "user", content: "Generate the practice round." }
+            ],
+            text: { format: PRACTICE_JSON_SCHEMA }
+        });
+
+        const result = JSON.parse(response.output_text);
+        res.json({ success: true, exercises: result.exercises });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            error: "Couldn't prepare practice exercises: " + (error.message || "unknown error")
         });
     }
 });

@@ -128,6 +128,11 @@
   .tier-item-frac { font-size: 11.5px; opacity: 0.7; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .tier-bar-track { height: 5px; border-radius: 999px; background: rgba(255,255,255,0.14); overflow: hidden; }
   .tier-bar-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width 0.3s ease; }
+  /* Intro tier gets its own warm amber identity (matches --tip) instead of
+     coral, so the welcoming basics section reads as visually distinct from
+     the roleplay tiers. */
+  .tier-item--intro.selected { background: rgba(168,113,10,0.28); }
+  .tier-item--intro .tier-bar-fill { background: var(--tip); }
 
   .sidebar-footer { margin-top: auto; padding-top: 20px; display: flex; flex-direction: column; gap: 8px; }
   .sidebar-footer a { color: rgba(242,236,230,0.6); font-size: 12px; text-decoration: none; }
@@ -138,6 +143,7 @@
   .main-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
   .main-tier-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 24px; font-weight: 800; margin: 0; letter-spacing: -0.01em; }
   .main-tier-frac { font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .main-tier-subtitle { color: var(--tip); font-size: 13.5px; font-weight: 600; margin: -10px 0 18px; }
 
   .lesson-rows { display: flex; flex-direction: column; gap: 10px; max-width: 640px; }
   .lesson-row {
@@ -158,6 +164,14 @@
   .lesson-row-status { font-size: 11.5px; font-weight: 700; color: var(--ink-soft); flex-shrink: 0; }
   .lesson-row.completed .lesson-row-status { color: var(--accent); }
   .lesson-row.current .lesson-row-status { color: var(--tip); }
+
+  /* Intro-tier lesson rows: same warm amber identity as the sidebar item */
+  .lesson-row--intro { background: var(--tip-bg); border-color: var(--tip-border); }
+  .lesson-row--intro:not([disabled]):hover { border-color: var(--tip); }
+  .lesson-row--intro.current { border-color: var(--tip); background: var(--tip-bg); }
+  .lesson-row--intro .lesson-row-icon { background: var(--surface); border-color: var(--tip-border); }
+  .lesson-row--intro.completed .lesson-row-icon { background: var(--tip); border-color: var(--tip); }
+  .lesson-row--intro.completed .lesson-row-status { color: var(--tip); }
 
   @media (max-width: 720px) {
     .home-shell { flex-direction: column; overflow-y: auto; }
@@ -264,34 +278,58 @@
   .error-banner.shown { display: block; }
 
   /* -------- Lesson intro screen -------- */
-  .intro-body { flex: 1; overflow-y: auto; padding: 22px 20px 20px; max-width: 640px; margin: 0 auto; width: 100%; }
+  /* Warm, welcoming by default (coral family); .intro-body.intro-warm swaps
+     to the amber/tip family for Intro-tier lessons, so the very first thing
+     a brand-new learner sees feels extra friendly. */
+  .intro-body {
+    flex: 1; overflow-y: auto; padding: 28px 20px 20px; max-width: 640px; margin: 0 auto; width: 100%;
+    background: linear-gradient(180deg, var(--accent-soft) 0%, var(--bg) 220px);
+  }
+  .intro-body.intro-warm { background: linear-gradient(180deg, var(--tip-bg) 0%, var(--bg) 220px); }
   .intro-body .error-banner { max-width: none; padding: 0 0 14px; }
   .intro-loading { color: var(--ink-soft); font-size: 14px; padding: 8px 0; }
-  .intro-blurb { color: var(--ink-soft); font-size: 15px; margin: 0 0 26px; }
+
+  .intro-hero { display: flex; flex-direction: column; align-items: center; text-align: center; margin: 4px 0 24px; }
+  .intro-hero-badge {
+    width: 68px; height: 68px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent-soft);
+    display: flex; align-items: center; justify-content: center; font-size: 30px; margin-bottom: 12px;
+    box-shadow: 0 4px 14px rgba(232,93,76,0.15);
+  }
+  .intro-body.intro-warm .intro-hero-badge { border-color: var(--tip-border); box-shadow: 0 4px 14px rgba(168,113,10,0.15); }
+  .intro-hero-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 21px; font-weight: 800; margin: 0 0 4px; }
+  .intro-blurb { color: var(--ink-soft); font-size: 15px; margin: 0; max-width: 40ch; }
+
   .intro-section-label {
     font-family: 'Bricolage Grotesque', sans-serif; font-size: 12.5px; font-weight: 700; color: var(--ink-soft);
-    text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 10px;
+    text-transform: uppercase; letter-spacing: 0.05em; margin: 28px 0 10px;
   }
-  .intro-objectives { list-style: none; margin: 0 0 28px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .intro-objectives { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
   .intro-objectives li {
-    display: flex; align-items: center; gap: 10px; font-size: 14.5px; font-weight: 600;
-    padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 12px; background: var(--surface);
+    display: flex; align-items: center; gap: 12px; font-size: 14.5px; font-weight: 600;
+    padding: 12px 15px; border: 1.5px solid var(--accent-soft); border-radius: 14px; background: var(--surface);
   }
-  .intro-objectives li::before {
-    content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0;
+  .intro-body.intro-warm .intro-objectives li { border-color: var(--tip-border); }
+  .intro-objectives li .obj-num {
+    width: 24px; height: 24px; border-radius: 50%; background: var(--accent-soft); color: var(--accent);
+    display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0;
   }
-  .intro-phrases { display: flex; flex-direction: column; gap: 6px; }
+  .intro-body.intro-warm .obj-num { background: var(--tip-bg); color: var(--tip); }
+
+  .intro-phrases { display: flex; flex-direction: column; gap: 7px; }
   .intro-phrase-item {
-    display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 9px 13px; font-size: 13.5px;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; font-size: 13.5px;
   }
-  .intro-phrase-item .phrase-native { font-weight: 600; }
+  .intro-phrase-item .phrase-emoji { flex-shrink: 0; font-size: 13px; opacity: 0.8; }
+  .intro-phrase-item .phrase-native { font-weight: 600; flex: 1; }
   .intro-phrase-item .phrase-en { color: var(--ink-soft); font-size: 12.5px; flex-shrink: 0; text-align: right; }
+
   .intro-footer { padding: 16px 20px; border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; max-width: 640px; margin: 0 auto; width: 100%; }
   .start-btn {
-    width: 100%; background: var(--accent); color: var(--accent-ink); border: none; border-radius: 12px;
-    padding: 13px 18px; font-weight: 700; font-size: 15px; cursor: pointer; font-family: inherit;
+    width: 100%; background: var(--accent); color: var(--accent-ink); border: none; border-radius: 14px;
+    padding: 14px 18px; font-weight: 700; font-size: 15.5px; cursor: pointer; font-family: inherit;
   }
+  .intro-footer.intro-warm .start-btn { background: var(--tip); }
   .start-btn:disabled { opacity: 0.5; cursor: default; }
 
   /* -------- Objectives checklist (inside the chat) -------- */
@@ -318,6 +356,9 @@
   }
   .objective-item.done { color: var(--ink); }
   .objective-item.done .objective-check { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .objectives-card--intro { border-bottom-color: var(--tip-border); }
+  .objectives-card--intro .objectives-card-frac { color: var(--tip); }
+  .objectives-card--intro .objective-item.done .objective-check { background: var(--tip); border-color: var(--tip); }
 
   .objectives-phrases {
     margin: 0 auto; padding: 0 20px 14px; max-width: 640px;
@@ -335,6 +376,93 @@
   }
   .objectives-phrase-item .phrase-native { font-weight: 600; }
   .objectives-phrase-item .phrase-en { color: var(--ink-soft); font-size: 12px; flex-shrink: 0; text-align: right; }
+
+  /* -------- Lesson practice round (mixed exercise types before the chat) -------- */
+  /* Same warm-vs-coral pattern as the lesson intro screen: .intro-warm swaps
+     to the amber/tip family for Intro-tier lessons. */
+  .practice-body { flex: 1; overflow-y: auto; padding: 20px 20px 24px; max-width: 640px; margin: 0 auto; width: 100%; }
+  .practice-body .error-banner { max-width: none; padding: 0 0 14px; }
+
+  .practice-progress { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .practice-progress-track { flex: 1; height: 6px; border-radius: 999px; background: var(--border); overflow: hidden; }
+  .practice-progress-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width 0.25s ease; }
+  .practice-body.intro-warm .practice-progress-fill { background: var(--tip); }
+  .practice-progress-label { font-size: 12.5px; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .practice-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 18px; padding: 24px 22px; }
+  .practice-instruction {
+    font-family: 'Bricolage Grotesque', sans-serif; font-size: 12px; font-weight: 700; color: var(--ink-soft);
+    text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 16px; text-align: center;
+  }
+  .practice-prompt { font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 800; margin: 0 0 18px; text-align: center; }
+
+  .practice-options { display: flex; flex-direction: column; gap: 8px; }
+  .practice-option {
+    border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 15px; background: var(--surface);
+    font-family: inherit; font-size: 14.5px; font-weight: 600; text-align: left; cursor: pointer; width: 100%;
+  }
+  .practice-option:hover:not(:disabled) { border-color: var(--accent); }
+  .practice-body.intro-warm .practice-option:hover:not(:disabled) { border-color: var(--tip); }
+  .practice-option.selected { border-color: var(--accent); background: var(--accent-soft); }
+  .practice-body.intro-warm .practice-option.selected { border-color: var(--tip); background: var(--tip-bg); }
+  .practice-option.correct { border-color: #1a9c5b; background: #eafbf2; color: #14733f; }
+  .practice-option.incorrect { border-color: #d0403a; background: #fdeceb; color: #a5312c; }
+  .practice-option:disabled { cursor: default; }
+
+  .practice-fill-sentence { font-size: 18px; text-align: center; line-height: 1.7; margin: 0 0 18px; }
+  .practice-fill-input {
+    border: none; border-bottom: 2px solid var(--accent); text-align: center; font-family: inherit;
+    font-size: 18px; font-weight: 700; width: 150px; padding: 2px 4px; outline: none; background: transparent; color: var(--ink);
+  }
+  .practice-body.intro-warm .practice-fill-input { border-bottom-color: var(--tip); }
+
+  .practice-word-bank-answer {
+    display: flex; flex-wrap: wrap; gap: 8px; min-height: 46px; padding: 10px; border: 1.5px dashed var(--border);
+    border-radius: 12px; margin-bottom: 16px; align-items: center; justify-content: center;
+  }
+  .practice-word-bank-pool { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .practice-word-chip {
+    border: 1.5px solid var(--border); border-radius: 10px; padding: 8px 13px; background: var(--surface);
+    font-family: inherit; font-size: 14.5px; font-weight: 600; cursor: pointer;
+  }
+  .practice-word-chip:hover { border-color: var(--accent); }
+  .practice-body.intro-warm .practice-word-chip:hover { border-color: var(--tip); }
+  .practice-word-chip.placed { opacity: 0.35; cursor: default; }
+  .practice-word-chip.answer-chip { background: var(--accent-soft); border-color: var(--accent); cursor: pointer; }
+  .practice-body.intro-warm .practice-word-chip.answer-chip { background: var(--tip-bg); border-color: var(--tip); }
+
+  .practice-tf-buttons { display: flex; gap: 10px; }
+  .practice-tf-btn {
+    flex: 1; border: 1.5px solid var(--border); border-radius: 12px; padding: 14px; background: var(--surface);
+    font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+  }
+  .practice-tf-btn:hover:not(:disabled) { border-color: var(--accent); }
+  .practice-body.intro-warm .practice-tf-btn:hover:not(:disabled) { border-color: var(--tip); }
+  .practice-tf-btn.selected { border-color: var(--accent); background: var(--accent-soft); }
+  .practice-body.intro-warm .practice-tf-btn.selected { border-color: var(--tip); background: var(--tip-bg); }
+  .practice-tf-btn.correct { border-color: #1a9c5b; background: #eafbf2; color: #14733f; }
+  .practice-tf-btn.incorrect { border-color: #d0403a; background: #fdeceb; color: #a5312c; }
+  .practice-tf-btn:disabled { cursor: default; }
+
+  .practice-matching { display: flex; gap: 20px; }
+  .practice-match-col { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .practice-match-item {
+    border: 1.5px solid var(--border); border-radius: 12px; padding: 11px 13px; background: var(--surface);
+    font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; text-align: left; width: 100%;
+  }
+  .practice-match-item:hover:not(:disabled) { border-color: var(--accent); }
+  .practice-body.intro-warm .practice-match-item:hover:not(:disabled) { border-color: var(--tip); }
+  .practice-match-item.selected { border-color: var(--accent); background: var(--accent-soft); }
+  .practice-body.intro-warm .practice-match-item.selected { border-color: var(--tip); background: var(--tip-bg); }
+  .practice-match-item.matched { border-color: #1a9c5b; background: #eafbf2; color: #14733f; cursor: default; }
+  .practice-match-item.mismatch { border-color: #d0403a; background: #fdeceb; }
+
+  .practice-feedback { margin-top: 16px; padding: 12px 15px; border-radius: 12px; font-size: 13.5px; display: flex; gap: 8px; align-items: flex-start; }
+  .practice-feedback.correct { background: #eafbf2; color: #14733f; }
+  .practice-feedback.incorrect { background: #fdeceb; color: #a5312c; }
+
+  .practice-footer { padding: 16px 20px; border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; max-width: 640px; margin: 0 auto; width: 100%; }
+  .practice-footer.intro-warm .start-btn { background: var(--tip); }
 </style>
 </head>
 <body>
@@ -373,6 +501,7 @@
         <h1 class="main-tier-title" id="mainTierTitle">Loading…</h1>
         <span class="main-tier-frac" id="mainTierFrac"></span>
       </div>
+      <p class="main-tier-subtitle" id="mainTierSubtitle" style="display:none">New here? Start with the basics 👋</p>
       <div class="lesson-rows" id="lessonRows"></div>
     </main>
   </div>
@@ -386,19 +515,48 @@
       <span id="introLanguageLabel">Language</span>
     </div>
   </div>
-  <div class="intro-body">
+  <div class="intro-body" id="introBody">
     <div class="error-banner" id="introErrorBanner"></div>
     <p class="intro-loading" id="introLoading">Preparing your lesson…</p>
     <div class="intro-content" id="introContent" style="display:none">
-      <p class="intro-blurb" id="introBlurb"></p>
-      <p class="intro-section-label">Your goals</p>
+      <div class="intro-hero">
+        <span class="intro-hero-badge" id="introHeroBadge"></span>
+        <p class="intro-hero-title" id="introHeroTitle"></p>
+        <p class="intro-blurb" id="introBlurb"></p>
+      </div>
+      <p class="intro-section-label" id="introGoalsLabel">What you'll learn</p>
       <ul class="intro-objectives" id="introObjectives"></ul>
-      <p class="intro-section-label">Useful phrases</p>
+      <p class="intro-section-label">Handy phrases to know</p>
       <div class="intro-phrases" id="introPhrases"></div>
     </div>
   </div>
-  <div class="intro-footer">
+  <div class="intro-footer" id="introFooter">
     <button class="start-btn" id="startLessonBtn" disabled>Start lesson</button>
+  </div>
+</div>
+
+<div id="practiceScreen" class="screen">
+  <div class="topbar">
+    <button class="back-btn" id="practiceBackBtn" aria-label="Back">←</button>
+    <div class="topbar-title">
+      <b id="practiceScenarioTitle">Scenario</b>
+      <span id="practiceLanguageLabel">Language</span>
+    </div>
+  </div>
+  <div class="practice-body" id="practiceBody">
+    <div class="error-banner" id="practiceErrorBanner"></div>
+    <div class="practice-progress">
+      <div class="practice-progress-track"><div class="practice-progress-fill" id="practiceProgressFill"></div></div>
+      <span class="practice-progress-label" id="practiceProgressLabel">Exercise 1 of 5</span>
+    </div>
+    <div class="practice-card" id="practiceCard">
+      <p class="practice-instruction" id="practiceInstruction"></p>
+      <div class="practice-exercise-area" id="practiceExerciseArea"></div>
+      <div class="practice-feedback" id="practiceFeedback" style="display:none"></div>
+    </div>
+  </div>
+  <div class="practice-footer" id="practiceFooter">
+    <button class="start-btn" id="practiceActionBtn" disabled>Check</button>
   </div>
 </div>
 
@@ -464,9 +622,27 @@
   let introLesson = null; // the lesson currently shown on the intro screen
   let introObjectives = []; // objectives fetched for introLesson, passed to startConversation on "Start"
   let introKeyPhrases = []; // key phrases fetched for introLesson, passed to startConversation on "Start"
+  let introExercises = []; // practice exercises fetched for introLesson, passed to openPractice on "Start"
   let currentObjectives = []; // objectives for the ACTIVE lesson (empty once the objectives card is dismissed/not applicable)
   let currentKeyPhrases = []; // key phrases for the ACTIVE lesson — kept visible during the chat, not just on the intro screen
   let completedObjectiveIndices = []; // cumulative, as reported by the server each /converse turn
+
+  // Lesson practice round (mixed exercise types shown before the chat starts)
+  let practiceLesson = null; // the lesson the current practice round belongs to
+  let practiceObjectivesRef = []; // carried through to startConversation once practice finishes
+  let practiceKeyPhrasesRef = []; // carried through to startConversation once practice finishes
+  let practiceExercises = []; // the 5 exercises for the current round
+  let practiceIndex = 0; // which exercise is currently shown
+  let practiceCorrectCount = 0;
+  let practiceAnswered = false; // has the current exercise been checked yet?
+  // Transient per-exercise-kind selection state, reset each time a new
+  // exercise is rendered:
+  let mcSelectedIndex = null; // multiple_choice
+  let wordBankOrder = []; // word_bank — indices into ex.words, in the order the learner placed them
+  let tfSelected = null; // true_false
+  let matchSelectedTermIndex = null; // matching — term currently awaiting a meaning tap
+  let matchPairsState = []; // matching — matchPairsState[termIndex] = matched meaning's original index, or null
+  let matchShuffledMeanings = []; // matching — [{meaning, originalIndex}], shuffled once per exercise
 
   const homeScreen = document.getElementById("homeScreen");
   const introScreen = document.getElementById("introScreen");
@@ -475,17 +651,35 @@
   const tierNavEl = document.getElementById("tierNav");
   const mainTierTitleEl = document.getElementById("mainTierTitle");
   const mainTierFracEl = document.getElementById("mainTierFrac");
+  const mainTierSubtitleEl = document.getElementById("mainTierSubtitle");
   const lessonRowsEl = document.getElementById("lessonRows");
   const introBackBtn = document.getElementById("introBackBtn");
   const introScenarioTitleEl = document.getElementById("introScenarioTitle");
   const introLanguageLabelEl = document.getElementById("introLanguageLabel");
   const introErrorBanner = document.getElementById("introErrorBanner");
   const introLoadingEl = document.getElementById("introLoading");
+  const introBodyEl = document.getElementById("introBody");
+  const introFooterEl = document.getElementById("introFooter");
   const introContentEl = document.getElementById("introContent");
+  const introHeroBadgeEl = document.getElementById("introHeroBadge");
+  const introHeroTitleEl = document.getElementById("introHeroTitle");
   const introBlurbEl = document.getElementById("introBlurb");
   const introObjectivesEl = document.getElementById("introObjectives");
   const introPhrasesEl = document.getElementById("introPhrases");
   const startLessonBtn = document.getElementById("startLessonBtn");
+  const practiceScreen = document.getElementById("practiceScreen");
+  const practiceBackBtn = document.getElementById("practiceBackBtn");
+  const practiceScenarioTitleEl = document.getElementById("practiceScenarioTitle");
+  const practiceLanguageLabelEl = document.getElementById("practiceLanguageLabel");
+  const practiceBodyEl = document.getElementById("practiceBody");
+  const practiceErrorBanner = document.getElementById("practiceErrorBanner");
+  const practiceProgressFillEl = document.getElementById("practiceProgressFill");
+  const practiceProgressLabelEl = document.getElementById("practiceProgressLabel");
+  const practiceInstructionEl = document.getElementById("practiceInstruction");
+  const practiceExerciseAreaEl = document.getElementById("practiceExerciseArea");
+  const practiceFeedbackEl = document.getElementById("practiceFeedback");
+  const practiceFooterEl = document.getElementById("practiceFooter");
+  const practiceActionBtn = document.getElementById("practiceActionBtn");
   const objectivesCardEl = document.getElementById("objectivesCard");
   const objectivesToggleBtn = document.getElementById("objectivesToggleBtn");
   const objectivesFracEl = document.getElementById("objectivesFrac");
@@ -568,10 +762,12 @@
       const lessonsInTier = PATH.filter(l => l.tier === tier);
       const doneInTier = lessonsInTier.filter(l => completed.includes(l.id)).length;
       const pct = Math.round((doneInTier / lessonsInTier.length) * 100);
+      const isIntro = tier === "Intro";
+      const label = isIntro ? "👋 Intro" : tier;
       return `
-        <button class="tier-item${tier === selectedTier ? " selected" : ""}" data-tier="${tier}">
+        <button class="tier-item${isIntro ? " tier-item--intro" : ""}${tier === selectedTier ? " selected" : ""}" data-tier="${tier}">
           <span class="tier-item-top">
-            <span class="tier-item-name">${tier}</span>
+            <span class="tier-item-name">${label}</span>
             <span class="tier-item-frac">${doneInTier}/${lessonsInTier.length}</span>
           </span>
           <span class="tier-bar-track"><span class="tier-bar-fill" style="width:${pct}%"></span></span>
@@ -583,9 +779,11 @@
     const completed = getCompletedLessons(selectedLanguage);
     const lessonsInTier = PATH.filter(l => l.tier === selectedTier);
     const doneInTier = lessonsInTier.filter(l => completed.includes(l.id)).length;
+    const isIntroTier = selectedTier === "Intro";
 
     mainTierTitleEl.textContent = selectedTier;
     mainTierFracEl.textContent = `${doneInTier} of ${lessonsInTier.length} complete`;
+    mainTierSubtitleEl.style.display = isIntroTier ? "block" : "none";
 
     lessonRowsEl.innerHTML = lessonsInTier.map(lesson => {
       const globalIndex = PATH.indexOf(lesson);
@@ -594,7 +792,7 @@
       const iconContent = state === "completed" ? "✓" : (locked ? "🔒" : lesson.icon);
       const statusText = state === "completed" ? "✓ Done" : (state === "current" ? "Current" : "Locked");
       return `
-        <button class="lesson-row ${state}" data-lesson="${lesson.id}"${locked ? " disabled" : ""}>
+        <button class="lesson-row ${state}${isIntroTier ? " lesson-row--intro" : ""}" data-lesson="${lesson.id}"${locked ? " disabled" : ""}>
           <span class="lesson-row-icon">${iconContent}</span>
           <span class="lesson-row-text">
             <span class="lesson-row-title">${lesson.title}</span>
@@ -646,9 +844,11 @@
   }
 
   function renderIntroContent(objectives, keyPhrases) {
-    introObjectivesEl.innerHTML = objectives.map(o => `<li>${o}</li>`).join("");
+    introObjectivesEl.innerHTML = objectives.map((o, i) => `
+      <li><span class="obj-num">${i + 1}</span><span>${o}</span></li>`).join("");
     introPhrasesEl.innerHTML = keyPhrases.map(item => `
       <div class="intro-phrase-item">
+        <span class="phrase-emoji">💬</span>
         <span class="phrase-native">${item.phrase}</span>
         <span class="phrase-en">${item.translation}</span>
       </div>`).join("");
@@ -658,6 +858,15 @@
     introLesson = lesson;
     introObjectives = [];
     introKeyPhrases = [];
+    introExercises = [];
+    // Intro-tier lessons (the absolute-beginner basics) get the warm amber
+    // treatment throughout; every other lesson keeps the usual coral one —
+    // still warmer than before, just not the extra-friendly Intro flavor.
+    const isIntroTier = lesson.tier === "Intro";
+    introBodyEl.classList.toggle("intro-warm", isIntroTier);
+    introFooterEl.classList.toggle("intro-warm", isIntroTier);
+    introHeroBadgeEl.textContent = lesson.icon;
+    introHeroTitleEl.textContent = lesson.title;
     introScenarioTitleEl.textContent = `${lesson.icon} ${lesson.title}`;
     introLanguageLabelEl.textContent = `Practicing ${selectedLanguage}`;
     introBlurbEl.textContent = lesson.blurb;
@@ -673,32 +882,58 @@
     introScreen.classList.add("active");
 
     try {
-      const res = await fetch(`${API_BASE}/lesson-intro`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenarioId: lesson.id, language: selectedLanguage })
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Couldn't prepare this lesson.");
+      // Fetched together — the practice round and the goal/phrases screen
+      // are both wanted by the time the learner taps "Start lesson", so
+      // there's no second loading wait between them.
+      const [introRes, practiceRes] = await Promise.all([
+        fetch(`${API_BASE}/lesson-intro`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scenarioId: lesson.id, language: selectedLanguage })
+        }),
+        fetch(`${API_BASE}/lesson-practice`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scenarioId: lesson.id, language: selectedLanguage })
+        }).catch(() => null)
+      ]);
+      const introData = await introRes.json();
+      if (!introRes.ok || !introData.success) {
+        throw new Error(introData.error || "Couldn't prepare this lesson.");
       }
 
-      introObjectives = Array.isArray(data.objectives) ? data.objectives : [];
-      introKeyPhrases = Array.isArray(data.keyPhrases) ? data.keyPhrases : [];
+      // The practice round is a nice-to-have on top of the intro screen — if
+      // it fails or times out, just skip straight to the conversation rather
+      // than blocking the whole lesson on it.
+      let practiceData = null;
+      if (practiceRes && practiceRes.ok) {
+        try { practiceData = await practiceRes.json(); } catch (e) { practiceData = null; }
+      }
+
+      introObjectives = Array.isArray(introData.objectives) ? introData.objectives : [];
+      introKeyPhrases = Array.isArray(introData.keyPhrases) ? introData.keyPhrases : [];
+      introExercises = (practiceData && practiceData.success && Array.isArray(practiceData.exercises))
+        ? practiceData.exercises
+        : [];
       renderIntroContent(introObjectives, introKeyPhrases);
       introLoadingEl.style.display = "none";
       introContentEl.style.display = "block";
       startLessonBtn.disabled = false;
       startLessonBtn.onclick = () => {
         introScreen.classList.remove("active");
-        startConversation(lesson, introObjectives, introKeyPhrases);
+        if (introExercises.length) {
+          openPractice(lesson, introObjectives, introKeyPhrases, introExercises);
+        } else {
+          startConversation(lesson, introObjectives, introKeyPhrases);
+        }
       };
 
     } catch (err) {
       introLoadingEl.style.display = "none";
       showIntroError(err.message || "Couldn't prepare this lesson. Please try again.");
       // Don't let a flaky /lesson-intro call block practice entirely — let
-      // the learner start without goals if they'd rather not wait/retry.
+      // the learner start without goals (and skip the practice round too)
+      // if they'd rather not wait/retry.
       startLessonBtn.disabled = false;
       startLessonBtn.textContent = "Start without goals";
       startLessonBtn.onclick = () => {
@@ -706,6 +941,292 @@
         startConversation(lesson, [], []);
       };
     }
+  }
+
+  practiceBackBtn.addEventListener("click", () => {
+    practiceScreen.classList.remove("active");
+    homeScreen.classList.add("active");
+    renderHome();
+  });
+
+  // -------- Lesson practice round (mixed exercise types before the chat) --------
+  function openPractice(lesson, objectives, keyPhrases, exercises) {
+    practiceLesson = lesson;
+    practiceObjectivesRef = objectives;
+    practiceKeyPhrasesRef = keyPhrases;
+    practiceExercises = exercises;
+    practiceIndex = 0;
+    practiceCorrectCount = 0;
+    const isIntroTier = lesson.tier === "Intro";
+    practiceBodyEl.classList.toggle("intro-warm", isIntroTier);
+    practiceFooterEl.classList.toggle("intro-warm", isIntroTier);
+    practiceScenarioTitleEl.textContent = `${lesson.icon} ${lesson.title}`;
+    practiceLanguageLabelEl.textContent = `Practicing ${selectedLanguage}`;
+    practiceErrorBanner.classList.remove("shown");
+    practiceScreen.classList.add("active");
+    renderPracticeExercise();
+  }
+
+  function renderPracticeExercise() {
+    const ex = practiceExercises[practiceIndex];
+    practiceAnswered = false;
+    mcSelectedIndex = null;
+    wordBankOrder = [];
+    tfSelected = null;
+    matchSelectedTermIndex = null;
+    practiceFeedbackEl.style.display = "none";
+    practiceFeedbackEl.className = "practice-feedback";
+    practiceProgressLabelEl.textContent = `Exercise ${practiceIndex + 1} of ${practiceExercises.length}`;
+    practiceProgressFillEl.style.width = `${Math.round((practiceIndex / practiceExercises.length) * 100)}%`;
+    practiceInstructionEl.textContent = ex.instruction || "";
+    practiceActionBtn.textContent = "Check";
+    practiceActionBtn.disabled = true;
+    practiceActionBtn.onclick = () => checkAnswer();
+
+    if (ex.kind === "multiple_choice") renderMultipleChoice(ex);
+    else if (ex.kind === "fill_blank") renderFillBlank(ex);
+    else if (ex.kind === "word_bank") renderWordBank(ex);
+    else if (ex.kind === "true_false") renderTrueFalse(ex);
+    else if (ex.kind === "matching") renderMatching(ex);
+    else practiceExerciseAreaEl.innerHTML = ""; // unrecognized kind — nothing to render, Check stays disabled
+  }
+
+  function renderMultipleChoice(ex) {
+    practiceExerciseAreaEl.innerHTML = `
+      <p class="practice-prompt">${ex.prompt}</p>
+      <div class="practice-options">
+        ${ex.options.map((opt, i) => `<button class="practice-option" data-index="${i}">${opt}</button>`).join("")}
+      </div>`;
+    practiceExerciseAreaEl.querySelectorAll(".practice-option").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (practiceAnswered) return;
+        mcSelectedIndex = Number(btn.dataset.index);
+        practiceExerciseAreaEl.querySelectorAll(".practice-option").forEach(b => b.classList.remove("selected"));
+        btn.classList.add("selected");
+        practiceActionBtn.disabled = false;
+      });
+    });
+  }
+
+  function renderFillBlank(ex) {
+    const parts = ex.sentence.split("___");
+    const before = parts[0] || "";
+    const after = parts.slice(1).join("___") || "";
+    practiceExerciseAreaEl.innerHTML = `
+      <p class="practice-fill-sentence"></p>`;
+    const sentenceEl = practiceExerciseAreaEl.querySelector(".practice-fill-sentence");
+    sentenceEl.appendChild(document.createTextNode(before));
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "practice-fill-input";
+    input.id = "fillBlankInput";
+    input.autocomplete = "off";
+    sentenceEl.appendChild(input);
+    sentenceEl.appendChild(document.createTextNode(after));
+    input.addEventListener("input", () => {
+      practiceActionBtn.disabled = !input.value.trim();
+    });
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter" && !practiceActionBtn.disabled) practiceActionBtn.click();
+    });
+    setTimeout(() => input.focus(), 50);
+  }
+
+  function renderWordBank(ex) {
+    wordBankOrder = [];
+    practiceExerciseAreaEl.innerHTML = `
+      <p class="practice-prompt" style="font-size:16px">${ex.englishPrompt}</p>
+      <div class="practice-word-bank-answer" id="wordBankAnswer"></div>
+      <div class="practice-word-bank-pool" id="wordBankPool"></div>`;
+    renderWordBankState(ex);
+  }
+
+  function renderWordBankState(ex) {
+    const answerEl = document.getElementById("wordBankAnswer");
+    const poolEl = document.getElementById("wordBankPool");
+    answerEl.innerHTML = wordBankOrder.map(i =>
+      `<button class="practice-word-chip answer-chip" data-index="${i}">${ex.words[i]}</button>`).join("");
+    poolEl.innerHTML = ex.words.map((w, i) =>
+      `<button class="practice-word-chip${wordBankOrder.includes(i) ? " placed" : ""}" data-index="${i}"${wordBankOrder.includes(i) ? " disabled" : ""}>${w}</button>`).join("");
+
+    answerEl.querySelectorAll(".answer-chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        if (practiceAnswered) return;
+        const idx = Number(chip.dataset.index);
+        wordBankOrder = wordBankOrder.filter(i => i !== idx);
+        renderWordBankState(ex);
+        practiceActionBtn.disabled = wordBankOrder.length === 0;
+      });
+    });
+    poolEl.querySelectorAll(".practice-word-chip:not(.placed)").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (practiceAnswered) return;
+        wordBankOrder.push(Number(btn.dataset.index));
+        renderWordBankState(ex);
+        practiceActionBtn.disabled = false;
+      });
+    });
+  }
+
+  function renderTrueFalse(ex) {
+    practiceExerciseAreaEl.innerHTML = `
+      <p class="practice-prompt" style="font-size:17px">${ex.statement}</p>
+      <div class="practice-tf-buttons">
+        <button class="practice-tf-btn" data-val="true">True</button>
+        <button class="practice-tf-btn" data-val="false">False</button>
+      </div>`;
+    practiceExerciseAreaEl.querySelectorAll(".practice-tf-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (practiceAnswered) return;
+        tfSelected = btn.dataset.val === "true";
+        practiceExerciseAreaEl.querySelectorAll(".practice-tf-btn").forEach(b => b.classList.remove("selected"));
+        btn.classList.add("selected");
+        practiceActionBtn.disabled = false;
+      });
+    });
+  }
+
+  function renderMatching(ex) {
+    matchSelectedTermIndex = null;
+    matchPairsState = ex.pairs.map(() => null);
+    matchShuffledMeanings = ex.pairs.map((p, i) => ({ meaning: p.meaning, originalIndex: i }));
+    for (let i = matchShuffledMeanings.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = matchShuffledMeanings[i];
+      matchShuffledMeanings[i] = matchShuffledMeanings[j];
+      matchShuffledMeanings[j] = tmp;
+    }
+    practiceExerciseAreaEl.innerHTML = `
+      <div class="practice-matching">
+        <div class="practice-match-col" id="matchTermsCol"></div>
+        <div class="practice-match-col" id="matchMeaningsCol"></div>
+      </div>`;
+    renderMatchingState(ex);
+  }
+
+  // Matching is self-checking as you go — a tap only "sticks" once it's the
+  // correct pair, so by the time every row shows matched, the exercise is
+  // already fully correct (see checkAnswer's matching branch below).
+  function renderMatchingState(ex) {
+    const termsCol = document.getElementById("matchTermsCol");
+    const meaningsCol = document.getElementById("matchMeaningsCol");
+    termsCol.innerHTML = ex.pairs.map((p, i) => {
+      const matched = matchPairsState[i] !== null;
+      const selected = matchSelectedTermIndex === i;
+      return `<button class="practice-match-item${matched ? " matched" : ""}${selected ? " selected" : ""}" data-index="${i}"${matched ? " disabled" : ""}>${p.term}</button>`;
+    }).join("");
+    meaningsCol.innerHTML = matchShuffledMeanings.map(m => {
+      const matched = matchPairsState.indexOf(m.originalIndex) !== -1;
+      return `<button class="practice-match-item${matched ? " matched" : ""}" data-original="${m.originalIndex}"${matched ? " disabled" : ""}>${m.meaning}</button>`;
+    }).join("");
+
+    termsCol.querySelectorAll(".practice-match-item:not(.matched)").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (practiceAnswered) return;
+        matchSelectedTermIndex = Number(btn.dataset.index);
+        renderMatchingState(ex);
+      });
+    });
+    meaningsCol.querySelectorAll(".practice-match-item:not(.matched)").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (practiceAnswered || matchSelectedTermIndex === null) return;
+        const originalIndex = Number(btn.dataset.original);
+        if (originalIndex === matchSelectedTermIndex) {
+          matchPairsState[matchSelectedTermIndex] = originalIndex;
+          matchSelectedTermIndex = null;
+          renderMatchingState(ex);
+          if (matchPairsState.every(v => v !== null)) practiceActionBtn.disabled = false;
+        } else {
+          btn.classList.add("mismatch");
+          setTimeout(() => {
+            btn.classList.remove("mismatch");
+            matchSelectedTermIndex = null;
+            renderMatchingState(ex);
+          }, 400);
+        }
+      });
+    });
+  }
+
+  function checkAnswer() {
+    const ex = practiceExercises[practiceIndex];
+    let isCorrect = false;
+    let correctText = "";
+
+    if (ex.kind === "multiple_choice") {
+      isCorrect = mcSelectedIndex === ex.correctIndex;
+      practiceExerciseAreaEl.querySelectorAll(".practice-option").forEach((btn, i) => {
+        btn.disabled = true;
+        btn.classList.remove("selected"); // outcome color should win outright, not blend with the selection highlight
+        if (i === ex.correctIndex) btn.classList.add("correct");
+        else if (i === mcSelectedIndex) btn.classList.add("incorrect");
+      });
+      correctText = ex.options[ex.correctIndex];
+    } else if (ex.kind === "fill_blank") {
+      const input = document.getElementById("fillBlankInput");
+      const given = (input.value || "").trim().toLowerCase();
+      isCorrect = given === ex.correctAnswer.trim().toLowerCase();
+      input.disabled = true;
+      input.style.borderBottomColor = isCorrect ? "#1a9c5b" : "#d0403a";
+      correctText = `${ex.correctAnswer} — ${ex.translation}`;
+    } else if (ex.kind === "word_bank") {
+      isCorrect = wordBankOrder.length === ex.correctOrder.length &&
+        wordBankOrder.every((idx, i) => idx === ex.correctOrder[i]);
+      practiceExerciseAreaEl.querySelectorAll(".practice-word-chip").forEach(el => { el.disabled = true; });
+      correctText = ex.correctOrder.map(i => ex.words[i]).join(" ");
+    } else if (ex.kind === "true_false") {
+      isCorrect = tfSelected === ex.isTrue;
+      practiceExerciseAreaEl.querySelectorAll(".practice-tf-btn").forEach(btn => {
+        btn.disabled = true;
+        btn.classList.remove("selected"); // outcome color should win outright, not blend with the selection highlight
+        const val = btn.dataset.val === "true";
+        if (val === ex.isTrue) btn.classList.add("correct");
+        else if (val === tfSelected) btn.classList.add("incorrect");
+      });
+      correctText = ex.isTrue ? "True" : "False";
+    } else if (ex.kind === "matching") {
+      // Only reachable once every pair has already been correctly matched.
+      isCorrect = true;
+    }
+
+    if (isCorrect) practiceCorrectCount++;
+    practiceAnswered = true;
+    practiceFeedbackEl.style.display = "flex";
+    practiceFeedbackEl.className = `practice-feedback ${isCorrect ? "correct" : "incorrect"}`;
+    practiceFeedbackEl.innerHTML = isCorrect
+      ? `<span>✅</span><span>Correct!</span>`
+      : `<span>❌</span><span>Not quite — correct answer: <strong></strong></span>`;
+    if (!isCorrect) practiceFeedbackEl.querySelector("strong").textContent = correctText;
+
+    practiceActionBtn.disabled = false;
+    practiceActionBtn.textContent = practiceIndex < practiceExercises.length - 1 ? "Next" : "Finish practice";
+    practiceActionBtn.onclick = () => advancePractice();
+  }
+
+  function advancePractice() {
+    if (practiceIndex < practiceExercises.length - 1) {
+      practiceIndex++;
+      renderPracticeExercise();
+    } else {
+      finishPractice();
+    }
+  }
+
+  function finishPractice() {
+    practiceProgressFillEl.style.width = "100%";
+    practiceProgressLabelEl.textContent = `${practiceExercises.length} of ${practiceExercises.length}`;
+    practiceInstructionEl.textContent = "";
+    const total = practiceExercises.length;
+    practiceExerciseAreaEl.innerHTML = `
+      <p class="practice-prompt">🎉 ${practiceCorrectCount}/${total} correct!</p>
+      <p style="text-align:center; color:var(--ink-soft); font-size:14px; margin:0;">Nice warm-up — now let's put it into practice.</p>`;
+    practiceFeedbackEl.style.display = "none";
+    practiceActionBtn.textContent = "Start conversation";
+    practiceActionBtn.disabled = false;
+    practiceActionBtn.onclick = () => {
+      practiceScreen.classList.remove("active");
+      startConversation(practiceLesson, practiceObjectivesRef, practiceKeyPhrasesRef);
+    };
   }
 
   introBackBtn.addEventListener("click", () => {
@@ -762,6 +1283,7 @@
     lookupInput.value = "";
     lookupResultsEl.innerHTML = "";
     objectivesCardEl.classList.remove("collapsed");
+    objectivesCardEl.classList.toggle("objectives-card--intro", lesson.tier === "Intro");
     renderObjectivesCard();
     chatScenarioTitleEl.textContent = `${lesson.icon} ${lesson.title}`;
     chatLanguageLabelEl.textContent = `Practicing ${selectedLanguage}`;
@@ -1058,6 +1580,7 @@
     } catch (err) {
       mainTierTitleEl.textContent = "";
       mainTierFracEl.textContent = "";
+      mainTierSubtitleEl.style.display = "none";
       tierNavEl.innerHTML = "";
       lessonRowsEl.innerHTML = "";
       homeErrorBanner.textContent = "Couldn't load the lesson path. Make sure the server is running and reachable, then refresh.";
