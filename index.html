@@ -249,6 +249,16 @@
   .bubble { padding: 12px 15px; border-radius: 16px; font-size: 15px; line-height: 1.45; }
   .turn.ai .bubble { background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
   .turn.user .bubble { background: var(--accent); color: var(--accent-ink); border-bottom-right-radius: 4px; }
+  .bubble-row { display: flex; align-items: flex-end; gap: 6px; max-width: 100%; }
+
+  /* Speaker buttons — hear a phrase spoken aloud (chat replies, key phrases).
+     Only rendered when the browser supports speech synthesis. */
+  .speak-btn {
+    background: none; border: none; cursor: pointer; color: var(--ink-soft); font-size: 13px;
+    line-height: 1; padding: 4px; border-radius: 6px; flex-shrink: 0;
+  }
+  .speak-btn:hover { background: var(--bg); color: var(--ink); }
+  .speak-btn--bubble { font-size: 15px; padding: 6px; }
   .translate-toggle {
     background: none; border: none; color: var(--ink-soft); font-size: 12px; font-weight: 600;
     cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 2px;
@@ -287,6 +297,21 @@
     font-weight: 700; font-size: 14px; cursor: pointer;
   }
   .send-btn:disabled { opacity: 0.5; cursor: default; }
+
+  /* Mic button — speak your reply instead of typing it. Hidden by default;
+     JS adds .supported only when the browser's SpeechRecognition is available
+     (Chrome/Edge today), so unsupported browsers never see a dead button. */
+  .mic-btn {
+    display: none; width: 46px; flex-shrink: 0; background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 12px; font-size: 17px; cursor: pointer; align-items: center; justify-content: center;
+  }
+  .mic-btn.supported { display: flex; }
+  .mic-btn:hover { border-color: var(--accent); }
+  .mic-btn.listening { background: #fdeceb; border-color: #d0403a; animation: micPulse 1.2s infinite; }
+  @keyframes micPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(208,64,58,0.35); }
+    50% { box-shadow: 0 0 0 6px rgba(208,64,58,0); }
+  }
 
   .error-banner {
     max-width: 640px; margin: 0 auto; width: 100%; padding: 10px 20px;
@@ -388,11 +413,12 @@
     text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 2px;
   }
   .objectives-phrase-item {
-    display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
     background: var(--bg); border: 1px solid var(--border); border-radius: 9px; padding: 7px 11px; font-size: 13px;
   }
-  .objectives-phrase-item .phrase-native { font-weight: 600; }
+  .objectives-phrase-item .phrase-native { font-weight: 600; flex: 1; }
   .objectives-phrase-item .phrase-en { color: var(--ink-soft); font-size: 12px; flex-shrink: 0; text-align: right; }
+  .objectives-phrase-item .speak-btn { padding: 2px; font-size: 12px; }
 
   /* -------- Lesson practice round (mixed exercise types before the chat) -------- */
   /* Same warm-vs-coral pattern as the lesson intro screen: .intro-warm swaps
@@ -628,6 +654,7 @@
   <div class="error-banner" id="errorBanner"></div>
   <div class="chat-log" id="chatLog"></div>
   <div class="composer">
+    <button class="mic-btn" id="micBtn" aria-label="Speak your reply">🎤</button>
     <input type="text" id="messageInput" placeholder="Type your reply…" autocomplete="off">
     <button class="send-btn" id="sendBtn">Send</button>
   </div>
@@ -649,6 +676,77 @@
   let PATH = [];
   let LANGUAGES = [];
   const LESSON_COMPLETE_AFTER = 4; // user messages sent before a lesson is marked done
+
+  // BCP-47 locale for each language the app offers, used for both
+  // text-to-speech (SpeechSynthesisUtterance.lang) and speech-to-text
+  // (SpeechRecognition.lang) below. Falls back to en-US for anything not
+  // listed (shouldn't happen — kept in sync with the server's LANGUAGES).
+  const LANGUAGE_LOCALES = {
+    "Spanish": "es-ES", "French": "fr-FR", "Italian": "it-IT", "German": "de-DE",
+    "Portuguese": "pt-PT", "Japanese": "ja-JP", "Mandarin Chinese": "zh-CN", "Korean": "ko-KR",
+    "Arabic": "ar-SA", "Russian": "ru-RU", "Hindi": "hi-IN", "Dutch": "nl-NL",
+    "Greek": "el-GR", "Turkish": "tr-TR", "Polish": "pl-PL", "Swedish": "sv-SE",
+    "Vietnamese": "vi-VN", "Thai": "th-TH", "Indonesian": "id-ID", "Hebrew": "he-IL"
+  };
+  function getLocaleForLanguage(lang) { return LANGUAGE_LOCALES[lang] || "en-US"; }
+
+  // ---------- Audio: hear a phrase spoken aloud (Web Speech API, built into the browser — no server involved) ----------
+  const ttsSupported = "speechSynthesis" in window;
+  function speakText(text, language) {
+    if (!ttsSupported || !text || !text.trim()) return;
+    try {
+      window.speechSynthesis.cancel(); // stop any prior utterance so repeated clicks don't queue up
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = getLocaleForLanguage(language);
+      window.speechSynthesis.speak(utter);
+    } catch (e) { /* best-effort — a speech hiccup shouldn't break the app */ }
+  }
+
+  // ---------- Audio: speak your reply instead of typing it (Web Speech API — Chrome/Edge only today, feature-detected below) ----------
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const sttSupported = !!SpeechRecognitionCtor;
+  let listening = false;
+  let activeRecognition = null; // the in-progress SpeechRecognition instance, if any
+
+  function toggleListening() {
+    if (!sttSupported) return;
+    if (listening) {
+      if (activeRecognition) activeRecognition.stop(); // onend below resets `listening` and the button state
+      return;
+    }
+    let recognition;
+    try {
+      recognition = new SpeechRecognitionCtor();
+    } catch (e) {
+      return;
+    }
+    recognition.lang = getLocaleForLanguage(selectedLanguage);
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onstart = () => {
+      listening = true;
+      micBtn.classList.add("listening");
+    };
+    recognition.onresult = event => {
+      const transcript = event.results[0][0].transcript;
+      messageInput.value = transcript;
+      messageInput.focus();
+    };
+    recognition.onerror = () => { /* best-effort — onend still fires and resets the button */ };
+    recognition.onend = () => {
+      listening = false;
+      activeRecognition = null;
+      micBtn.classList.remove("listening");
+    };
+    try {
+      recognition.start();
+      activeRecognition = recognition;
+    } catch (e) {
+      listening = false;
+      micBtn.classList.remove("listening");
+    }
+  }
 
   let selectedLanguage = null;
   let selectedTier = null;
@@ -740,6 +838,7 @@
   const chatLanguageLabelEl = document.getElementById("chatLanguageLabel");
   const messageInput = document.getElementById("messageInput");
   const sendBtn = document.getElementById("sendBtn");
+  const micBtn = document.getElementById("micBtn");
   const errorBanner = document.getElementById("errorBanner");
   const homeErrorBanner = document.getElementById("homeErrorBanner");
 
@@ -976,13 +1075,25 @@
   function renderIntroContent(objectives, keyPhrases) {
     introObjectivesEl.innerHTML = objectives.map((o, i) => `
       <li><span class="obj-num">${i + 1}</span><span>${o}</span></li>`).join("");
-    introPhrasesEl.innerHTML = keyPhrases.map(item => `
+    introPhrasesEl.innerHTML = keyPhrases.map((item, i) => `
       <div class="intro-phrase-item">
-        <span class="phrase-emoji">💬</span>
+        ${ttsSupported
+          ? `<button class="speak-btn" type="button" data-index="${i}" aria-label="Listen">🔊</button>`
+          : `<span class="phrase-emoji">💬</span>`}
         <span class="phrase-native">${item.phrase}</span>
         <span class="phrase-en">${item.translation}</span>
       </div>`).join("");
   }
+  // Delegated rather than one listener per phrase — the list is rebuilt via
+  // innerHTML every time a lesson intro loads, which would strip any
+  // per-element listeners anyway. introKeyPhrases (module state, set right
+  // before this renders) is what data-index looks up into.
+  introPhrasesEl.addEventListener("click", e => {
+    const btn = e.target.closest(".speak-btn");
+    if (!btn) return;
+    const item = introKeyPhrases[Number(btn.dataset.index)];
+    if (item) speakText(item.phrase, selectedLanguage);
+  });
 
   async function openIntro(lesson) {
     introLesson = lesson;
@@ -1389,13 +1500,23 @@
     }).join("");
     objectivesPhrasesEl.innerHTML = currentKeyPhrases.length ? `
       <p class="objectives-phrases-label">Phrases to use</p>
-      ${currentKeyPhrases.map(item => `
+      ${currentKeyPhrases.map((item, i) => `
         <div class="objectives-phrase-item">
+          ${ttsSupported ? `<button class="speak-btn" type="button" data-index="${i}" aria-label="Listen">🔊</button>` : ""}
           <span class="phrase-native">${item.phrase}</span>
           <span class="phrase-en">${item.translation}</span>
         </div>`).join("")}
     ` : "";
   }
+  // Delegated for the same reason as introPhrasesEl above — rebuilt via
+  // innerHTML on every render, and currentKeyPhrases (module state) is
+  // updated in lockstep with what's on screen.
+  objectivesPhrasesEl.addEventListener("click", e => {
+    const btn = e.target.closest(".speak-btn");
+    if (!btn) return;
+    const item = currentKeyPhrases[Number(btn.dataset.index)];
+    if (item) speakText(item.phrase, selectedLanguage);
+  });
 
   objectivesToggleBtn.addEventListener("click", () => {
     objectivesCardEl.classList.toggle("collapsed");
@@ -1437,10 +1558,22 @@
   function addAiTurn(reply, replyTranslation, tip) {
     const div = document.createElement("div");
     div.className = "turn ai";
+    const bubbleRow = document.createElement("div");
+    bubbleRow.className = "bubble-row";
     const bubble = document.createElement("div");
     bubble.className = "bubble";
     bubble.textContent = reply;
-    div.appendChild(bubble);
+    bubbleRow.appendChild(bubble);
+    if (ttsSupported) {
+      const speakBtn = document.createElement("button");
+      speakBtn.className = "speak-btn speak-btn--bubble";
+      speakBtn.type = "button";
+      speakBtn.setAttribute("aria-label", "Listen");
+      speakBtn.textContent = "🔊";
+      speakBtn.addEventListener("click", () => speakText(reply, selectedLanguage));
+      bubbleRow.appendChild(speakBtn);
+    }
+    div.appendChild(bubbleRow);
 
     const toggle = document.createElement("button");
     toggle.className = "translate-toggle";
@@ -1589,6 +1722,9 @@
       sendMessage(text);
     }
   });
+
+  if (sttSupported) micBtn.classList.add("supported"); // hidden by default in CSS otherwise
+  micBtn.addEventListener("click", toggleListening);
 
   // -------- Phrase lookup (inside a lesson, separate from the roleplay) --------
   lookupToggleBtn.addEventListener("click", () => {
