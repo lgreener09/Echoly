@@ -65,8 +65,12 @@ app.use(express.static(path.join(__dirname, "..")));
 // the actual dialogue dynamically, so there's no per-language content to
 // maintain. Adding a new scenario later is a matter of adding one entry
 // here, not building out new screens or content.
+// Ordered as a single progression path — index order matters here (it's
+// mirrored in index.html's PATH array) since lessons unlock sequentially,
+// one at a time, grouped visually into three difficulty tiers.
 const SCENARIOS = {
     cafe_order: {
+        tier: "Beginner",
         title: "Order a coffee",
         blurb: "Practice ordering at a café counter.",
         icon: "☕",
@@ -74,13 +78,23 @@ const SCENARIOS = {
         opening: "greet the customer and ask what they'd like"
     },
     directions: {
+        tier: "Beginner",
         title: "Ask for directions",
         blurb: "Stop a stranger on the street and find your way somewhere.",
         icon: "🧭",
         character: "a friendly local stranger stopped on a city street",
         opening: "notice the person seems to be looking for something and ask if they need help"
     },
+    ticket_purchase: {
+        tier: "Beginner",
+        title: "Buy a bus or train ticket",
+        blurb: "Get a ticket at the station counter.",
+        icon: "🎫",
+        character: "a ticket agent at a train or bus station counter",
+        opening: "greet the traveler and ask where they're headed"
+    },
     hotel_checkin: {
+        tier: "Intermediate",
         title: "Check into a hotel",
         blurb: "Arrive at the front desk and check into your room.",
         icon: "🏨",
@@ -88,25 +102,44 @@ const SCENARIOS = {
         opening: "greet the guest and ask if they have a reservation"
     },
     coworker_smalltalk: {
+        tier: "Intermediate",
         title: "Meet a new coworker",
         blurb: "Introduce yourself and make small talk on your first day.",
         icon: "🤝",
         character: "a friendly coworker meeting this person for the first time on their first day",
         opening: "introduce yourself and welcome them"
     },
+    restaurant_reservation: {
+        tier: "Intermediate",
+        title: "Book a dinner reservation",
+        blurb: "Call a restaurant and reserve a table.",
+        icon: "🍽️",
+        character: "a restaurant host answering the phone to take reservations",
+        opening: "answer the phone as the restaurant and ask how you can help"
+    },
     doctor_visit: {
+        tier: "Advanced",
         title: "Describe symptoms to a doctor",
         blurb: "Explain how you're feeling at a doctor's appointment.",
         icon: "🩺",
         character: "a calm, attentive doctor at a routine appointment",
         opening: "greet the patient and ask what brings them in today"
     },
-    restaurant_reservation: {
-        title: "Book a dinner reservation",
-        blurb: "Call a restaurant and reserve a table.",
-        icon: "🍽️",
-        character: "a restaurant host answering the phone to take reservations",
-        opening: "answer the phone as the restaurant and ask how you can help"
+    job_interview: {
+        tier: "Advanced",
+        title: "Interview for a job",
+        blurb: "Answer questions in a first-round job interview.",
+        icon: "💼",
+        character: "a hiring manager conducting a friendly first-round job interview",
+        opening: "greet the candidate and open with a simple question like asking them to tell you about themselves"
+    },
+    customer_service: {
+        tier: "Advanced",
+        title: "Resolve a customer service issue",
+        blurb: "Call about a problem with an order or a bill.",
+        icon: "📞",
+        character: "a customer service representative taking a call about a problem with an order or a bill",
+        opening: "greet the caller and ask how you can help"
     }
 };
 
@@ -151,7 +184,7 @@ app.get("/", (req, res) => {
 
 app.get("/scenarios", (req, res) => {
     const list = Object.entries(SCENARIOS).map(([id, s]) => ({
-        id, title: s.title, blurb: s.blurb, icon: s.icon
+        id, tier: s.tier, title: s.title, blurb: s.blurb, icon: s.icon
     }));
     res.json({ scenarios: list, languages: LANGUAGES });
 });
