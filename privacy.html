@@ -8,13 +8,21 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="/favicon-32.png" type="image/png" sizes="32x32">
 
-<!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<!-- Google Analytics — optional. Set GA_MEASUREMENT_ID below to your real GA4
+     measurement ID to turn tracking on. Left as the placeholder, this whole
+     block quietly does nothing: no script is loaded, nothing to break. -->
 <script>
+  var GA_MEASUREMENT_ID = "G-XXXXXXXXXX";
   window.dataLayer = window.dataLayer || [];
   function gtag(){ dataLayer.push(arguments); }
-  gtag('js', new Date());
-  gtag('config', 'G-XXXXXXXXXX');
+  if (GA_MEASUREMENT_ID.indexOf("XXXX") === -1) {
+    var gaScriptEl = document.createElement("script");
+    gaScriptEl.async = true;
+    gaScriptEl.src = "https://www.googletagmanager.com/gtag/js?id=" + GA_MEASUREMENT_ID;
+    document.head.appendChild(gaScriptEl);
+    gtag('js', new Date());
+    gtag('config', GA_MEASUREMENT_ID);
+  }
 </script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">

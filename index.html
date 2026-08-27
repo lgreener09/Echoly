@@ -28,17 +28,25 @@
 <meta name="twitter:description" content="AI conversation practice for real-life situations — not vocab drills, real fluency.">
 <meta name="twitter:image" content="/og-image.png">
 
-<!-- Google Analytics -->
-<!-- Replace G-XXXXXXXXXX with your real GA4 measurement ID once you've created
-     a property for this app (Google Analytics > Admin > Create Property). -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<!-- Google Analytics — optional. Set GA_MEASUREMENT_ID below to your real GA4
+     measurement ID (Google Analytics > Admin > Create Property, then Data
+     Streams > your web stream) to turn tracking on. Left as the placeholder,
+     this whole block quietly does nothing: no script is loaded, no network
+     request is made, nothing to break. -->
 <script>
+  var GA_MEASUREMENT_ID = "G-XXXXXXXXXX";
   window.dataLayer = window.dataLayer || [];
   function gtag(){ dataLayer.push(arguments); }
-  gtag('js', new Date());
-  gtag('config', 'G-XXXXXXXXXX');
-  // trackEvent never throws even if the gtag script above is blocked/offline —
-  // dataLayer still exists and the push is harmless either way.
+  if (GA_MEASUREMENT_ID.indexOf("XXXX") === -1) {
+    var gaScriptEl = document.createElement("script");
+    gaScriptEl.async = true;
+    gaScriptEl.src = "https://www.googletagmanager.com/gtag/js?id=" + GA_MEASUREMENT_ID;
+    document.head.appendChild(gaScriptEl);
+    gtag('js', new Date());
+    gtag('config', GA_MEASUREMENT_ID);
+  }
+  // trackEvent never throws even if GA is disabled above, or the gtag script
+  // is blocked/offline — dataLayer still exists and the push is harmless either way.
   function trackEvent(name, params) {
     try { gtag('event', name, params || {}); } catch (e) { /* analytics must never break the app */ }
   }
@@ -73,6 +81,49 @@
   .screen { display: none; height: 100vh; flex-direction: column; }
   .screen.active { display: flex; }
 
+  /* -------- Account sign-in modal (only ever shown once a real Firebase
+     config is wired in — see FIREBASE_CONFIG below) -------- */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(34,24,37,0.5); z-index: 100;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal {
+    position: relative; background: var(--surface); border-radius: 18px; padding: 30px 26px 26px;
+    width: 100%; max-width: 380px; max-height: 90vh; overflow-y: auto;
+  }
+  .modal-close {
+    position: absolute; top: 14px; right: 14px; background: none; border: none; font-size: 20px;
+    line-height: 1; color: var(--ink-soft); cursor: pointer; padding: 4px; border-radius: 6px;
+  }
+  .modal-close:hover { background: var(--bg); }
+  .modal-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; font-weight: 800; margin: 0 0 6px; }
+  .modal-subtitle { font-size: 13px; color: var(--ink-soft); margin: 0 0 18px; line-height: 1.4; }
+  .modal .error-banner { max-width: none; padding: 0; margin: 0 0 14px; }
+  .modal-field { display: block; margin-bottom: 12px; }
+  .modal-field span { display: block; font-size: 12px; font-weight: 700; color: var(--ink-soft); margin-bottom: 5px; }
+  .modal-field input {
+    width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px;
+    font-size: 14px; font-family: inherit; outline: none; background: var(--surface);
+  }
+  .modal-field input:focus { border-color: var(--accent); }
+  .modal-submit {
+    width: 100%; background: var(--accent); color: var(--accent-ink); border: none; border-radius: 10px;
+    padding: 11px; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 4px;
+  }
+  .modal-submit:disabled { opacity: 0.6; cursor: default; }
+  .modal-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; font-size: 12px; color: var(--ink-soft); }
+  .modal-divider::before, .modal-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .modal-google-btn {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; padding: 10px;
+    font-weight: 600; font-size: 13.5px; cursor: pointer; font-family: inherit; color: var(--ink);
+  }
+  .modal-google-btn:hover { border-color: var(--ink-soft); }
+  .modal-switch { text-align: center; font-size: 13px; color: var(--ink-soft); margin: 16px 0 0; }
+  .modal-link { background: none; border: none; color: var(--accent); font-weight: 700; font-size: 13px; cursor: pointer; padding: 0 0 0 4px; font-family: inherit; }
+  .modal-link:hover { text-decoration: underline; }
+  .modal-forgot { display: block; margin: 10px auto 0; color: var(--ink-soft); font-weight: 600; padding: 0; }
+
   .topbar {
     display: flex; align-items: center; gap: 12px; padding: 16px 20px;
     border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0;
@@ -102,6 +153,18 @@
   }
   .sidebar-brand { display: flex; align-items: center; gap: 8px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
   .sidebar-tagline { font-size: 12.5px; color: rgba(242,236,230,0.65); margin: 8px 0 22px; line-height: 1.4; }
+
+  /* Account card — hidden entirely (via inline style) until FIREBASE_CONFIG
+     is filled in with real values; see the "accountsEnabled" check in JS. */
+  .account-card { background: var(--plum-soft); border-radius: 14px; padding: 13px 14px; margin-bottom: 22px; }
+  .account-blurb { font-size: 12px; color: rgba(242,236,230,0.75); line-height: 1.4; margin: 0 0 10px; }
+  .account-status { font-size: 12.5px; color: rgba(242,236,230,0.85); margin: 0 0 10px; line-height: 1.4; }
+  .account-status b { color: #fff; }
+  .account-btn {
+    width: 100%; background: var(--accent); color: var(--accent-ink); border: none; border-radius: 9px;
+    padding: 9px; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .account-btn--ghost { background: rgba(255,255,255,0.08); color: rgba(242,236,230,0.85); }
 
   .streak-card { background: var(--plum-soft); border-radius: 14px; padding: 14px; margin-bottom: 22px; }
   .streak-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
@@ -206,8 +269,11 @@
 
   @media (max-width: 720px) {
     .home-shell { flex-direction: column; overflow-y: auto; }
-    .sidebar { width: 100%; overflow-y: visible; }
-    .home-main { overflow-y: visible; padding: 22px 20px 32px; }
+    /* Lessons are what a returning learner opens the app for — show them
+       first on a phone, with the streak/account/language controls reachable
+       by scrolling down rather than pushing lessons below the fold. */
+    .home-main { order: -1; overflow-y: visible; padding: 22px 20px 28px; }
+    .sidebar { width: 100%; overflow-y: visible; border-top: 1px solid rgba(255,255,255,0.08); }
     .lesson-row-blurb { white-space: normal; }
   }
 
@@ -555,6 +621,36 @@
 </head>
 <body>
 
+<div class="modal-overlay" id="authOverlay" style="display:none">
+  <div class="modal" id="authModal">
+    <button class="modal-close" id="authCloseBtn" type="button" aria-label="Close">×</button>
+    <h2 class="modal-title" id="authModalTitle">Sign in</h2>
+    <p class="modal-subtitle" id="authModalSubtitle">Save your progress and pick up where you left off on any device.</p>
+    <div class="error-banner" id="authErrorBanner"></div>
+    <form id="authForm">
+      <label class="modal-field">
+        <span>Email</span>
+        <input type="email" id="authEmailInput" required autocomplete="email">
+      </label>
+      <label class="modal-field">
+        <span>Password</span>
+        <input type="password" id="authPasswordInput" required autocomplete="current-password" minlength="6">
+      </label>
+      <button type="submit" class="modal-submit" id="authSubmitBtn">Sign in</button>
+    </form>
+    <div class="modal-divider"><span>or</span></div>
+    <button type="button" class="modal-google-btn" id="authGoogleBtn">
+      <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 01-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.87 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 009 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 013.68 9c0-.59.1-1.17.27-1.7V4.97H.98A9 9 0 000 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 00.98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+      Continue with Google
+    </button>
+    <p class="modal-switch">
+      <span id="authSwitchText">Don't have an account?</span>
+      <button type="button" class="modal-link" id="authSwitchBtn">Sign up</button>
+    </p>
+    <button type="button" class="modal-link modal-forgot" id="authForgotBtn">Forgot password?</button>
+  </div>
+</div>
+
 <div id="homeScreen" class="screen active">
   <div class="home-shell">
     <aside class="sidebar">
@@ -568,6 +664,8 @@
         Echoly
       </span>
       <p class="sidebar-tagline">Practice real conversations, not word lists.</p>
+
+      <div class="account-card" id="accountCard" style="display:none"></div>
 
       <div class="streak-card" id="streakCard">
         <div class="streak-top">
@@ -748,6 +846,70 @@
   // point at a different host during local testing if needed.
   const API_BASE = window.APP_API_BASE || "";
 
+  // ---------- Accounts (optional — sign in to sync progress across devices) ----------
+  // Firebase is a client-only integration: Auth + Firestore, no server.js
+  // involvement, secured entirely by Firestore rules (each signed-in user
+  // may only read/write their own users/{uid} document). These "public"
+  // config values aren't secret — see the Firebase docs — but they do need
+  // to be your real project's values before accounts will work at all.
+  // Until then the app runs exactly as it does today: fully usable with
+  // progress kept in this browser only, and every account UI element stays
+  // hidden (same feature-detected pattern as the audio buttons).
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyB89RBBrBTLl6LssW2enderqU0LGl5SsyL4",
+    authDomain: "echoly-98a95.firebaseapp.com",
+    projectId: "echoly-98a95",
+    storageBucket: "echoly-98a95.firebasestorage.app",
+    messagingSenderId: "699853002224",
+    appId: "1:699853002224:web:d46f97c8635d2c6eb2af935"
+  };
+  const accountsEnabled = !FIREBASE_CONFIG.apiKey.startsWith("YOUR_");
+  let firebaseAuth = null;
+  let firestoreDb = null;
+  let currentUser = null; // the signed-in Firebase user, or null when signed out
+  let authMode = "signin"; // "signin" | "signup" — which form the auth modal is showing
+  // Populated once (if ever) the dynamic import below resolves.
+  let fbOnAuthStateChanged, fbCreateUser, fbSignIn, fbSignOut, fbGoogleProvider, fbSignInWithPopup, fbSendPasswordReset;
+  let fbDoc, fbGetDoc, fbSetDoc;
+
+  // Firebase is loaded from Google's CDN with a dynamic import — NOT a
+  // top-level `import`, and deliberately not on a `type="module"` script.
+  // A static import that fails to load (offline, corporate firewall, an
+  // ad-blocker, a CDN hiccup) takes the ENTIRE module down with it, which
+  // would mean an unrelated network blip breaks lesson practice for
+  // everyone. A dynamic import inside a try/catch means the worst case is
+  // that accounts silently stay unavailable for that page load — everything
+  // else in the app is completely unaffected either way. This also only
+  // ever runs at all when a real FIREBASE_CONFIG has been filled in.
+  async function initFirebaseIfEnabled() {
+    if (!accountsEnabled) return;
+    try {
+      const [appMod, authMod, storeMod] = await Promise.all([
+        import("https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"),
+        import("https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"),
+        import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js")
+      ]);
+      fbOnAuthStateChanged = authMod.onAuthStateChanged;
+      fbCreateUser = authMod.createUserWithEmailAndPassword;
+      fbSignIn = authMod.signInWithEmailAndPassword;
+      fbSignOut = authMod.signOut;
+      fbGoogleProvider = authMod.GoogleAuthProvider;
+      fbSignInWithPopup = authMod.signInWithPopup;
+      fbSendPasswordReset = authMod.sendPasswordResetEmail;
+      fbDoc = storeMod.doc;
+      fbGetDoc = storeMod.getDoc;
+      fbSetDoc = storeMod.setDoc;
+
+      const firebaseApp = appMod.initializeApp(FIREBASE_CONFIG);
+      firebaseAuth = authMod.getAuth(firebaseApp);
+      firestoreDb = storeMod.getFirestore(firebaseApp);
+      fbOnAuthStateChanged(firebaseAuth, user => { user ? handleSignedIn(user) : handleSignedOut(); });
+    } catch (e) {
+      // Accounts just aren't available for this page load — the rest of the
+      // app (lessons, streaks, local vocab review) keeps working normally.
+    }
+  }
+
   // The progression path is fetched from GET /scenarios at load time rather
   // than duplicated here — server.js's SCENARIOS object is the single
   // source of truth (90 lessons is too much to keep in sync by hand across
@@ -872,6 +1034,19 @@
   const homeScreen = document.getElementById("homeScreen");
   const introScreen = document.getElementById("introScreen");
   const chatScreen = document.getElementById("chatScreen");
+  const accountCardEl = document.getElementById("accountCard");
+  const authOverlayEl = document.getElementById("authOverlay");
+  const authCloseBtn = document.getElementById("authCloseBtn");
+  const authModalTitleEl = document.getElementById("authModalTitle");
+  const authErrorBanner = document.getElementById("authErrorBanner");
+  const authFormEl = document.getElementById("authForm");
+  const authEmailInput = document.getElementById("authEmailInput");
+  const authPasswordInput = document.getElementById("authPasswordInput");
+  const authSubmitBtn = document.getElementById("authSubmitBtn");
+  const authGoogleBtn = document.getElementById("authGoogleBtn");
+  const authSwitchTextEl = document.getElementById("authSwitchText");
+  const authSwitchBtn = document.getElementById("authSwitchBtn");
+  const authForgotBtn = document.getElementById("authForgotBtn");
   const langSelectEl = document.getElementById("langSelect");
   const streakFlameIconEl = document.getElementById("streakFlameIcon");
   const streakCountEl = document.getElementById("streakCount");
@@ -1052,6 +1227,7 @@
   streakGoalSelectEl.addEventListener("change", () => {
     setDailyGoal(Number(streakGoalSelectEl.value));
     renderStreakCard();
+    syncToCloud();
   });
 
   // ---------- Vocab review (spaced repetition, per-language, stored in this browser only) ----------
@@ -1189,6 +1365,7 @@
   function gradeAndAdvanceReview(remembered) {
     const card = reviewCards[reviewIndex];
     gradeVocabCard(selectedLanguage, card.phrase, remembered);
+    syncToCloud();
     if (remembered) reviewCorrectCount++;
     if (reviewIndex < reviewCards.length - 1) {
       reviewIndex++;
@@ -1219,6 +1396,190 @@
     homeScreen.classList.add("active");
     renderReviewCard();
   });
+
+  // ---------- Accounts: cloud sync over Firestore, auth via Firebase Auth ----------
+  // Firestore layout: one document per signed-in user at users/{uid}, holding
+  // the same three payloads this app already keeps in localStorage —
+  // progress, streak, and vocab — as a single snapshot. Firestore security
+  // rules restrict a document to its own owner (see the project README).
+  function localDataSnapshot() {
+    return { progress: loadAllProgress(), streak: loadStreakData(), vocab: loadVocabBank() };
+  }
+  function applyCloudSnapshot(data) {
+    if (data && data.progress) saveAllProgress(data.progress);
+    if (data && data.streak) saveStreakData(data.streak);
+    if (data && data.vocab) saveVocabBank(data.vocab);
+  }
+  // Fire-and-forget — a failed sync (offline, blocked, etc.) just means this
+  // browser's local copy stays the source of truth until the next
+  // successful sync; nothing the learner is doing gets interrupted by it.
+  function syncToCloud() {
+    if (!accountsEnabled || !currentUser || !firestoreDb) return;
+    fbSetDoc(fbDoc(firestoreDb, "users", currentUser.uid), localDataSnapshot()).catch(() => {});
+  }
+
+  function renderAccountCard() {
+    if (!accountsEnabled) { accountCardEl.style.display = "none"; return; }
+    accountCardEl.style.display = "block";
+    if (currentUser) {
+      accountCardEl.innerHTML = `
+        <p class="account-status" id="accountStatusText"></p>
+        <button class="account-btn account-btn--ghost" id="accountSignOutBtn">Sign out</button>`;
+      const statusEl = document.getElementById("accountStatusText");
+      statusEl.appendChild(document.createTextNode("Signed in as "));
+      const b = document.createElement("b");
+      b.textContent = currentUser.email || "you";
+      statusEl.appendChild(b);
+      document.getElementById("accountSignOutBtn").addEventListener("click", () => fbSignOut(firebaseAuth));
+    } else {
+      accountCardEl.innerHTML = `
+        <p class="account-blurb">💾 Sign in to save your progress and sync it across devices.</p>
+        <button class="account-btn" id="accountSignInBtn">Sign in</button>`;
+      document.getElementById("accountSignInBtn").addEventListener("click", () => openAuthModal("signin"));
+    }
+  }
+
+  function updateAuthModalMode() {
+    if (authMode === "signup") {
+      authModalTitleEl.textContent = "Create your account";
+      authSubmitBtn.textContent = "Sign up";
+      authSwitchTextEl.textContent = "Already have an account?";
+      authSwitchBtn.textContent = "Sign in";
+    } else {
+      authModalTitleEl.textContent = "Sign in";
+      authSubmitBtn.textContent = "Sign in";
+      authSwitchTextEl.textContent = "Don't have an account?";
+      authSwitchBtn.textContent = "Sign up";
+    }
+  }
+  function openAuthModal(mode) {
+    authMode = mode || "signin";
+    authErrorBanner.classList.remove("shown");
+    authErrorBanner.style.color = "";
+    authFormEl.reset();
+    updateAuthModalMode();
+    authOverlayEl.style.display = "flex";
+    setTimeout(() => authEmailInput.focus(), 50);
+  }
+  function closeAuthModal() {
+    authOverlayEl.style.display = "none";
+  }
+  function showAuthError(msg) {
+    authErrorBanner.textContent = msg;
+    authErrorBanner.classList.add("shown");
+  }
+  // Firebase's raw error codes ("auth/wrong-password") aren't something a
+  // learner should have to parse — map the common ones to plain language.
+  function friendlyAuthError(err) {
+    const code = err && err.code;
+    if (code === "auth/popup-closed-by-user") return null; // not a real error — they just closed the Google popup
+    const map = {
+      "auth/email-already-in-use": "That email already has an account — try signing in instead.",
+      "auth/invalid-email": "That doesn't look like a valid email address.",
+      "auth/weak-password": "Password needs to be at least 6 characters.",
+      "auth/wrong-password": "Incorrect password. Try again, or reset it below.",
+      "auth/user-not-found": "No account found with that email.",
+      "auth/invalid-credential": "Incorrect email or password.",
+      "auth/too-many-requests": "Too many attempts — please wait a moment and try again."
+    };
+    return (code && map[code]) || "Something went wrong. Please try again.";
+  }
+
+  authCloseBtn.addEventListener("click", closeAuthModal);
+  authOverlayEl.addEventListener("click", e => { if (e.target === authOverlayEl) closeAuthModal(); });
+  authSwitchBtn.addEventListener("click", () => {
+    authMode = authMode === "signin" ? "signup" : "signin";
+    authErrorBanner.classList.remove("shown");
+    updateAuthModalMode();
+  });
+
+  // If Firebase never finished loading (still loading, or it failed —
+  // offline, CDN blocked, ad-blocker), fail honestly here rather than
+  // letting a call to an undefined function throw a confusing error.
+  function firebaseNotReadyMessage() {
+    if (!firebaseAuth) return "Still connecting — please wait a moment and try again.";
+    return null;
+  }
+
+  authFormEl.addEventListener("submit", async e => {
+    e.preventDefault();
+    const notReady = firebaseNotReadyMessage();
+    if (notReady) { showAuthError(notReady); return; }
+    const email = authEmailInput.value.trim();
+    const password = authPasswordInput.value;
+    authErrorBanner.classList.remove("shown");
+    authSubmitBtn.disabled = true;
+    try {
+      if (authMode === "signup") {
+        await fbCreateUser(firebaseAuth, email, password);
+      } else {
+        await fbSignIn(firebaseAuth, email, password);
+      }
+      closeAuthModal();
+    } catch (err) {
+      const msg = friendlyAuthError(err);
+      if (msg) showAuthError(msg);
+    } finally {
+      authSubmitBtn.disabled = false;
+    }
+  });
+
+  authGoogleBtn.addEventListener("click", async () => {
+    const notReady = firebaseNotReadyMessage();
+    if (notReady) { showAuthError(notReady); return; }
+    authErrorBanner.classList.remove("shown");
+    try {
+      await fbSignInWithPopup(firebaseAuth, new fbGoogleProvider());
+      closeAuthModal();
+    } catch (err) {
+      const msg = friendlyAuthError(err);
+      if (msg) showAuthError(msg);
+    }
+  });
+
+  authForgotBtn.addEventListener("click", async () => {
+    const notReady = firebaseNotReadyMessage();
+    if (notReady) { showAuthError(notReady); return; }
+    const email = authEmailInput.value.trim();
+    authErrorBanner.classList.remove("shown");
+    authErrorBanner.style.color = "";
+    if (!email) { showAuthError('Enter your email above first, then tap "Forgot password?"'); return; }
+    try {
+      await fbSendPasswordReset(firebaseAuth, email);
+      authErrorBanner.style.color = "#14733f"; // reuse the error banner as a success line here
+      showAuthError("Password reset email sent — check your inbox.");
+    } catch (err) {
+      const msg = friendlyAuthError(err);
+      if (msg) showAuthError(msg);
+    }
+  });
+
+  // Once signed in, the cloud becomes the source of truth: pull it down and
+  // overwrite local state (so a second device shows what the first one
+  // saved), unless this is the very first time this account has ever signed
+  // in anywhere — then there's nothing to pull yet, so whatever progress
+  // already exists in this browser becomes the account's starting point.
+  async function handleSignedIn(user) {
+    currentUser = user;
+    renderAccountCard();
+    try {
+      const snap = await fbGetDoc(fbDoc(firestoreDb, "users", user.uid));
+      if (snap.exists()) {
+        applyCloudSnapshot(snap.data());
+      } else {
+        await fbSetDoc(fbDoc(firestoreDb, "users", user.uid), localDataSnapshot());
+      }
+    } catch (e) {
+      // Offline, or Firestore briefly unreachable — keep using whatever is
+      // already in this browser rather than blocking the learner.
+    }
+    renderHome();
+    renderStreakCard();
+  }
+  function handleSignedOut() {
+    currentUser = null;
+    renderAccountCard();
+  }
 
   function getNodeState(index, completed) {
     const lesson = PATH[index];
@@ -1963,6 +2324,7 @@
           renderStreakCard();
           streakAfter = streakData.currentStreak;
           streakIncreased = streakAfter > streakBefore;
+          syncToCloud();
         }
       }
       history.push({ role: "assistant", content: data.reply });
@@ -2112,6 +2474,8 @@
 
   async function init() {
     renderStreakCard(); // independent of the /scenarios fetch below — render it regardless
+    renderAccountCard();
+    initFirebaseIfEnabled(); // fire-and-forget — never blocks the rest of startup, see its own comment
     try {
       const res = await fetch(`${API_BASE}/scenarios`);
       const data = await res.json();
