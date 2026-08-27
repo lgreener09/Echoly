@@ -1,0 +1,17 @@
+{
+  "name": "echoly-server",
+  "version": "1.0.0",
+  "description": "Echoly backend — AI conversation-practice: roleplays real-life scenarios in the language you're learning.",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^7.4.1",
+    "openai": "^6.49.0"
+  }
+}
