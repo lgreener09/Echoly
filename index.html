@@ -120,6 +120,20 @@
   .streak-goal-track { height: 5px; border-radius: 999px; background: rgba(255,255,255,0.14); overflow: hidden; }
   .streak-goal-fill { height: 100%; background: #f5a623; border-radius: 999px; transition: width 0.3s ease; }
 
+  /* Vocab review card — only shown once a learner has phrases in their deck
+     (i.e. has finished at least one lesson in the selected language). */
+  .review-card { background: var(--plum-soft); border-radius: 14px; padding: 14px; margin-bottom: 22px; }
+  .review-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .review-card-icon { font-size: 22px; }
+  .review-card-text { display: flex; flex-direction: column; line-height: 1.2; }
+  .review-due-count { font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; font-weight: 800; }
+  .review-due-label { font-size: 11.5px; color: rgba(242,236,230,0.65); }
+  .review-card-btn {
+    width: 100%; background: var(--accent); color: var(--accent-ink); border: none; border-radius: 9px;
+    padding: 9px; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .review-card-btn:disabled { background: rgba(255,255,255,0.08); color: rgba(242,236,230,0.5); cursor: default; }
+
   .lang-select-wrap { display: block; margin-bottom: 24px; }
   .lang-select-label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.55; margin-bottom: 6px; }
   .lang-select {
@@ -507,6 +521,36 @@
 
   .practice-footer { padding: 16px 20px; border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; max-width: 640px; margin: 0 auto; width: 100%; }
   .practice-footer.intro-warm .start-btn { background: var(--tip); }
+
+  /* -------- Vocab review screen (flashcards over phrases from finished lessons) -------- */
+  .review-body { flex: 1; overflow-y: auto; padding: 20px 20px 24px; max-width: 640px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; }
+  .review-progress { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .review-progress-track { flex: 1; height: 6px; border-radius: 999px; background: var(--border); overflow: hidden; }
+  .review-progress-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width 0.25s ease; }
+  .review-progress-label { font-size: 12.5px; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .review-flashcard {
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: 18px; padding: 40px 26px;
+    min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center;
+    margin: auto 0; /* vertically centers within .review-body's flex column */
+    width: 100%;
+  }
+  .review-flashcard-label { font-size: 12.5px; color: var(--ink-soft); margin: 0; }
+  .review-flashcard-phrase-row { display: flex; align-items: center; gap: 8px; }
+  .review-flashcard-phrase { font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.01em; }
+  .review-flashcard-translation { font-size: 15px; color: var(--ink-soft); font-style: italic; margin: 0; }
+
+  .review-footer { padding: 16px 20px; border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; max-width: 640px; margin: 0 auto; width: 100%; }
+  .review-footer-actions { display: flex; gap: 10px; }
+  .review-footer-actions .start-btn { flex: 1; }
+  .review-grade-btn {
+    flex: 1; border: 1.5px solid var(--border); background: var(--surface); border-radius: 12px;
+    padding: 13px; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit;
+  }
+  .review-grade-btn--again { color: #a5312c; }
+  .review-grade-btn--again:hover { border-color: #d0403a; background: #fdeceb; }
+  .review-grade-btn--good { color: #14733f; }
+  .review-grade-btn--good:hover { border-color: #1a9c5b; background: #eafbf2; }
 </style>
 </head>
 <body>
@@ -545,6 +589,17 @@
           </div>
           <div class="streak-goal-track"><div class="streak-goal-fill" id="streakGoalFill"></div></div>
         </div>
+      </div>
+
+      <div class="review-card" id="reviewCard" style="display:none">
+        <div class="review-card-top">
+          <span class="review-card-icon">🧠</span>
+          <div class="review-card-text">
+            <span class="review-due-count" id="reviewDueCount">0</span>
+            <span class="review-due-label" id="reviewDueLabel">phrases due</span>
+          </div>
+        </div>
+        <button class="review-card-btn" id="reviewCardBtn" disabled>Review now</button>
       </div>
 
       <label class="lang-select-wrap">
@@ -623,6 +678,32 @@
   </div>
   <div class="practice-footer" id="practiceFooter">
     <button class="start-btn" id="practiceActionBtn" disabled>Check</button>
+  </div>
+</div>
+
+<div id="reviewScreen" class="screen">
+  <div class="topbar">
+    <button class="back-btn" id="reviewBackBtn" aria-label="Back">←</button>
+    <div class="topbar-title">
+      <b>Review</b>
+      <span id="reviewLanguageLabel">Language</span>
+    </div>
+  </div>
+  <div class="review-body" id="reviewBody">
+    <div class="review-progress">
+      <div class="review-progress-track"><div class="review-progress-fill" id="reviewProgressFill"></div></div>
+      <span class="review-progress-label" id="reviewProgressLabel">Card 1 of 5</span>
+    </div>
+    <div class="review-flashcard" id="reviewFlashcard">
+      <p class="review-flashcard-label" id="reviewFlashcardLabel">Try to recall it, then reveal the answer</p>
+      <div class="review-flashcard-phrase-row" id="reviewFlashcardPhraseRow">
+        <span class="review-flashcard-phrase" id="reviewFlashcardPhrase"></span>
+      </div>
+      <p class="review-flashcard-translation" id="reviewFlashcardTranslation" style="display:none"></p>
+    </div>
+  </div>
+  <div class="review-footer" id="reviewFooter">
+    <div class="review-footer-actions" id="reviewFooterActions"></div>
   </div>
 </div>
 
@@ -782,6 +863,12 @@
   let matchPairsState = []; // matching — matchPairsState[termIndex] = matched meaning's original index, or null
   let matchShuffledMeanings = []; // matching — [{meaning, originalIndex}], shuffled once per exercise
 
+  // Vocab review round (flashcards over phrases pulled from finished lessons)
+  let reviewCards = []; // the cards due for review, drawn for the current session
+  let reviewIndex = 0;
+  let reviewCorrectCount = 0;
+  let reviewRevealed = false; // has the current card's translation been shown yet?
+
   const homeScreen = document.getElementById("homeScreen");
   const introScreen = document.getElementById("introScreen");
   const chatScreen = document.getElementById("chatScreen");
@@ -791,6 +878,10 @@
   const streakGoalFracEl = document.getElementById("streakGoalFrac");
   const streakGoalSelectEl = document.getElementById("streakGoalSelect");
   const streakGoalFillEl = document.getElementById("streakGoalFill");
+  const reviewCardEl = document.getElementById("reviewCard");
+  const reviewDueCountEl = document.getElementById("reviewDueCount");
+  const reviewDueLabelEl = document.getElementById("reviewDueLabel");
+  const reviewCardBtn = document.getElementById("reviewCardBtn");
   const tierNavEl = document.getElementById("tierNav");
   const mainTierTitleEl = document.getElementById("mainTierTitle");
   const mainTierFracEl = document.getElementById("mainTierFrac");
@@ -823,6 +914,16 @@
   const practiceFeedbackEl = document.getElementById("practiceFeedback");
   const practiceFooterEl = document.getElementById("practiceFooter");
   const practiceActionBtn = document.getElementById("practiceActionBtn");
+  const reviewScreen = document.getElementById("reviewScreen");
+  const reviewBackBtn = document.getElementById("reviewBackBtn");
+  const reviewLanguageLabelEl = document.getElementById("reviewLanguageLabel");
+  const reviewProgressFillEl = document.getElementById("reviewProgressFill");
+  const reviewProgressLabelEl = document.getElementById("reviewProgressLabel");
+  const reviewFlashcardLabelEl = document.getElementById("reviewFlashcardLabel");
+  const reviewFlashcardPhraseRowEl = document.getElementById("reviewFlashcardPhraseRow");
+  const reviewFlashcardPhraseEl = document.getElementById("reviewFlashcardPhrase");
+  const reviewFlashcardTranslationEl = document.getElementById("reviewFlashcardTranslation");
+  const reviewFooterActionsEl = document.getElementById("reviewFooterActions");
   const objectivesCardEl = document.getElementById("objectivesCard");
   const objectivesToggleBtn = document.getElementById("objectivesToggleBtn");
   const objectivesFracEl = document.getElementById("objectivesFrac");
@@ -953,6 +1054,172 @@
     renderStreakCard();
   });
 
+  // ---------- Vocab review (spaced repetition, per-language, stored in this browser only) ----------
+  const VOCAB_KEY = "echoly_vocab_v1";
+  // Leitner-style boxes: a remembered card is promoted to the next box (a
+  // longer gap before it comes due again); a missed card drops straight back
+  // to box 0 so it resurfaces the very next day.
+  const REVIEW_INTERVAL_DAYS = [1, 2, 4, 7, 14, 30];
+
+  function loadVocabBank() {
+    try {
+      const raw = localStorage.getItem(VOCAB_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {}; // storage unavailable — reviews just won't persist this session
+    }
+  }
+  function saveVocabBank(bank) {
+    try { localStorage.setItem(VOCAB_KEY, JSON.stringify(bank)); } catch (e) { /* non-fatal */ }
+  }
+  // Called once a lesson completes — folds its key phrases into the learner's
+  // review deck for that language. New cards start due immediately (box 0),
+  // so what was just taught shows up the next time they open review.
+  function addPhrasesToBank(language, phrases) {
+    if (!Array.isArray(phrases) || !phrases.length) return;
+    const bank = loadVocabBank();
+    if (!bank[language]) bank[language] = [];
+    const known = new Set(bank[language].map(c => c.phrase));
+    const today = todayDateStr();
+    let changed = false;
+    phrases.forEach(p => {
+      if (!p || !p.phrase || known.has(p.phrase)) return;
+      bank[language].push({ phrase: p.phrase, translation: p.translation || "", box: 0, nextReviewDate: today });
+      known.add(p.phrase);
+      changed = true;
+    });
+    if (changed) saveVocabBank(bank);
+  }
+  function getVocabCards(language) {
+    const bank = loadVocabBank();
+    return bank[language] || [];
+  }
+  function getDueVocabCards(language) {
+    const today = todayDateStr();
+    return getVocabCards(language).filter(c => c.nextReviewDate <= today);
+  }
+  function gradeVocabCard(language, phrase, remembered) {
+    const bank = loadVocabBank();
+    const cards = bank[language] || [];
+    const card = cards.find(c => c.phrase === phrase);
+    if (!card) return;
+    card.box = remembered ? Math.min(card.box + 1, REVIEW_INTERVAL_DAYS.length - 1) : 0;
+    const next = new Date();
+    next.setDate(next.getDate() + REVIEW_INTERVAL_DAYS[card.box]);
+    const y = next.getFullYear();
+    const m = String(next.getMonth() + 1).padStart(2, "0");
+    const d = String(next.getDate()).padStart(2, "0");
+    card.nextReviewDate = `${y}-${m}-${d}`;
+    saveVocabBank(bank);
+  }
+  // Fisher–Yates — so review order isn't the same every session.
+  function shuffle(arr) {
+    const out = arr.slice();
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+  }
+
+  function renderReviewCard() {
+    const total = getVocabCards(selectedLanguage).length;
+    if (total === 0) {
+      reviewCardEl.style.display = "none";
+      return;
+    }
+    reviewCardEl.style.display = "block";
+    const due = getDueVocabCards(selectedLanguage).length;
+    reviewDueCountEl.textContent = due;
+    reviewDueLabelEl.textContent = due === 1 ? "phrase due" : "phrases due";
+    reviewCardBtn.disabled = due === 0;
+    reviewCardBtn.textContent = due === 0 ? "All caught up ✓" : "Review now";
+  }
+
+  reviewCardBtn.addEventListener("click", () => {
+    const due = getDueVocabCards(selectedLanguage);
+    if (!due.length) return;
+    openReview(due);
+  });
+
+  function openReview(dueCards) {
+    reviewCards = shuffle(dueCards);
+    reviewIndex = 0;
+    reviewCorrectCount = 0;
+    reviewLanguageLabelEl.textContent = `Reviewing ${selectedLanguage}`;
+    homeScreen.classList.remove("active");
+    reviewScreen.classList.add("active");
+    renderReviewFlashcard();
+  }
+
+  function renderReviewFlashcard() {
+    const card = reviewCards[reviewIndex];
+    reviewRevealed = false;
+    reviewProgressLabelEl.textContent = `Card ${reviewIndex + 1} of ${reviewCards.length}`;
+    reviewProgressFillEl.style.width = `${Math.round((reviewIndex / reviewCards.length) * 100)}%`;
+    reviewFlashcardLabelEl.textContent = "Try to recall it, then reveal the answer";
+    reviewFlashcardPhraseEl.textContent = card.phrase;
+    reviewFlashcardTranslationEl.style.display = "none";
+    reviewFlashcardPhraseRowEl.querySelectorAll(".speak-btn").forEach(b => b.remove());
+    if (ttsSupported) {
+      const speakBtn = document.createElement("button");
+      speakBtn.className = "speak-btn";
+      speakBtn.type = "button";
+      speakBtn.setAttribute("aria-label", "Listen");
+      speakBtn.textContent = "🔊";
+      speakBtn.addEventListener("click", () => speakText(card.phrase, selectedLanguage));
+      reviewFlashcardPhraseRowEl.appendChild(speakBtn);
+    }
+    reviewFooterActionsEl.innerHTML = `<button class="start-btn" id="reviewRevealBtn">Show answer</button>`;
+    document.getElementById("reviewRevealBtn").addEventListener("click", revealReviewAnswer);
+  }
+
+  function revealReviewAnswer() {
+    if (reviewRevealed) return;
+    reviewRevealed = true;
+    reviewFlashcardTranslationEl.textContent = reviewCards[reviewIndex].translation;
+    reviewFlashcardTranslationEl.style.display = "block";
+    reviewFooterActionsEl.innerHTML = `
+      <button class="review-grade-btn review-grade-btn--again" id="reviewAgainBtn">Still learning</button>
+      <button class="review-grade-btn review-grade-btn--good" id="reviewGoodBtn">Got it</button>`;
+    document.getElementById("reviewAgainBtn").addEventListener("click", () => gradeAndAdvanceReview(false));
+    document.getElementById("reviewGoodBtn").addEventListener("click", () => gradeAndAdvanceReview(true));
+  }
+
+  function gradeAndAdvanceReview(remembered) {
+    const card = reviewCards[reviewIndex];
+    gradeVocabCard(selectedLanguage, card.phrase, remembered);
+    if (remembered) reviewCorrectCount++;
+    if (reviewIndex < reviewCards.length - 1) {
+      reviewIndex++;
+      renderReviewFlashcard();
+    } else {
+      finishReview();
+    }
+  }
+
+  function finishReview() {
+    reviewProgressFillEl.style.width = "100%";
+    reviewProgressLabelEl.textContent = `${reviewCards.length} of ${reviewCards.length}`;
+    reviewFlashcardLabelEl.textContent = "";
+    reviewFlashcardPhraseRowEl.querySelectorAll(".speak-btn").forEach(b => b.remove());
+    reviewFlashcardPhraseEl.textContent = `🎉 ${reviewCorrectCount}/${reviewCards.length} remembered`;
+    reviewFlashcardTranslationEl.textContent = "Nice work — come back tomorrow for more.";
+    reviewFlashcardTranslationEl.style.display = "block";
+    reviewFooterActionsEl.innerHTML = `<button class="start-btn" id="reviewDoneBtn">Done</button>`;
+    document.getElementById("reviewDoneBtn").addEventListener("click", () => {
+      reviewScreen.classList.remove("active");
+      homeScreen.classList.add("active");
+      renderReviewCard();
+    });
+  }
+
+  reviewBackBtn.addEventListener("click", () => {
+    reviewScreen.classList.remove("active");
+    homeScreen.classList.add("active");
+    renderReviewCard();
+  });
+
   function getNodeState(index, completed) {
     const lesson = PATH[index];
     if (completed.includes(lesson.id)) return "completed";
@@ -1035,6 +1302,7 @@
   function renderHome() {
     renderTierNav();
     renderLessonRows();
+    renderReviewCard();
   }
 
   langSelectEl.addEventListener("change", () => {
@@ -1687,6 +1955,7 @@
         const allObjectivesDone = currentObjectives.length > 0 && completedObjectiveIndices.length >= currentObjectives.length;
         if (!alreadyDone && (allObjectivesDone || userMessageCount >= LESSON_COMPLETE_AFTER)) {
           markLessonComplete(selectedLanguage, currentScenario.id);
+          addPhrasesToBank(selectedLanguage, currentKeyPhrases);
           trackEvent("lesson_completed", { scenario: currentScenario.id, language: selectedLanguage });
           justCompleted = true;
           const streakBefore = getDisplayStreakData().currentStreak;
