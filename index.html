@@ -409,7 +409,8 @@
   .practice-option.incorrect { border-color: #d0403a; background: #fdeceb; color: #a5312c; }
   .practice-option:disabled { cursor: default; }
 
-  .practice-fill-sentence { font-size: 18px; text-align: center; line-height: 1.7; margin: 0 0 18px; }
+  .practice-fill-sentence { font-size: 18px; text-align: center; line-height: 1.7; margin: 0 0 8px; }
+  .practice-fill-translation { font-size: 13px; color: var(--ink-soft); font-style: italic; text-align: center; margin: 0 0 18px; }
   .practice-fill-input {
     border: none; border-bottom: 2px solid var(--accent); text-align: center; font-family: inherit;
     font-size: 18px; font-weight: 700; width: 150px; padding: 2px 4px; outline: none; background: transparent; color: var(--ink);
@@ -1013,7 +1014,8 @@
     const before = parts[0] || "";
     const after = parts.slice(1).join("___") || "";
     practiceExerciseAreaEl.innerHTML = `
-      <p class="practice-fill-sentence"></p>`;
+      <p class="practice-fill-sentence"></p>
+      <p class="practice-fill-translation"></p>`;
     const sentenceEl = practiceExerciseAreaEl.querySelector(".practice-fill-sentence");
     sentenceEl.appendChild(document.createTextNode(before));
     const input = document.createElement("input");
@@ -1023,6 +1025,7 @@
     input.autocomplete = "off";
     sentenceEl.appendChild(input);
     sentenceEl.appendChild(document.createTextNode(after));
+    practiceExerciseAreaEl.querySelector(".practice-fill-translation").textContent = ex.translation || "";
     input.addEventListener("input", () => {
       practiceActionBtn.disabled = !input.value.trim();
     });
@@ -1168,7 +1171,7 @@
       isCorrect = given === ex.correctAnswer.trim().toLowerCase();
       input.disabled = true;
       input.style.borderBottomColor = isCorrect ? "#1a9c5b" : "#d0403a";
-      correctText = `${ex.correctAnswer} — ${ex.translation}`;
+      correctText = ex.correctAnswer; // translation is already shown under the sentence, no need to repeat it here
     } else if (ex.kind === "word_bank") {
       isCorrect = wordBankOrder.length === ex.correctOrder.length &&
         wordBankOrder.every((idx, i) => idx === ex.correctOrder[i]);
