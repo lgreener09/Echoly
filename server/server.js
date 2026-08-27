@@ -804,8 +804,14 @@ const SCENARIOS = {
 
 // Languages the model can roleplay in without any extra setup — this list
 // is just what's offered in the UI dropdown; adding another language later
-// is a one-line addition here, not new content to write.
-const LANGUAGES = ["Spanish", "French", "Italian", "German", "Portuguese", "Japanese"];
+// is a one-line addition here, not new content to write (buildSystemPrompt
+// below builds the roleplay instructions dynamically for whichever language
+// is selected).
+const LANGUAGES = [
+    "Spanish", "French", "Italian", "German", "Portuguese", "Japanese",
+    "Mandarin Chinese", "Korean", "Arabic", "Russian", "Hindi", "Dutch",
+    "Greek", "Turkish", "Polish", "Swedish", "Vietnamese", "Thai", "Indonesian", "Hebrew"
+];
 
 function buildSystemPrompt(language, scenario) {
     return `You are roleplaying as ${scenario.character}, to help someone practice having a real, natural conversation in ${language}. Scenario: ${scenario.blurb}

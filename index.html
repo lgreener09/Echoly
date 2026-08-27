@@ -60,6 +60,8 @@
     --tip: #a8710a;
     --tip-bg: #fff6e5;
     --tip-border: #f5dfa6;
+    --plum: #322234;
+    --plum-soft: #4a3550;
   }
   * { box-sizing: border-box; }
   body {
@@ -92,48 +94,77 @@
   .lookup-toggle:hover { background: var(--bg); }
   .lookup-toggle.active { background: var(--accent-soft); color: var(--accent); }
 
-  /* -------- Home / Path screen -------- */
-  .home-body { flex: 1; overflow-y: auto; padding: 28px 20px 40px; max-width: 640px; margin: 0 auto; width: 100%; }
-  .home-eyebrow { color: var(--accent); font-weight: 700; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 8px; }
-  .home-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 30px; font-weight: 800; letter-spacing: -0.01em; margin: 0 0 8px; text-wrap: balance; line-height: 1.15; }
-  .home-subtitle { color: var(--ink-soft); font-size: 15.5px; margin: 0 0 24px; max-width: 52ch; }
-
-  .section-label { font-family: 'Bricolage Grotesque', sans-serif; font-size: 13px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 12px; }
-
-  .lang-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
-  .lang-pill {
-    padding: 9px 16px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--surface);
-    font-size: 14px; font-weight: 600; cursor: pointer; color: var(--ink);
+  /* -------- Home screen: sidebar navigator -------- */
+  .home-shell { flex: 1; display: flex; min-height: 0; }
+  .sidebar {
+    width: 248px; flex-shrink: 0; background: var(--plum); color: #f2ece6;
+    display: flex; flex-direction: column; padding: 22px 18px; overflow-y: auto;
   }
-  .lang-pill.selected { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .sidebar-brand { display: flex; align-items: center; gap: 8px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
+  .sidebar-tagline { font-size: 12.5px; color: rgba(242,236,230,0.65); margin: 8px 0 22px; line-height: 1.4; }
 
-  .progress-label { font-size: 13px; color: var(--ink-soft); margin-bottom: 8px; font-weight: 600; }
-  .progress-bar-track { height: 8px; border-radius: 999px; background: var(--border); overflow: hidden; margin-bottom: 28px; }
-  .progress-bar-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width 0.3s ease; }
-
-  .path-tier-label { font-family: 'Bricolage Grotesque', sans-serif; font-size: 13px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; margin: 20px 0 6px; }
-  .path-tier-label:first-child { margin-top: 0; }
-  .path-list { display: flex; flex-direction: column; }
-  .path-node {
-    display: flex; align-items: center; gap: 14px; padding: 10px 4px; cursor: pointer;
-    border: none; background: none; width: 100%; text-align: left; font-family: inherit; border-radius: 12px;
+  .lang-select-wrap { display: block; margin-bottom: 24px; }
+  .lang-select-label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.55; margin-bottom: 6px; }
+  .lang-select {
+    width: 100%; appearance: none; -webkit-appearance: none;
+    background-color: var(--plum-soft);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23f2ece6' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+    color: #fff; border: none; border-radius: 10px; padding: 10px 30px 10px 12px;
+    font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer;
   }
-  .path-node:not([disabled]):hover { background: var(--surface); }
-  .path-node[disabled] { cursor: default; opacity: 0.55; }
-  .path-node-icon {
-    width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    font-size: 19px; flex-shrink: 0; background: var(--surface); border: 2px solid var(--border);
-  }
-  .path-node.completed .path-node-icon { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .path-node.current .path-node-icon { border-color: var(--accent); background: var(--accent-soft); }
-  .path-connector { width: 2px; height: 14px; background: var(--border); margin-left: 25px; }
-  .path-node-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .path-node-title { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 15px; }
-  .path-node-status { font-size: 12.5px; color: var(--ink-soft); }
+  .lang-select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-  .home-footer { display: flex; gap: 16px; padding-top: 20px; margin-top: 12px; border-top: 1px solid var(--border); }
-  .home-footer a { color: var(--ink-soft); font-size: 12.5px; text-decoration: none; }
-  .home-footer a:hover { text-decoration: underline; }
+  .sidebar-nav-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.55; margin: 0 0 10px; }
+  .tier-nav { display: flex; flex-direction: column; gap: 6px; }
+  .tier-item {
+    border-radius: 12px; padding: 12px; cursor: pointer; border: none; background: none;
+    text-align: left; font-family: inherit; color: inherit; width: 100%;
+  }
+  .tier-item:hover { background: rgba(255,255,255,0.06); }
+  .tier-item.selected { background: rgba(232,93,76,0.22); }
+  .tier-item-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; gap: 8px; }
+  .tier-item-name { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 14px; }
+  .tier-item-frac { font-size: 11.5px; opacity: 0.7; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tier-bar-track { height: 5px; border-radius: 999px; background: rgba(255,255,255,0.14); overflow: hidden; }
+  .tier-bar-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width 0.3s ease; }
+
+  .sidebar-footer { margin-top: auto; padding-top: 20px; display: flex; flex-direction: column; gap: 8px; }
+  .sidebar-footer a { color: rgba(242,236,230,0.6); font-size: 12px; text-decoration: none; }
+  .sidebar-footer a:hover { text-decoration: underline; }
+
+  .home-main { flex: 1; overflow-y: auto; padding: 26px 28px 40px; min-width: 0; }
+  .home-main .error-banner { max-width: none; margin: 0 0 16px; padding: 0; }
+  .main-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .main-tier-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 24px; font-weight: 800; margin: 0; letter-spacing: -0.01em; }
+  .main-tier-frac { font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .lesson-rows { display: flex; flex-direction: column; gap: 10px; max-width: 640px; }
+  .lesson-row {
+    display: flex; align-items: center; gap: 14px; padding: 13px 14px; border: 1.5px solid var(--border);
+    border-radius: 14px; background: var(--surface); cursor: pointer; text-align: left; width: 100%; font-family: inherit;
+  }
+  .lesson-row:not([disabled]):hover { border-color: var(--accent); }
+  .lesson-row[disabled] { cursor: default; opacity: 0.55; }
+  .lesson-row.current { border-color: var(--accent); background: var(--accent-soft); }
+  .lesson-row-icon {
+    width: 40px; height: 40px; border-radius: 50%; background: var(--bg); border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+  }
+  .lesson-row.completed .lesson-row-icon { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .lesson-row-text { flex: 1; min-width: 0; }
+  .lesson-row-title { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 14.5px; }
+  .lesson-row-blurb { font-size: 12.5px; color: var(--ink-soft); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lesson-row-status { font-size: 11.5px; font-weight: 700; color: var(--ink-soft); flex-shrink: 0; }
+  .lesson-row.completed .lesson-row-status { color: var(--accent); }
+  .lesson-row.current .lesson-row-status { color: var(--tip); }
+
+  @media (max-width: 720px) {
+    .home-shell { flex-direction: column; overflow-y: auto; }
+    .sidebar { width: 100%; overflow-y: visible; }
+    .home-main { overflow-y: visible; padding: 22px 20px 32px; }
+    .lesson-row-blurb { white-space: normal; }
+  }
 
   /* -------- Chat screen -------- */
   .lookup-panel {
@@ -236,36 +267,41 @@
 <body>
 
 <div id="homeScreen" class="screen active">
-  <div class="topbar">
-    <span class="brand">
-      <svg class="brand-mark" width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/>
-        <circle cx="8.2" cy="10" r="1.3" fill="#fff"/>
-        <circle cx="12" cy="10" r="1.3" fill="#fff"/>
-        <circle cx="15.8" cy="10" r="1.3" fill="#fff"/>
-      </svg>
-      Echoly
-    </span>
-  </div>
-  <div class="home-body">
-    <p class="home-eyebrow">AI conversation practice</p>
-    <h1 class="home-title">Practice real conversations, not word lists.</h1>
-    <p class="home-subtitle">Work your way through real-life conversations, from simple to complex. Each one talks it through with an AI, with a quick tip whenever something you said isn't quite how a native speaker would say it.</p>
+  <div class="home-shell">
+    <aside class="sidebar">
+      <span class="sidebar-brand">
+        <svg class="brand-mark" width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/>
+          <circle cx="8.2" cy="10" r="1.3" fill="#fff"/>
+          <circle cx="12" cy="10" r="1.3" fill="#fff"/>
+          <circle cx="15.8" cy="10" r="1.3" fill="#fff"/>
+        </svg>
+        Echoly
+      </span>
+      <p class="sidebar-tagline">Practice real conversations, not word lists.</p>
 
-    <p class="section-label">Language</p>
-    <div class="lang-pills" id="langPills"></div>
+      <label class="lang-select-wrap">
+        <span class="lang-select-label">Language</span>
+        <select class="lang-select" id="langSelect"></select>
+      </label>
 
-    <div class="error-banner" id="homeErrorBanner"></div>
+      <p class="sidebar-nav-label">Your path</p>
+      <div class="tier-nav" id="tierNav"></div>
 
-    <p class="progress-label" id="progressLabel">Loading your path…</p>
-    <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="sidebar-footer">
+        <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
+        <a href="/tos.html" target="_blank" rel="noopener">Terms of Service</a>
+      </div>
+    </aside>
 
-    <div class="path-list" id="pathList"></div>
-
-    <div class="home-footer">
-      <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
-      <a href="/tos.html" target="_blank" rel="noopener">Terms of Service</a>
-    </div>
+    <main class="home-main">
+      <div class="error-banner" id="homeErrorBanner"></div>
+      <div class="main-header">
+        <h1 class="main-tier-title" id="mainTierTitle">Loading…</h1>
+        <span class="main-tier-frac" id="mainTierFrac"></span>
+      </div>
+      <div class="lesson-rows" id="lessonRows"></div>
+    </main>
   </div>
 </div>
 
@@ -311,6 +347,7 @@
   const LESSON_COMPLETE_AFTER = 4; // user messages sent before a lesson is marked done
 
   let selectedLanguage = null;
+  let selectedTier = null;
   let currentScenario = null;
   let history = []; // [{role: "user"|"assistant", content}]
   let sending = false;
@@ -319,10 +356,11 @@
 
   const homeScreen = document.getElementById("homeScreen");
   const chatScreen = document.getElementById("chatScreen");
-  const langPillsEl = document.getElementById("langPills");
-  const pathListEl = document.getElementById("pathList");
-  const progressLabelEl = document.getElementById("progressLabel");
-  const progressFillEl = document.getElementById("progressFill");
+  const langSelectEl = document.getElementById("langSelect");
+  const tierNavEl = document.getElementById("tierNav");
+  const mainTierTitleEl = document.getElementById("mainTierTitle");
+  const mainTierFracEl = document.getElementById("mainTierFrac");
+  const lessonRowsEl = document.getElementById("lessonRows");
   const chatLogEl = document.getElementById("chatLog");
   const lookupToggleBtn = document.getElementById("lookupToggleBtn");
   const lookupPanel = document.getElementById("lookupPanel");
@@ -369,53 +407,94 @@
     return "locked";
   }
 
-  function renderLangPills() {
-    langPillsEl.innerHTML = LANGUAGES.map(lang =>
-      `<button class="lang-pill${lang === selectedLanguage ? " selected" : ""}" data-lang="${lang}">${lang}</button>`
+  // Tier order is derived from PATH itself (first-appearance order) rather
+  // than hardcoded, so the sidebar stays correct even if the server's tier
+  // set or ordering ever changes.
+  function getTiersInOrder() {
+    const seen = [];
+    PATH.forEach(lesson => { if (!seen.includes(lesson.tier)) seen.push(lesson.tier); });
+    return seen;
+  }
+
+  // A returning learner should land on whichever tier they're actually mid-way
+  // through, not always "Beginner" — this finds the tier of the first
+  // not-yet-completed lesson in path order, falling back to the first tier if
+  // everything (or nothing) is complete.
+  function pickDefaultTier(language) {
+    const completed = getCompletedLessons(language);
+    const nextLesson = PATH.find(lesson => !completed.includes(lesson.id));
+    return (nextLesson || PATH[0]).tier;
+  }
+
+  function populateLangSelect() {
+    langSelectEl.innerHTML = LANGUAGES.map(lang =>
+      `<option value="${lang}"${lang === selectedLanguage ? " selected" : ""}>${lang}</option>`
     ).join("");
   }
 
-  function renderPath() {
+  function renderTierNav() {
     const completed = getCompletedLessons(selectedLanguage);
-    progressLabelEl.textContent = `${completed.length} of ${PATH.length} lessons complete`;
-    progressFillEl.style.width = `${Math.round((completed.length / PATH.length) * 100)}%`;
-
-    let html = "";
-    let lastTier = null;
-    PATH.forEach((lesson, i) => {
-      if (lesson.tier !== lastTier) {
-        if (lastTier !== null) html += `<div class="path-connector"></div>`;
-        html += `<p class="path-tier-label">${lesson.tier}</p>`;
-        lastTier = lesson.tier;
-      } else {
-        html += `<div class="path-connector"></div>`;
-      }
-      const state = getNodeState(i, completed);
-      const locked = state === "locked";
-      const iconContent = state === "completed" ? "✓" : (locked ? "🔒" : lesson.icon);
-      const statusText = state === "completed" ? "Completed" : (locked ? "Locked" : lesson.blurb);
-      html += `
-        <button class="path-node ${state}" data-lesson="${lesson.id}"${locked ? " disabled" : ""}>
-          <span class="path-node-icon">${iconContent}</span>
-          <span class="path-node-text">
-            <span class="path-node-title">${lesson.title}</span>
-            <span class="path-node-status">${statusText}</span>
+    tierNavEl.innerHTML = getTiersInOrder().map(tier => {
+      const lessonsInTier = PATH.filter(l => l.tier === tier);
+      const doneInTier = lessonsInTier.filter(l => completed.includes(l.id)).length;
+      const pct = Math.round((doneInTier / lessonsInTier.length) * 100);
+      return `
+        <button class="tier-item${tier === selectedTier ? " selected" : ""}" data-tier="${tier}">
+          <span class="tier-item-top">
+            <span class="tier-item-name">${tier}</span>
+            <span class="tier-item-frac">${doneInTier}/${lessonsInTier.length}</span>
           </span>
+          <span class="tier-bar-track"><span class="tier-bar-fill" style="width:${pct}%"></span></span>
         </button>`;
-    });
-    pathListEl.innerHTML = html;
+    }).join("");
   }
 
-  langPillsEl.addEventListener("click", e => {
-    const btn = e.target.closest(".lang-pill");
-    if (!btn) return;
-    selectedLanguage = btn.dataset.lang;
-    renderLangPills();
-    renderPath();
+  function renderLessonRows() {
+    const completed = getCompletedLessons(selectedLanguage);
+    const lessonsInTier = PATH.filter(l => l.tier === selectedTier);
+    const doneInTier = lessonsInTier.filter(l => completed.includes(l.id)).length;
+
+    mainTierTitleEl.textContent = selectedTier;
+    mainTierFracEl.textContent = `${doneInTier} of ${lessonsInTier.length} complete`;
+
+    lessonRowsEl.innerHTML = lessonsInTier.map(lesson => {
+      const globalIndex = PATH.indexOf(lesson);
+      const state = getNodeState(globalIndex, completed);
+      const locked = state === "locked";
+      const iconContent = state === "completed" ? "✓" : (locked ? "🔒" : lesson.icon);
+      const statusText = state === "completed" ? "✓ Done" : (state === "current" ? "Current" : "Locked");
+      return `
+        <button class="lesson-row ${state}" data-lesson="${lesson.id}"${locked ? " disabled" : ""}>
+          <span class="lesson-row-icon">${iconContent}</span>
+          <span class="lesson-row-text">
+            <span class="lesson-row-title">${lesson.title}</span>
+            <span class="lesson-row-blurb">${lesson.blurb}</span>
+          </span>
+          <span class="lesson-row-status">${statusText}</span>
+        </button>`;
+    }).join("");
+  }
+
+  function renderHome() {
+    renderTierNav();
+    renderLessonRows();
+  }
+
+  langSelectEl.addEventListener("change", () => {
+    selectedLanguage = langSelectEl.value;
+    selectedTier = pickDefaultTier(selectedLanguage);
+    renderHome();
   });
 
-  pathListEl.addEventListener("click", e => {
-    const btn = e.target.closest(".path-node");
+  tierNavEl.addEventListener("click", e => {
+    const btn = e.target.closest(".tier-item");
+    if (!btn) return;
+    selectedTier = btn.dataset.tier;
+    renderHome();
+  });
+
+  lessonRowsEl.addEventListener("click", e => {
+    const btn = e.target.closest(".lesson-row");
     if (!btn || btn.disabled) return;
     const lesson = PATH.find(l => l.id === btn.dataset.lesson);
     if (lesson) startConversation(lesson);
@@ -424,7 +503,7 @@
   document.getElementById("backBtn").addEventListener("click", () => {
     chatScreen.classList.remove("active");
     homeScreen.classList.add("active");
-    renderPath(); // reflect any lesson just completed / newly unlocked
+    renderHome(); // reflect any lesson just completed / newly unlocked
   });
 
   function startConversation(lesson) {
@@ -710,11 +789,14 @@
       PATH = data.scenarios;
       LANGUAGES = data.languages;
       selectedLanguage = LANGUAGES[0];
-      renderLangPills();
-      renderPath();
+      selectedTier = pickDefaultTier(selectedLanguage);
+      populateLangSelect();
+      renderHome();
     } catch (err) {
-      progressLabelEl.textContent = "";
-      pathListEl.innerHTML = "";
+      mainTierTitleEl.textContent = "";
+      mainTierFracEl.textContent = "";
+      tierNavEl.innerHTML = "";
+      lessonRowsEl.innerHTML = "";
       homeErrorBanner.textContent = "Couldn't load the lesson path. Make sure the server is running and reachable, then refresh.";
       homeErrorBanner.classList.add("shown");
     }
