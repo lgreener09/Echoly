@@ -205,7 +205,9 @@
     <p class="section-label">Language</p>
     <div class="lang-pills" id="langPills"></div>
 
-    <p class="progress-label" id="progressLabel">0 of 9 lessons complete</p>
+    <div class="error-banner" id="homeErrorBanner"></div>
+
+    <p class="progress-label" id="progressLabel">Loading your path…</p>
     <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
 
     <div class="path-list" id="pathList"></div>
@@ -240,25 +242,17 @@
   // point at a different host during local testing if needed.
   const API_BASE = window.APP_API_BASE || "";
 
-  // Single ordered progression path — index order is the unlock order.
-  // Mirrors the SCENARIOS object in server.js (source of truth for the
-  // system prompts); kept as a plain array here since the frontend needs
-  // stable ordering, not just IDs.
-  const PATH = [
-    { id: "cafe_order", tier: "Beginner", title: "Order a coffee", blurb: "Practice ordering at a café counter.", icon: "☕" },
-    { id: "directions", tier: "Beginner", title: "Ask for directions", blurb: "Stop a stranger and find your way somewhere.", icon: "🧭" },
-    { id: "ticket_purchase", tier: "Beginner", title: "Buy a bus or train ticket", blurb: "Get a ticket at the station counter.", icon: "🎫" },
-    { id: "hotel_checkin", tier: "Intermediate", title: "Check into a hotel", blurb: "Arrive at the front desk and check in.", icon: "🏨" },
-    { id: "coworker_smalltalk", tier: "Intermediate", title: "Meet a new coworker", blurb: "Introduce yourself on your first day.", icon: "🤝" },
-    { id: "restaurant_reservation", tier: "Intermediate", title: "Book a dinner reservation", blurb: "Call a restaurant and reserve a table.", icon: "🍽️" },
-    { id: "doctor_visit", tier: "Advanced", title: "Describe symptoms to a doctor", blurb: "Explain how you're feeling.", icon: "🩺" },
-    { id: "job_interview", tier: "Advanced", title: "Interview for a job", blurb: "Answer questions in a first-round interview.", icon: "💼" },
-    { id: "customer_service", tier: "Advanced", title: "Resolve a customer service issue", blurb: "Call about a problem with an order or a bill.", icon: "📞" }
-  ];
-  const LANGUAGES = ["Spanish", "French", "Italian", "German", "Portuguese", "Japanese"];
+  // The progression path is fetched from GET /scenarios at load time rather
+  // than duplicated here — server.js's SCENARIOS object is the single
+  // source of truth (90 lessons is too much to keep in sync by hand across
+  // two files). PATH/LANGUAGES start empty and are populated once the
+  // fetch resolves; index order in the server's response is the unlock
+  // order.
+  let PATH = [];
+  let LANGUAGES = [];
   const LESSON_COMPLETE_AFTER = 4; // user messages sent before a lesson is marked done
 
-  let selectedLanguage = LANGUAGES[0];
+  let selectedLanguage = null;
   let currentScenario = null;
   let history = []; // [{role: "user"|"assistant", content}]
   let sending = false;
@@ -276,6 +270,7 @@
   const messageInput = document.getElementById("messageInput");
   const sendBtn = document.getElementById("sendBtn");
   const errorBanner = document.getElementById("errorBanner");
+  const homeErrorBanner = document.getElementById("homeErrorBanner");
 
   // ---------- Progress (per-language, stored in this browser only) ----------
   const PROGRESS_KEY = "echoly_progress_v1";
@@ -527,8 +522,27 @@
     }
   });
 
-  renderLangPills();
-  renderPath();
+  async function init() {
+    try {
+      const res = await fetch(`${API_BASE}/scenarios`);
+      const data = await res.json();
+      if (!res.ok || !Array.isArray(data.scenarios) || !Array.isArray(data.languages)) {
+        throw new Error("Unexpected response");
+      }
+      PATH = data.scenarios;
+      LANGUAGES = data.languages;
+      selectedLanguage = LANGUAGES[0];
+      renderLangPills();
+      renderPath();
+    } catch (err) {
+      progressLabelEl.textContent = "";
+      pathListEl.innerHTML = "";
+      homeErrorBanner.textContent = "Couldn't load the lesson path. Make sure the server is running and reachable, then refresh.";
+      homeErrorBanner.classList.add("shown");
+    }
+  }
+
+  init();
 })();
 </script>
 </body>
