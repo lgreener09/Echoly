@@ -51,6 +51,17 @@ const conversationLimiter = rateLimit({
     message: { error: "Too many messages from this device recently. Please wait a few minutes and try again." }
 });
 
+// /lookup also calls OpenAI, but each call is a single one-shot lookup (no
+// growing conversation history to pay for), so it gets its own, separate cap
+// rather than sharing the conversation budget.
+const lookupLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 40,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many lookups recently. Please wait a few minutes and try again." }
+});
+
 // Serves the frontend (index.html, one level up from this server/ folder)
 // from this same Express app — one service, one URL, no CORS setup needed
 // between two different domains. Locally, open http://localhost:3000 during
@@ -824,6 +835,91 @@ const CONVERSATION_JSON_SCHEMA = {
 };
 
 // ==============================
+// Phrase lookup
+// ==============================
+// A learner can search any word, phrase, or saying while inside a lesson —
+// separate from the roleplay conversation itself, so it needs its own
+// prompt/schema rather than reusing buildSystemPrompt/CONVERSATION_JSON_SCHEMA.
+function buildLookupPrompt(language) {
+    return `The learner is studying ${language}. They will send a short word, phrase, or saying — it may be written in English or in ${language}.
+
+- "translation": if what they sent is in English, translate it into natural, everyday ${language} — how a native speaker would actually say it in conversation, not a stiff word-for-word translation. If what they sent is already in ${language}, translate it into natural English instead.
+- "relatedPhrases": give 4 to 6 other short, useful phrases or sayings in ${language} that are related in topic or would come up in the same kind of conversation as what they searched — each with its plain English translation. These should genuinely help the learner go deeper on the topic they searched, not just be random unrelated phrases.`;
+}
+
+const LOOKUP_JSON_SCHEMA = {
+    type: "json_schema",
+    name: "phrase_lookup",
+    strict: true,
+    schema: {
+        type: "object",
+        properties: {
+            translation: { type: "string" },
+            relatedPhrases: {
+                type: "array",
+                items: {
+                    type: "object",
+                    properties: {
+                        phrase: { type: "string" },
+                        translation: { type: "string" }
+                    },
+                    required: ["phrase", "translation"],
+                    additionalProperties: false
+                }
+            }
+        },
+        required: ["translation", "relatedPhrases"],
+        additionalProperties: false
+    }
+};
+
+// Words too common to be useful signal when matching a searched phrase
+// against scenario titles/blurbs (kept short and generic on purpose — this
+// only needs to filter noise, not be a linguistically complete stopword list).
+const LOOKUP_STOPWORDS = new Set([
+    "the", "a", "an", "to", "of", "in", "on", "for", "with", "is", "are", "was", "were",
+    "i", "you", "he", "she", "it", "we", "they", "my", "your", "his", "her", "our", "their",
+    "how", "do", "does", "did", "and", "or", "but", "at", "about", "this", "that", "these", "those",
+    "can", "could", "would", "should", "will", "what", "where", "when", "who", "why", "please",
+    "me", "us", "them", "be", "am", "as", "so", "very", "just", "like"
+]);
+
+function tokenizeForMatch(text) {
+    return (text || "")
+        .toLowerCase()
+        .match(/[a-zà-öø-ÿ']+/g) || [];
+}
+
+// Deliberately NOT an AI call — asking a model to pick one lesson out of 90
+// by id is unreliable and costs an extra request for every lookup. Simple
+// local keyword overlap against each scenario's title/blurb is fast, free,
+// and good enough to point the learner somewhere relevant. Matches against
+// both the searched phrase and its translation so it works regardless of
+// which language the learner searched in.
+function findRelatedLesson(matchText, excludeScenarioId) {
+    const queryWords = new Set(
+        tokenizeForMatch(matchText).filter(w => w.length > 2 && !LOOKUP_STOPWORDS.has(w))
+    );
+    if (queryWords.size === 0) return null;
+
+    let best = null;
+    let bestScore = 0;
+    for (const [id, s] of Object.entries(SCENARIOS)) {
+        if (id === excludeScenarioId) continue;
+        const scenarioWords = tokenizeForMatch(`${s.title} ${s.blurb}`);
+        let score = 0;
+        for (const w of scenarioWords) {
+            if (queryWords.has(w)) score++;
+        }
+        if (score > bestScore) {
+            bestScore = score;
+            best = { id, tier: s.tier, title: s.title, icon: s.icon };
+        }
+    }
+    return best;
+}
+
+// ==============================
 // Health check
 // ==============================
 app.get("/", (req, res) => {
@@ -890,6 +986,61 @@ app.post("/converse", conversationLimiter, async (req, res) => {
         console.error(error);
         res.status(500).json({
             error: "Couldn't get a reply: " + (error.message || "unknown error")
+        });
+    }
+});
+
+// ==============================
+// Phrase lookup — real OpenAI call
+// ==============================
+// A lightweight, one-shot companion to /converse: the learner can look up
+// any word, phrase, or saying while inside a lesson, separate from the
+// roleplay itself. No conversation history needed — each lookup stands
+// alone. scenarioId (optional) is just used to avoid suggesting the lesson
+// the learner is already in.
+app.post("/lookup", lookupLimiter, async (req, res) => {
+    try {
+        const { phrase, language, scenarioId } = req.body;
+
+        if (!LANGUAGES.includes(language)) {
+            return res.status(400).json({ error: "Unsupported language." });
+        }
+        if (typeof phrase !== "string" || !phrase.trim()) {
+            return res.status(400).json({ error: "Enter a word or phrase to look up." });
+        }
+        if (phrase.trim().length > 200) {
+            return res.status(400).json({ error: "That's too long to look up — try a shorter phrase." });
+        }
+
+        if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.startsWith("YOUR_")) {
+            return res.status(500).json({
+                error: "OPENAI_API_KEY is missing or still the placeholder value in server/.env."
+            });
+        }
+
+        const trimmedPhrase = phrase.trim();
+
+        const response = await getClient().responses.create({
+            model: MODEL,
+            input: [
+                { role: "system", content: buildLookupPrompt(language) },
+                { role: "user", content: trimmedPhrase }
+            ],
+            text: { format: LOOKUP_JSON_SCHEMA }
+        });
+
+        const result = JSON.parse(response.output_text);
+        const suggestedLesson = findRelatedLesson(
+            `${trimmedPhrase} ${result.translation}`,
+            typeof scenarioId === "string" ? scenarioId : null
+        );
+
+        res.json({ success: true, phrase: trimmedPhrase, ...result, suggestedLesson });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            error: "Couldn't look that up: " + (error.message || "unknown error")
         });
     }
 });
