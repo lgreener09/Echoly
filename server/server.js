@@ -929,7 +929,16 @@ const LANGUAGES = [
 // /converse call) turns this from an open-ended chat into something with a
 // goal: the model is asked to grade the learner's progress against them each
 // turn, not just reply in character.
-function buildSystemPrompt(language, scenario, objectives) {
+//
+// `keyPhrases` (also from /lesson-intro, Intro-tier lessons only) is the
+// short list of exact phrases the learner was shown on the lesson's intro
+// screen before this chat started. For Intro lessons it becomes a hard
+// vocabulary boundary for "reply" — see introGuidance below. Without it,
+// the model was free to improvise grammar the learner hasn't seen yet (e.g.
+// a reflexive infinitive construction in what's supposed to be someone's
+// very first exchange), which is exactly the "too intense for an intro
+// lesson" problem this guards against.
+function buildSystemPrompt(language, scenario, objectives, keyPhrases) {
     const hasObjectives = Array.isArray(objectives) && objectives.length > 0;
     const objectivesSection = hasObjectives
         ? `\n\nThis conversation also has a short list of lesson objectives the learner is trying to accomplish:\n${objectives.map((o, i) => `${i}. ${o}`).join("\n")}\nAfter the learner's latest message, and considering the whole conversation so far (not just this one message), decide which of these objectives (by their 0-based index above) have now been reasonably satisfied — be a little generous about it, not a strict grader; near enough counts. Once an objective is satisfied, keep including its index in every later turn too, even if the conversation has moved on. Put the full, cumulative list of satisfied indices in "completedObjectives" (empty array if none yet).`
@@ -941,8 +950,12 @@ function buildSystemPrompt(language, scenario, objectives) {
     // usual "correct them after the fact" coaching, the tutor hands over the
     // exact phrase to try BEFORE expecting a response, every single turn.
     const isIntro = scenario.tier === "Intro";
+    const hasKeyPhrases = isIntro && Array.isArray(keyPhrases) && keyPhrases.length > 0;
+    const keyPhrasesList = hasKeyPhrases
+        ? keyPhrases.map(p => `- ${p.phrase} (${p.translation})`).join("\n")
+        : "";
     const introGuidance = isIntro
-        ? `\n\nThis is a BASICS lesson — assume the learner may not know any ${language} yet. This overrides the usual "tip" rules above: every turn in this lesson, including the very first ("__START__") turn, use "tip" to explicitly hand them the next phrase to try — the exact ${language} phrase plus its English meaning, e.g. "Try saying: ¡Hola! — it means Hello." Never leave "tip" empty in this lesson, not even on a good attempt or the first turn — there should always be a next phrase to try. Keep "reply" itself very short and simple, and be warm and encouraging about any attempt, even an imperfect one.`
+        ? `\n\nThis is a BASICS lesson — assume the learner may not know any ${language} yet. This overrides the usual "reply" and "tip" rules above.${hasKeyPhrases ? `\n\nThe learner has just been shown this exact, complete list of ${language} phrases for this lesson, and nothing else:\n${keyPhrasesList}\n\nHard rules for "reply" in this lesson:\n- Use ONLY the phrases above (plus a name the learner gives you) — never introduce a new word, verb form, or sentence structure that isn't on that list.\n- "reply" must be just ONE short phrase from that list, standing alone — a greeting or exclamation, not a full sentence explaining what to say or how to say it (no "you can say...", no connecting clauses). Someone meeting this word for the very first time needs to see it used plainly, not embedded in a bigger sentence.` : `\n\nKeep "reply" itself to one very short, simple phrase — no subordinate clauses or explaining what to say, just a plain in-character reaction.`}\n- Every turn in this lesson, including the very first ("__START__") turn, use "tip" to explicitly hand them the next phrase to try — the exact ${language} phrase plus its English meaning, e.g. "Try saying: ¡Hola! — it means Hello." Never leave "tip" empty in this lesson, not even on a good attempt or the first turn — there should always be a next phrase to try. That's the only field where any teaching or explaining happens — never inside "reply".\n- Be warm and encouraging about any attempt, even an imperfect one — the vocabulary being minimal doesn't mean the tone should be flat.`
         : "";
 
     return `You are roleplaying as ${scenario.character}, to help someone practice having a real, natural conversation in ${language}. Scenario: ${scenario.blurb}
@@ -1246,7 +1259,7 @@ app.get("/scenarios", (req, res) => {
 // empty history.
 app.post("/converse", conversationLimiter, async (req, res) => {
     try {
-        const { scenarioId, language, history, message, objectives } = req.body;
+        const { scenarioId, language, history, message, objectives, keyPhrases } = req.body;
 
         const scenario = SCENARIOS[scenarioId];
         if (!scenario) {
@@ -1280,10 +1293,19 @@ app.post("/converse", conversationLimiter, async (req, res) => {
             ? objectives.filter(o => typeof o === "string").slice(0, 10)
             : [];
 
+        // Echoed back the same way as objectives (see above) — sanitized
+        // since it's client-supplied. Capped to a sane length; the app only
+        // ever sends the 5-8 phrases from that lesson's /lesson-intro call.
+        const safeKeyPhrases = Array.isArray(keyPhrases)
+            ? keyPhrases
+                .filter(p => p && typeof p.phrase === "string" && typeof p.translation === "string")
+                .slice(0, 10)
+            : [];
+
         const response = await getClient().responses.create({
             model: MODEL,
             input: [
-                { role: "system", content: buildSystemPrompt(language, scenario, safeObjectives) },
+                { role: "system", content: buildSystemPrompt(language, scenario, safeObjectives, safeKeyPhrases) },
                 ...historyInput,
                 { role: "user", content: message }
             ],

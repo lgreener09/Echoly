@@ -9,7 +9,7 @@ An AI conversation-practice app: pick a language and a real-life scenario (order
 - **Streaks** — a daily-activity streak and a "today" progress ring, shown in the sidebar, to encourage coming back.
 - **Spaced-repetition vocab review** — phrases learned in lessons get added to a review deck and resurface for quick flashcard review on a spaced schedule (1, 2, 4, 7, 14, 30 days), so they stick.
 - **Audio: hear + speak** — key phrases and AI replies can be read aloud (browser text-to-speech), and you can practice speaking your reply out loud (browser speech-to-text) instead of typing. Both quietly hide themselves in browsers that don't support them.
-- **Accounts & cross-device sync** (optional, off by default — see [Turning on accounts](#turning-on-accounts-firebase) below) — sign in with email/password or Google to save progress, streaks, and the review deck to the cloud and pick up where you left off on another device. Works entirely without accounts too: progress is saved locally either way.
+- **Accounts & cross-device sync** — a free account (email/password or Google) is required to use Echoly, so progress, streaks, and the review deck sync to the cloud and pick up where you left off on any device. Until `FIREBASE_CONFIG` is filled in with real values (see [Turning on accounts](#turning-on-accounts-firebase) below), this whole gate is skipped and Echoly runs open, account-free, exactly like before — useful for local dev/testing.
 - **Rate limiting** on the OpenAI-backed endpoints (`/converse`, `/lookup`, `/lesson-intro`, `/lesson-practice`) so a script can't run up an unbounded OpenAI bill.
 - **Privacy Policy** (`privacy.html`) and **Terms of Service** (`tos.html`), linked from the home screen footer.
 - **Google Analytics (GA4)** — wired in but off by default (see [Turning on analytics](#turning-on-analytics-ga4) below). With no real measurement ID set, no GA script is ever requested and nothing is tracked.
@@ -31,11 +31,11 @@ An AI conversation-practice app: pick a language and a real-life scenario (order
    ```
 4. Open `http://localhost:3000` in your browser (don't open `index.html` directly — it needs to be served by the app so its API calls work).
 
-Accounts and analytics both work out of the box with no setup — they're just inactive until you turn them on (below).
+Analytics works out of the box with no setup — it's just inactive until you turn it on (below). Accounts, once `FIREBASE_CONFIG` is filled in, are required to use the app — see below.
 
 ## Turning on accounts (Firebase)
 
-Accounts are entirely client-side (no server changes, no `firebase-admin`) and quietly disabled until you fill in real config. To turn them on:
+Accounts are entirely client-side (no server changes, no `firebase-admin`). Once `FIREBASE_CONFIG` has real values, a visitor must sign in or sign up before reaching any lesson — that's by design, so progress always has somewhere to sync to. Until then, this whole gate is skipped and Echoly runs open. To turn accounts on:
 
 1. Go to the [Firebase console](https://console.firebase.google.com) and create a new project (this needs your own Google login — there's no way to script this part).
 2. In your project, go to **Build → Authentication → Sign-in method** and enable the **Email/Password** and **Google** providers.
@@ -43,9 +43,9 @@ Accounts are entirely client-side (no server changes, no `firebase-admin`) and q
 4. In Firestore's **Rules** tab, paste in the contents of `firestore.rules` (included alongside this README) and publish. This locks each signed-in user to reading/writing only their own data — no one, including other signed-in users, can read or write anyone else's progress.
 5. Go to **Project settings → General**, scroll to "Your apps", and add a Web app (the `</>` icon) if you haven't already. Copy the `firebaseConfig` object it gives you.
 6. In `index.html`, find the `FIREBASE_CONFIG` object near the top of the main script and replace the six `YOUR_FIREBASE_...` placeholder values with the real values from step 5.
-7. Redeploy. The account card will appear in the sidebar automatically — no other code changes needed.
+7. Redeploy. The sign-in gate will appear automatically for every visitor — no other code changes needed.
 
-If Firebase is ever unreachable for a visitor (blocked CDN, offline, etc.), the rest of the app keeps working normally — accounts just aren't offered for that visit.
+If Firebase is ever unreachable for a visitor (blocked CDN, offline, etc.), they'll see an honest "couldn't connect" message with a retry button after a few seconds, rather than being let into the app or stuck on an endless loading screen.
 
 ## Turning on analytics (GA4)
 

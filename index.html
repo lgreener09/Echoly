@@ -693,7 +693,7 @@
         </svg>
         Echoly
       </span>
-      <p class="sidebar-tagline">Practice real conversations, not word lists.</p>
+      <p class="sidebar-tagline">Learn the phrases you'll actually use.</p>
 
       <div class="account-card" id="accountCard" style="display:none"></div>
 
@@ -2350,7 +2350,8 @@
           language: selectedLanguage,
           history,
           message: text,
-          objectives: currentObjectives
+          objectives: currentObjectives,
+          keyPhrases: currentKeyPhrases
         })
       });
       const data = await res.json();
