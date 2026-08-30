@@ -2119,6 +2119,17 @@
     });
   }
 
+  // Fill-blank answers are typed free-hand, often without easy access to a
+  // Spanish/French/etc. keyboard layout — comparing them accent-and-all
+  // would mark "adios" wrong for missing the accent on "adiós" even though
+  // the learner clearly knows the word. Stripping combining diacritical
+  // marks (NFD normalization) before comparing fixes that; it's a no-op for
+  // scripts without Latin-style accents (CJK, Arabic, Thai, etc.), so this
+  // is safe across every language the app offers.
+  function stripDiacritics(str) {
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
   function checkAnswer() {
     const ex = practiceExercises[practiceIndex];
     let isCorrect = false;
@@ -2135,8 +2146,8 @@
       correctText = ex.options[ex.correctIndex];
     } else if (ex.kind === "fill_blank") {
       const input = document.getElementById("fillBlankInput");
-      const given = (input.value || "").trim().toLowerCase();
-      isCorrect = given === ex.correctAnswer.trim().toLowerCase();
+      const given = stripDiacritics((input.value || "").trim().toLowerCase());
+      isCorrect = given === stripDiacritics(ex.correctAnswer.trim().toLowerCase());
       input.disabled = true;
       input.style.borderBottomColor = isCorrect ? "#1a9c5b" : "#d0403a";
       correctText = ex.correctAnswer; // translation is already shown under the sentence, no need to repeat it here
