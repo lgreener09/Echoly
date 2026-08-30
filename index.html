@@ -966,12 +966,49 @@
 
   // ---------- Audio: hear a phrase spoken aloud (Web Speech API, built into the browser — no server involved) ----------
   const ttsSupported = "speechSynthesis" in window;
+
+  // The browser's default pick for a given language is often whatever's
+  // cheapest to ship — a compact offline voice that tends to sound flat and
+  // robotic (this is especially noticeable with Windows' built-in voices).
+  // Most browsers actually offer several voices per language, including
+  // network-backed ones (Chrome's "Google" voices, for example) that sound
+  // considerably more natural. There's no direct "is this voice good" flag,
+  // but voice.localService is a reliable enough proxy: a cloud-backed voice
+  // (localService === false) is almost always the nicer-sounding one where
+  // both are available, so that's what gets preferred below.
+  let cachedVoices = [];
+  function refreshVoiceCache() {
+    if (!ttsSupported) return;
+    try { cachedVoices = window.speechSynthesis.getVoices() || []; } catch (e) { cachedVoices = []; }
+  }
+  if (ttsSupported) {
+    refreshVoiceCache();
+    // Voice lists often load asynchronously (notably in Chrome) — they can
+    // be empty on the very first call and only populate once this fires.
+    window.speechSynthesis.addEventListener("voiceschanged", refreshVoiceCache);
+  }
+  function pickBestVoice(locale) {
+    if (!cachedVoices.length) return null;
+    const langPrefix = locale.split("-")[0].toLowerCase();
+    const matches = cachedVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith(langPrefix));
+    if (!matches.length) return null;
+    // Prefer an exact locale match (es-ES over just any es-*), and within
+    // that, prefer a network-backed voice over a local/offline one.
+    const exactLocale = matches.filter(v => v.lang.toLowerCase() === locale.toLowerCase());
+    const pool = exactLocale.length ? exactLocale : matches;
+    const networkVoice = pool.find(v => v.localService === false);
+    return networkVoice || pool[0];
+  }
+
   function speakText(text, language) {
     if (!ttsSupported || !text || !text.trim()) return;
     try {
       window.speechSynthesis.cancel(); // stop any prior utterance so repeated clicks don't queue up
       const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = getLocaleForLanguage(language);
+      const locale = getLocaleForLanguage(language);
+      utter.lang = locale;
+      const bestVoice = pickBestVoice(locale);
+      if (bestVoice) utter.voice = bestVoice;
       window.speechSynthesis.speak(utter);
     } catch (e) { /* best-effort — a speech hiccup shouldn't break the app */ }
   }
