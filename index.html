@@ -34,7 +34,7 @@
      this whole block quietly does nothing: no script is loaded, no network
      request is made, nothing to break. -->
 <script>
-  var GA_MEASUREMENT_ID = "G-XXXXXXXXXX";
+  var GA_MEASUREMENT_ID = "G-73FZYLJWPT";
   window.dataLayer = window.dataLayer || [];
   function gtag(){ dataLayer.push(arguments); }
   if (GA_MEASUREMENT_ID.indexOf("XXXX") === -1) {
@@ -81,21 +81,27 @@
   .screen { display: none; height: 100vh; flex-direction: column; }
   .screen.active { display: flex; }
 
-  /* -------- Account sign-in modal (only ever shown once a real Firebase
-     config is wired in — see FIREBASE_CONFIG below) -------- */
+  /* -------- Account gate: the app requires signing in, so this modal is
+     the very first (and only) thing shown until that happens — see
+     accountsEnabled/enterGate() in JS. Never dismissable, on purpose. -------- */
   .modal-overlay {
-    position: fixed; inset: 0; background: rgba(34,24,37,0.5); z-index: 100;
-    display: flex; align-items: center; justify-content: center; padding: 20px;
+    position: fixed; inset: 0; background: rgba(34,24,37,0.72); z-index: 100;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 20px;
   }
+  .gate-brand {
+    display: inline-flex; align-items: center; gap: 9px; font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 24px; font-weight: 800; letter-spacing: -0.01em; color: #fff;
+  }
+  .gate-loading {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center;
+  }
+  .gate-loading-text { font-size: 14px; color: rgba(255,255,255,0.8); margin: 0; }
+  #gateLoadingScreen { background: var(--plum); }
+  .account-btn.gate-retry-btn { width: auto; padding: 10px 22px; }
   .modal {
     position: relative; background: var(--surface); border-radius: 18px; padding: 30px 26px 26px;
     width: 100%; max-width: 380px; max-height: 90vh; overflow-y: auto;
   }
-  .modal-close {
-    position: absolute; top: 14px; right: 14px; background: none; border: none; font-size: 20px;
-    line-height: 1; color: var(--ink-soft); cursor: pointer; padding: 4px; border-radius: 6px;
-  }
-  .modal-close:hover { background: var(--bg); }
   .modal-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; font-weight: 800; margin: 0 0 6px; }
   .modal-subtitle { font-size: 13px; color: var(--ink-soft); margin: 0 0 18px; line-height: 1.4; }
   .modal .error-banner { max-width: none; padding: 0; margin: 0 0 14px; }
@@ -621,11 +627,35 @@
 </head>
 <body>
 
+<div id="gateLoadingScreen" class="screen active">
+  <div class="gate-loading">
+    <span class="gate-brand">
+      <svg class="brand-mark" width="26" height="26" viewBox="0 0 24 24" fill="none">
+        <path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/>
+        <circle cx="8.2" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="12" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="15.8" cy="10" r="1.3" fill="#fff"/>
+      </svg>
+      Echoly
+    </span>
+    <p class="gate-loading-text" id="gateLoadingText">Loading…</p>
+    <button class="account-btn gate-retry-btn" id="gateRetryBtn" type="button" style="display:none">Try again</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="authOverlay" style="display:none">
+  <span class="gate-brand">
+    <svg class="brand-mark" width="26" height="26" viewBox="0 0 24 24" fill="none">
+      <path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/>
+      <circle cx="8.2" cy="10" r="1.3" fill="#fff"/>
+      <circle cx="12" cy="10" r="1.3" fill="#fff"/>
+      <circle cx="15.8" cy="10" r="1.3" fill="#fff"/>
+    </svg>
+    Echoly
+  </span>
   <div class="modal" id="authModal">
-    <button class="modal-close" id="authCloseBtn" type="button" aria-label="Close">×</button>
     <h2 class="modal-title" id="authModalTitle">Sign in</h2>
-    <p class="modal-subtitle" id="authModalSubtitle">Save your progress and pick up where you left off on any device.</p>
+    <p class="modal-subtitle" id="authModalSubtitle">Sign in to start practicing.</p>
     <div class="error-banner" id="authErrorBanner"></div>
     <form id="authForm">
       <label class="modal-field">
@@ -651,7 +681,7 @@
   </div>
 </div>
 
-<div id="homeScreen" class="screen active">
+<div id="homeScreen" class="screen">
   <div class="home-shell">
     <aside class="sidebar">
       <span class="sidebar-brand">
@@ -868,6 +898,7 @@
   let firestoreDb = null;
   let currentUser = null; // the signed-in Firebase user, or null when signed out
   let authMode = "signin"; // "signin" | "signup" — which form the auth modal is showing
+  let authResolved = false; // true once we know, one way or another, whether someone's signed in
   // Populated once (if ever) the dynamic import below resolves.
   let fbOnAuthStateChanged, fbCreateUser, fbSignIn, fbSignOut, fbGoogleProvider, fbSignInWithPopup, fbSendPasswordReset;
   let fbDoc, fbGetDoc, fbSetDoc;
@@ -1032,12 +1063,13 @@
   let reviewRevealed = false; // has the current card's translation been shown yet?
 
   const homeScreen = document.getElementById("homeScreen");
+  const gateLoadingScreen = document.getElementById("gateLoadingScreen");
   const introScreen = document.getElementById("introScreen");
   const chatScreen = document.getElementById("chatScreen");
   const accountCardEl = document.getElementById("accountCard");
   const authOverlayEl = document.getElementById("authOverlay");
-  const authCloseBtn = document.getElementById("authCloseBtn");
   const authModalTitleEl = document.getElementById("authModalTitle");
+  const authModalSubtitleEl = document.getElementById("authModalSubtitle");
   const authErrorBanner = document.getElementById("authErrorBanner");
   const authFormEl = document.getElementById("authForm");
   const authEmailInput = document.getElementById("authEmailInput");
@@ -1442,11 +1474,13 @@
   function updateAuthModalMode() {
     if (authMode === "signup") {
       authModalTitleEl.textContent = "Create your account";
+      authModalSubtitleEl.textContent = "Free to join — takes about 10 seconds.";
       authSubmitBtn.textContent = "Sign up";
       authSwitchTextEl.textContent = "Already have an account?";
       authSwitchBtn.textContent = "Sign in";
     } else {
       authModalTitleEl.textContent = "Sign in";
+      authModalSubtitleEl.textContent = "Sign in to start practicing.";
       authSubmitBtn.textContent = "Sign in";
       authSwitchTextEl.textContent = "Don't have an account?";
       authSwitchBtn.textContent = "Sign up";
@@ -1485,8 +1519,6 @@
     return (code && map[code]) || "Something went wrong. Please try again.";
   }
 
-  authCloseBtn.addEventListener("click", closeAuthModal);
-  authOverlayEl.addEventListener("click", e => { if (e.target === authOverlayEl) closeAuthModal(); });
   authSwitchBtn.addEventListener("click", () => {
     authMode = authMode === "signin" ? "signup" : "signin";
     authErrorBanner.classList.remove("shown");
@@ -1560,6 +1592,7 @@
   // in anywhere — then there's nothing to pull yet, so whatever progress
   // already exists in this browser becomes the account's starting point.
   async function handleSignedIn(user) {
+    authResolved = true;
     currentUser = user;
     renderAccountCard();
     try {
@@ -1575,10 +1608,42 @@
     }
     renderHome();
     renderStreakCard();
+    enterApp();
   }
   function handleSignedOut() {
+    authResolved = true;
     currentUser = null;
     renderAccountCard();
+    enterGate("signin");
+  }
+
+  // ---------- The gate: an account is required to use Echoly, so these
+  // three screens (loading → gate → app) are the only things a visitor
+  // sees before/until they're signed in. See accountsEnabled above for the
+  // one exception (no Firebase configured at all — falls back to open
+  // access rather than locking everyone out of a misconfigured deploy). ----------
+  function enterApp() {
+    gateLoadingScreen.classList.remove("active");
+    closeAuthModal();
+    homeScreen.classList.add("active");
+  }
+  function enterGate(mode) {
+    gateLoadingScreen.classList.remove("active");
+    homeScreen.classList.remove("active");
+    openAuthModal(mode || "signin");
+  }
+  // Safety net for when Firebase itself never responds — a blocked CDN,
+  // offline, an ad-blocker. Without this, a visitor would be stuck on the
+  // loading screen forever with no way to know why or what to do.
+  function showGateConnectionError() {
+    if (authResolved) return; // resolved just as the timer fired — nothing to do
+    const textEl = document.getElementById("gateLoadingText");
+    const retryBtn = document.getElementById("gateRetryBtn");
+    if (textEl) textEl.textContent = "Couldn't connect right now. Check your connection and try again.";
+    if (retryBtn) {
+      retryBtn.style.display = "inline-block";
+      retryBtn.addEventListener("click", () => location.reload());
+    }
   }
 
   function getNodeState(index, completed) {
@@ -2475,7 +2540,16 @@
   async function init() {
     renderStreakCard(); // independent of the /scenarios fetch below — render it regardless
     renderAccountCard();
-    initFirebaseIfEnabled(); // fire-and-forget — never blocks the rest of startup, see its own comment
+    if (!accountsEnabled) {
+      // No Firebase configured for this deploy — accounts aren't offered,
+      // so there's nothing to gate behind. Skip straight to the app.
+      authResolved = true;
+      gateLoadingScreen.classList.remove("active");
+      homeScreen.classList.add("active");
+    } else {
+      initFirebaseIfEnabled(); // fire-and-forget — onAuthStateChanged drives enterApp()/enterGate() below
+      setTimeout(() => showGateConnectionError(), 6000);
+    }
     try {
       const res = await fetch(`${API_BASE}/scenarios`);
       const data = await res.json();
