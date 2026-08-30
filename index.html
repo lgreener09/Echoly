@@ -1168,13 +1168,47 @@
     const all = loadAllProgress();
     return (all[language] && all[language].completed) || [];
   }
-  function markLessonComplete(language, lessonId) {
+  // keyPhrases are passed in and stored per lesson at completion time so
+  // later conversations (see getVocabHistory below) can stay grounded in
+  // words the learner has actually already been taught, not just whatever
+  // fits the tier in general. Lesson content is regenerated fresh each time
+  // it's opened (nothing's pre-authored), so this is also the only record
+  // of exactly what a given lesson taught this learner.
+  function markLessonComplete(language, lessonId, keyPhrases) {
     const all = loadAllProgress();
     if (!all[language]) all[language] = { completed: [] };
     if (!all[language].completed.includes(lessonId)) {
       all[language].completed.push(lessonId);
-      saveAllProgress(all);
     }
+    if (Array.isArray(keyPhrases) && keyPhrases.length) {
+      if (!all[language].keyPhrasesByLesson) all[language].keyPhrasesByLesson = {};
+      all[language].keyPhrasesByLesson[lessonId] = keyPhrases;
+    }
+    saveAllProgress(all);
+  }
+  // Union of every phrase taught in this language's already-completed
+  // lessons (any tier), deduplicated by the target-language phrase text —
+  // "everything this learner has been taught up to this point," sent on
+  // every /converse call so the AI's replies stay within it. The current,
+  // still-in-progress lesson's own phrases aren't included here (it isn't
+  // "completed" yet); those are sent separately as this lesson's keyPhrases.
+  function getVocabHistory(language) {
+    const all = loadAllProgress();
+    const byLesson = (all[language] && all[language].keyPhrasesByLesson) || {};
+    const completed = (all[language] && all[language].completed) || [];
+    const seen = new Set();
+    const out = [];
+    completed.forEach(lessonId => {
+      const phrases = byLesson[lessonId];
+      if (!Array.isArray(phrases)) return;
+      phrases.forEach(p => {
+        if (p && typeof p.phrase === "string" && !seen.has(p.phrase)) {
+          seen.add(p.phrase);
+          out.push(p);
+        }
+      });
+    });
+    return out;
   }
 
   // ---------- Streaks + daily goal (global across all languages, stored in this browser only) ----------
@@ -2351,7 +2385,8 @@
           history,
           message: text,
           objectives: currentObjectives,
-          keyPhrases: currentKeyPhrases
+          keyPhrases: currentKeyPhrases,
+          vocabHistory: getVocabHistory(selectedLanguage)
         })
       });
       const data = await res.json();
@@ -2381,7 +2416,7 @@
         // the objectives don't quite anticipate.
         const allObjectivesDone = currentObjectives.length > 0 && completedObjectiveIndices.length >= currentObjectives.length;
         if (!alreadyDone && (allObjectivesDone || userMessageCount >= LESSON_COMPLETE_AFTER)) {
-          markLessonComplete(selectedLanguage, currentScenario.id);
+          markLessonComplete(selectedLanguage, currentScenario.id, currentKeyPhrases);
           addPhrasesToBank(selectedLanguage, currentKeyPhrases);
           trackEvent("lesson_completed", { scenario: currentScenario.id, language: selectedLanguage });
           justCompleted = true;

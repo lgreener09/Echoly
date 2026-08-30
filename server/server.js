@@ -930,33 +930,48 @@ const LANGUAGES = [
 // goal: the model is asked to grade the learner's progress against them each
 // turn, not just reply in character.
 //
-// `keyPhrases` (also from /lesson-intro, Intro-tier lessons only) is the
-// short list of exact phrases the learner was shown on the lesson's intro
-// screen before this chat started. For Intro lessons it becomes a hard
-// vocabulary boundary for "reply" — see introGuidance below. Without it,
-// the model was free to improvise grammar the learner hasn't seen yet (e.g.
-// a reflexive infinitive construction in what's supposed to be someone's
-// very first exchange), which is exactly the "too intense for an intro
-// lesson" problem this guards against.
-function buildSystemPrompt(language, scenario, objectives, keyPhrases) {
+// `keyPhrases` (from /lesson-intro) is the short list of exact phrases the
+// learner was shown on THIS lesson's intro screen before the chat started.
+// `vocabHistory` is the union of keyPhrases from every OTHER lesson in this
+// language the learner has already completed, in this same language — i.e.
+// everything they'd have been taught by this point in the course, before
+// today's lesson. Together they're used below to keep every conversation,
+// at every tier, grounded in words the learner has actually seen rather
+// than whatever the model feels like reaching for.
+function buildSystemPrompt(language, scenario, objectives, keyPhrases, vocabHistory) {
     const hasObjectives = Array.isArray(objectives) && objectives.length > 0;
     const objectivesSection = hasObjectives
         ? `\n\nThis conversation also has a short list of lesson objectives the learner is trying to accomplish:\n${objectives.map((o, i) => `${i}. ${o}`).join("\n")}\nAfter the learner's latest message, and considering the whole conversation so far (not just this one message), decide which of these objectives (by their 0-based index above) have now been reasonably satisfied — be a little generous about it, not a strict grader; near enough counts. Once an objective is satisfied, keep including its index in every later turn too, even if the conversation has moved on. Put the full, cumulative list of satisfied indices in "completedObjectives" (empty array if none yet).`
         : `\n\nThere are no lesson objectives being tracked for this conversation — always return an empty array for "completedObjectives".`;
 
+    const safeKeyPhrases = Array.isArray(keyPhrases) ? keyPhrases : [];
+    const safeVocabHistory = Array.isArray(vocabHistory) ? vocabHistory : [];
+    const allKnownPhrases = [...safeKeyPhrases, ...safeVocabHistory];
+
     // Intro-tier lessons are for someone who may know zero words of the
     // language yet — a normal roleplay turn (where the learner is expected to
     // produce a reply on their own) doesn't work for them. So instead of the
     // usual "correct them after the fact" coaching, the tutor hands over the
-    // exact phrase to try BEFORE expecting a response, every single turn.
+    // exact phrase to try BEFORE expecting a response, every single turn, and
+    // "reply" is held to a hard allowlist of exactly what's been taught so
+    // far (this lesson's phrases plus every earlier basics lesson).
     const isIntro = scenario.tier === "Intro";
-    const hasKeyPhrases = isIntro && Array.isArray(keyPhrases) && keyPhrases.length > 0;
-    const keyPhrasesList = hasKeyPhrases
-        ? keyPhrases.map(p => `- ${p.phrase} (${p.translation})`).join("\n")
+    const hasKnownPhrases = allKnownPhrases.length > 0;
+    const knownPhrasesList = hasKnownPhrases
+        ? allKnownPhrases.map(p => `- ${p.phrase} (${p.translation})`).join("\n")
         : "";
-    const introGuidance = isIntro
-        ? `\n\nThis is a BASICS lesson — assume the learner may not know any ${language} yet. This overrides the usual "reply" and "tip" rules above.${hasKeyPhrases ? `\n\nThe learner has just been shown this exact, complete list of ${language} phrases for this lesson, and nothing else:\n${keyPhrasesList}\n\nHard rules for "reply" in this lesson:\n- Use ONLY the phrases above (plus a name the learner gives you) — never introduce a new word, verb form, or sentence structure that isn't on that list.\n- "reply" must be just ONE short phrase from that list, standing alone — a greeting or exclamation, not a full sentence explaining what to say or how to say it (no "you can say...", no connecting clauses). Someone meeting this word for the very first time needs to see it used plainly, not embedded in a bigger sentence.` : `\n\nKeep "reply" itself to one very short, simple phrase — no subordinate clauses or explaining what to say, just a plain in-character reaction.`}\n- Every turn in this lesson, including the very first ("__START__") turn, use "tip" to explicitly hand them the next phrase to try — the exact ${language} phrase plus its English meaning, e.g. "Try saying: ¡Hola! — it means Hello." Never leave "tip" empty in this lesson, not even on a good attempt or the first turn — there should always be a next phrase to try. That's the only field where any teaching or explaining happens — never inside "reply".\n- Be warm and encouraging about any attempt, even an imperfect one — the vocabulary being minimal doesn't mean the tone should be flat.`
-        : "";
+
+    let levelGuidance = "";
+    if (isIntro) {
+        levelGuidance = `\n\nThis is a BASICS lesson — assume the learner may not know any ${language} yet. This overrides the usual "reply" and "tip" rules above.${hasKnownPhrases ? `\n\nThe learner has been shown this exact, complete list of ${language} phrases so far — this lesson's phrases plus every earlier basics lesson they've already completed — and nothing else:\n${knownPhrasesList}\n\nHard rules for "reply" in this lesson:\n- Use ONLY the phrases above (plus a name the learner gives you) — never introduce a new word, verb form, or sentence structure that isn't on that list.\n- "reply" must be just ONE short phrase from that list, standing alone — a greeting or exclamation, not a full sentence explaining what to say or how to say it (no "you can say...", no connecting clauses). Someone meeting this word for the very first time needs to see it used plainly, not embedded in a bigger sentence.` : `\n\nKeep "reply" itself to one very short, simple phrase — no subordinate clauses or explaining what to say, just a plain in-character reaction.`}\n- Every turn in this lesson, including the very first ("__START__") turn, use "tip" to explicitly hand them the next phrase to try — the exact ${language} phrase plus its English meaning, e.g. "Try saying: ¡Hola! — it means Hello." Never leave "tip" empty in this lesson, not even on a good attempt or the first turn — there should always be a next phrase to try. That's the only field where any teaching or explaining happens — never inside "reply".\n- Be warm and encouraging about any attempt, even an imperfect one — the vocabulary being minimal doesn't mean the tone should be flat.`;
+    } else if (hasKnownPhrases) {
+        // Beyond the intro track, a hard allowlist gets unworkable fast (by
+        // lesson 20+ it's a huge fixed phrase list and every reply starts
+        // sounding the same) — so this is a soft ceiling instead: stay close
+        // to what's actually been taught, but allow the ordinary grammar and
+        // connecting words needed to build a real sentence at this level.
+        levelGuidance = `\n\nThe learner has completed earlier lessons in ${language}, and between those and this lesson's own key phrases has been taught this vocabulary so far:\n${knownPhrasesList}\n\nUse this as a guide, not a strict allowlist: lean on these words where they naturally fit, and it's fine to use ordinary grammar and connecting words (articles, basic verb conjugations, pronouns, prepositions, common function words) needed to form a natural sentence at a ${scenario.tier.toLowerCase()} level. But don't reach for advanced or obscure vocabulary the learner hasn't been shown any equivalent of yet just because it fits the scenario well — when in doubt, prefer the simpler word a learner at this point in the course would actually recognize.`;
+    }
 
     return `You are roleplaying as ${scenario.character}, to help someone practice having a real, natural conversation in ${language}. Scenario: ${scenario.blurb}
 
@@ -965,7 +980,7 @@ Rules for every turn:
 - "replyTranslation" is a plain English translation of exactly what you wrote in "reply", so the learner can check their understanding. Never put English in "reply" itself.
 - Look at the learner's last message (in ${language}). If anything was unnatural, grammatically off, or not how a native speaker would actually say it, put ONE short, specific, encouraging coaching note in "tip" (English, max 2 sentences) — show what they said and a more natural way to say it. If their message was already good, or this is the very first turn, leave "tip" as an empty string. Never put coaching inside "reply" — that field is 100% in-character.
 - If the learner writes in English or seems stuck, stay in character in ${language} but simplify your reply, and use "tip" to gently suggest a phrase they could use.
-- The learner's message will be exactly "__START__" only to signal the very start of the conversation — when you see that, ${scenario.opening}, as your character naturally would, and leave "tip" empty. Never mention "__START__" or break character to acknowledge it.${introGuidance}${objectivesSection}`;
+- The learner's message will be exactly "__START__" only to signal the very start of the conversation — when you see that, ${scenario.opening}, as your character naturally would, and leave "tip" empty. Never mention "__START__" or break character to acknowledge it.${levelGuidance}${objectivesSection}`;
 }
 
 const CONVERSATION_JSON_SCHEMA = {
@@ -1259,7 +1274,7 @@ app.get("/scenarios", (req, res) => {
 // empty history.
 app.post("/converse", conversationLimiter, async (req, res) => {
     try {
-        const { scenarioId, language, history, message, objectives, keyPhrases } = req.body;
+        const { scenarioId, language, history, message, objectives, keyPhrases, vocabHistory } = req.body;
 
         const scenario = SCENARIOS[scenarioId];
         if (!scenario) {
@@ -1302,10 +1317,21 @@ app.post("/converse", conversationLimiter, async (req, res) => {
                 .slice(0, 10)
             : [];
 
+        // The learner's cumulative vocabulary from every earlier completed
+        // lesson in this language (see localStorage's keyPhrasesByLesson,
+        // synced to Firestore alongside the rest of "progress"). Capped
+        // generously — this bounds token usage for a learner deep into a
+        // 30-lesson tier, not because that much vocabulary is a problem.
+        const safeVocabHistory = Array.isArray(vocabHistory)
+            ? vocabHistory
+                .filter(p => p && typeof p.phrase === "string" && typeof p.translation === "string")
+                .slice(0, 100)
+            : [];
+
         const response = await getClient().responses.create({
             model: MODEL,
             input: [
-                { role: "system", content: buildSystemPrompt(language, scenario, safeObjectives, safeKeyPhrases) },
+                { role: "system", content: buildSystemPrompt(language, scenario, safeObjectives, safeKeyPhrases, safeVocabHistory) },
                 ...historyInput,
                 { role: "user", content: message }
             ],
