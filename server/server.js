@@ -34,6 +34,65 @@ app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
 // ==============================
+// Caching — lesson-intro / lesson-practice / lookup
+// ==============================
+// These three endpoints generate the same content for anyone hitting the
+// same (scenario, language) pair (or the same phrase, for lookups) — the
+// AI call doesn't need to happen more than once per combination, only once
+// ever, then reused for every learner after that. This is an in-memory
+// cache (a plain Map living in this process), which is the right tradeoff
+// for where the app is right now: free to add, no new service to run, and
+// it still catches the case that matters most for cost — a burst of
+// traffic hitting the same handful of lessons — since the server stays
+// warm through a burst. The tradeoff: Render's free tier spins the server
+// down after inactivity, and a restart wipes this cache, so it rebuilds
+// from scratch after every sleep/wake cycle rather than staying warm
+// forever. If usage grows enough that this gap starts showing up in real
+// OpenAI cost (or the server moves to an always-on paid plan, or ever runs
+// as more than one instance), that's the point to move this to Firestore
+// instead of a Map.
+const lessonIntroCache = new Map();
+const lessonPracticeCache = new Map();
+const lookupCache = new Map();
+
+function scenarioCacheKey(scenarioId, language) {
+    return `${scenarioId}::${language}`;
+}
+function lookupCacheKey(phrase, language) {
+    return `${language}::${phrase.trim().toLowerCase()}`;
+}
+
+// Simple manual override so a bad cached entry (an off generation that
+// happened to be the first one cached for a combo) can be cleared without
+// redeploying. Protected by a shared secret rather than left open, since
+// it's a public server. Set ADMIN_SECRET in the environment to use this;
+// without it set, the endpoint refuses every request.
+app.post("/admin/cache/clear", (req, res) => {
+    const providedSecret = req.get("X-Admin-Secret");
+    if (!process.env.ADMIN_SECRET || providedSecret !== process.env.ADMIN_SECRET) {
+        return res.status(404).json({ error: "Not found." }); // 404, not 401 — don't confirm this endpoint exists
+    }
+    const { scenarioId, language, phrase } = req.body || {};
+    if (phrase && language) {
+        lookupCache.delete(lookupCacheKey(phrase, language));
+        return res.json({ success: true, cleared: "lookup", phrase, language });
+    }
+    if (scenarioId && language) {
+        const key = scenarioCacheKey(scenarioId, language);
+        lessonIntroCache.delete(key);
+        lessonPracticeCache.delete(key);
+        return res.json({ success: true, cleared: "lesson", scenarioId, language });
+    }
+    if (req.body && req.body.clearAll === true) {
+        lessonIntroCache.clear();
+        lessonPracticeCache.clear();
+        lookupCache.clear();
+        return res.json({ success: true, cleared: "all" });
+    }
+    return res.status(400).json({ error: "Provide scenarioId+language, phrase+language, or clearAll: true." });
+});
+
+// ==============================
 // Rate limiting
 // ==============================
 // Every /converse call hits OpenAI's API and costs real money, so it gets a
@@ -914,6 +973,35 @@ const SCENARIOS = {
     },
 };
 
+// A learner can also skip the preset scenarios above and describe their own
+// topic ("ordering food at a Vietnamese restaurant", "a job interview in
+// French") — this reserved id tells /converse to build a scenario from that
+// free text instead of looking one up in SCENARIOS.
+const CUSTOM_SCENARIO_ID = "custom";
+const CUSTOM_TOPIC_MAX_LEN = 200;
+
+// The custom topic goes straight into the system prompt, so it's sanitized
+// like any other untrusted client input before that: collapsed to a single
+// line (no newlines/control characters that could be used to break out of
+// the "this is a topic description" framing) and length-capped. Returns
+// null for an empty/whitespace-only topic so the route can reject it.
+function buildCustomScenario(topic) {
+    const clean = String(topic || "")
+        .replace(/[\r\n\t]+/g, " ")
+        .replace(/[\x00-\x1F\x7F]+/g, " ") // other control characters
+        .trim()
+        .slice(0, CUSTOM_TOPIC_MAX_LEN);
+    if (!clean) return null;
+    return {
+        tier: "Custom",
+        title: clean,
+        blurb: clean,
+        icon: "✏️",
+        character: "a friendly native speaker roleplaying whatever character fits the learner's described scenario",
+        opening: "start the conversation naturally, in a way that fits the scenario the learner described"
+    };
+}
+
 // Languages the model can roleplay in without any extra setup — this list
 // is just what's offered in the UI dropdown; adding another language later
 // is a one-line addition here, not new content to write (buildSystemPrompt
@@ -963,14 +1051,18 @@ function buildSystemPrompt(language, scenario, objectives, keyPhrases, vocabHist
 
     let levelGuidance = "";
     if (isIntro) {
-        levelGuidance = `\n\nThis is a BASICS lesson — assume the learner may not know any ${language} yet. This overrides the usual "reply" and "tip" rules above.${hasKnownPhrases ? `\n\nThe learner has been shown this exact, complete list of ${language} phrases so far — this lesson's phrases plus every earlier basics lesson they've already completed — and nothing else:\n${knownPhrasesList}\n\nHard rules for "reply" in this lesson:\n- Use ONLY the phrases above (plus a name the learner gives you) — never introduce a new word, verb form, or sentence structure that isn't on that list.\n- "reply" must be just ONE short phrase from that list, standing alone — a greeting or exclamation, not a full sentence explaining what to say or how to say it (no "you can say...", no connecting clauses). Someone meeting this word for the very first time needs to see it used plainly, not embedded in a bigger sentence.` : `\n\nKeep "reply" itself to one very short, simple phrase — no subordinate clauses or explaining what to say, just a plain in-character reaction.`}\n- Every turn in this lesson, including the very first ("__START__") turn, use "tip" to explicitly hand them the next phrase to try — the exact ${language} phrase plus its English meaning, e.g. "Try saying: ¡Hola! — it means Hello." Never leave "tip" empty in this lesson, not even on a good attempt or the first turn — there should always be a next phrase to try. That's the only field where any teaching or explaining happens — never inside "reply".\n- Be warm and encouraging about any attempt, even an imperfect one — the vocabulary being minimal doesn't mean the tone should be flat.`;
+        levelGuidance = `\n\nThis is a BASICS lesson — assume the learner may not know any ${language} yet. This overrides the usual "reply" and "tip" rules above.${hasKnownPhrases ? `\n\nThe learner has been shown this exact, complete list of ${language} phrases so far — this lesson's phrases plus every earlier basics lesson they've already completed — and nothing else:\n${knownPhrasesList}\n\nHard rules for "reply" in this lesson:\n- Use ONLY the phrases above (plus a name the learner gives you) — never introduce a new word, verb form, or sentence structure that isn't on that list.\n- "reply" must be just ONE short phrase from that list, standing alone — a greeting or exclamation, not a full sentence explaining what to say or how to say it (no "you can say...", no connecting clauses). Someone meeting this word for the very first time needs to see it used plainly, not embedded in a bigger sentence.` : `\n\nKeep "reply" itself to one very short, simple phrase — no subordinate clauses or explaining what to say, just a plain in-character reaction.`}\n- Every turn in this lesson, including the very first ("__START__") turn, use "tip" to explicitly hand them the next phrase to try — the exact ${language} phrase plus its English meaning, e.g. "Try saying: ¡Hola! — it means Hello." Never leave "tip" empty in this lesson, not even on a good attempt or the first turn — there should always be a next phrase to try. That's the only field where any teaching or explaining happens — never inside "reply".\n- If the phrase doesn't obviously follow from what's just been said — teaching a standalone word like "yes" or "mother" right after a greeting can otherwise feel like a random vocabulary drop — ground "tip" with one short, natural reason it's useful instead of just a bare translation, e.g. "Try saying: sí — it means yes. You'll use it constantly to answer simple questions." Keep "tip" to at most 2 short sentences either way.\n- Keep the language in "tip" itself dead simple — short sentences, everyday words, no grammar jargon (never terms like "conjugation", "accusative", "infinitive", etc.) — write it the way you'd patiently explain something to someone on their very first day of ever learning a language.\n- Be warm, patient, and encouraging about any attempt, even an imperfect one — talk to them like a supportive first-day teacher, not a native speaker in a hurry. The vocabulary being minimal doesn't mean the tone should be flat.`;
     } else if (hasKnownPhrases) {
         // Beyond the intro track, a hard allowlist gets unworkable fast (by
         // lesson 20+ it's a huge fixed phrase list and every reply starts
         // sounding the same) — so this is a soft ceiling instead: stay close
         // to what's actually been taught, but allow the ordinary grammar and
         // connecting words needed to build a real sentence at this level.
-        levelGuidance = `\n\nThe learner has completed earlier lessons in ${language}, and between those and this lesson's own key phrases has been taught this vocabulary so far:\n${knownPhrasesList}\n\nUse this as a guide, not a strict allowlist: lean on these words where they naturally fit, and it's fine to use ordinary grammar and connecting words (articles, basic verb conjugations, pronouns, prepositions, common function words) needed to form a natural sentence at a ${scenario.tier.toLowerCase()} level. But don't reach for advanced or obscure vocabulary the learner hasn't been shown any equivalent of yet just because it fits the scenario well — when in doubt, prefer the simpler word a learner at this point in the course would actually recognize.`;
+        // Custom (learner-typed) topics aren't a real difficulty tier, so
+        // "at a custom level" would read oddly — falls back to a level-
+        // agnostic phrasing for those.
+        const levelPhrase = scenario.tier === "Custom" ? "at their current level" : `at a ${scenario.tier.toLowerCase()} level`;
+        levelGuidance = `\n\nThe learner has completed earlier lessons in ${language}, and between those and this lesson's own key phrases has been taught this vocabulary so far:\n${knownPhrasesList}\n\nUse this as a guide, not a strict allowlist: lean on these words where they naturally fit, and it's fine to use ordinary grammar and connecting words (articles, basic verb conjugations, pronouns, prepositions, common function words) needed to form a natural sentence ${levelPhrase}. But don't reach for advanced or obscure vocabulary the learner hasn't been shown any equivalent of yet just because it fits the scenario well — when in doubt, prefer the simpler word a learner at this point in the course would actually recognize.`;
     }
 
     return `You are roleplaying as ${scenario.character}, to help someone practice having a real, natural conversation in ${language}. Scenario: ${scenario.blurb}
@@ -1274,11 +1366,19 @@ app.get("/scenarios", (req, res) => {
 // empty history.
 app.post("/converse", conversationLimiter, async (req, res) => {
     try {
-        const { scenarioId, language, history, message, objectives, keyPhrases, vocabHistory } = req.body;
+        const { scenarioId, language, history, message, objectives, keyPhrases, vocabHistory, customTopic } = req.body;
 
-        const scenario = SCENARIOS[scenarioId];
-        if (!scenario) {
-            return res.status(400).json({ error: "Unknown scenario." });
+        let scenario;
+        if (scenarioId === CUSTOM_SCENARIO_ID) {
+            scenario = buildCustomScenario(customTopic);
+            if (!scenario) {
+                return res.status(400).json({ error: "Describe a topic to practice." });
+            }
+        } else {
+            scenario = SCENARIOS[scenarioId];
+            if (!scenario) {
+                return res.status(400).json({ error: "Unknown scenario." });
+            }
         }
         if (!LANGUAGES.includes(language)) {
             return res.status(400).json({ error: "Unsupported language." });
@@ -1374,6 +1474,12 @@ app.post("/lesson-intro", introLimiter, async (req, res) => {
             });
         }
 
+        const cacheKey = scenarioCacheKey(scenarioId, language);
+        const cached = lessonIntroCache.get(cacheKey);
+        if (cached) {
+            return res.json({ success: true, ...cached });
+        }
+
         const response = await getClient().responses.create({
             model: MODEL,
             input: [
@@ -1384,6 +1490,7 @@ app.post("/lesson-intro", introLimiter, async (req, res) => {
         });
 
         const result = JSON.parse(response.output_text);
+        lessonIntroCache.set(cacheKey, result);
         res.json({ success: true, ...result });
 
     } catch (error) {
@@ -1420,6 +1527,12 @@ app.post("/lesson-practice", practiceLimiter, async (req, res) => {
             });
         }
 
+        const cacheKey = scenarioCacheKey(scenarioId, language);
+        const cached = lessonPracticeCache.get(cacheKey);
+        if (cached) {
+            return res.json({ success: true, exercises: cached.exercises });
+        }
+
         const response = await getClient().responses.create({
             model: MODEL,
             input: [
@@ -1430,6 +1543,7 @@ app.post("/lesson-practice", practiceLimiter, async (req, res) => {
         });
 
         const result = JSON.parse(response.output_text);
+        lessonPracticeCache.set(cacheKey, result);
         res.json({ success: true, exercises: result.exercises });
 
     } catch (error) {
@@ -1470,16 +1584,25 @@ app.post("/lookup", lookupLimiter, async (req, res) => {
 
         const trimmedPhrase = phrase.trim();
 
-        const response = await getClient().responses.create({
-            model: MODEL,
-            input: [
-                { role: "system", content: buildLookupPrompt(language) },
-                { role: "user", content: trimmedPhrase }
-            ],
-            text: { format: LOOKUP_JSON_SCHEMA }
-        });
+        // suggestedLesson depends on scenarioId (which lesson to exclude), so
+        // it's computed fresh below either way — only the AI-generated part
+        // of the result (translation, notes, etc.) is what's cached, since
+        // that part is the same for this phrase+language no matter who's
+        // asking or which lesson they're in.
+        let result = lookupCache.get(lookupCacheKey(trimmedPhrase, language));
+        if (!result) {
+            const response = await getClient().responses.create({
+                model: MODEL,
+                input: [
+                    { role: "system", content: buildLookupPrompt(language) },
+                    { role: "user", content: trimmedPhrase }
+                ],
+                text: { format: LOOKUP_JSON_SCHEMA }
+            });
+            result = JSON.parse(response.output_text);
+            lookupCache.set(lookupCacheKey(trimmedPhrase, language), result);
+        }
 
-        const result = JSON.parse(response.output_text);
         const suggestedLesson = findRelatedLesson(
             `${trimmedPhrase} ${result.translation}`,
             typeof scenarioId === "string" ? scenarioId : null
