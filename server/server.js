@@ -5,6 +5,8 @@ const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const OpenAI = require("openai");
+const Stripe = require("stripe");
+const admin = require("firebase-admin");
 
 const app = express();
 
@@ -31,7 +33,84 @@ function getClient() {
 const MODEL = "gpt-5.6-luna";
 
 app.use(cors());
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({
+    limit: "1mb",
+    // Stripe's webhook signature check (further down) needs the exact raw
+    // request bytes, not the parsed object — capture them here once, for
+    // every request, rather than special-casing route/middleware order just
+    // for that one endpoint.
+    verify: (req, res, buf) => { req.rawBody = buf; }
+}));
+
+// ==============================
+// Firebase Admin — verifies the ID token a signed-in learner's browser sends,
+// so the server knows *who* is calling without ever touching Firestore
+// directly (Firestore itself stays entirely client-only, exactly as before —
+// this is only used to check "is this really uid X", nothing else). Optional:
+// if no service account is configured, signed-in-only features (premium,
+// the free-tier daily cap) simply don't activate and every request is
+// treated as a guest, same as before this feature existed.
+// ==============================
+let firebaseAdminReady = false;
+try {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+        admin.initializeApp({
+            credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON))
+        });
+        firebaseAdminReady = true;
+    }
+} catch (error) {
+    console.error("Firebase Admin failed to initialize — check FIREBASE_SERVICE_ACCOUNT_JSON:", error.message);
+}
+
+// Reads an "Authorization: Bearer <idToken>" header, if present, and
+// verifies it against Firebase. Never blocks the request either way — a
+// missing or invalid/expired token just means req.uid stays null and the
+// caller is treated as a guest, same as every request was before this
+// feature existed.
+async function attachUserIfSignedIn(req, res, next) {
+    req.uid = null;
+    const authHeader = req.get("Authorization") || "";
+    const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+    if (firebaseAdminReady && idToken) {
+        try {
+            const decoded = await admin.auth().verifyIdToken(idToken);
+            req.uid = decoded.uid;
+        } catch (error) {
+            // Stale/invalid token — fall through as a guest rather than erroring;
+            // a leftover token in the browser shouldn't break the conversation.
+        }
+    }
+    next();
+}
+
+// ==============================
+// Stripe — subscriptions
+// ==============================
+let stripeClient = null;
+function getStripe() {
+    if (!stripeClient) {
+        stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY);
+    }
+    return stripeClient;
+}
+
+// In-memory entitlement + usage tracking — same tradeoff as the lesson
+// caches below (free to add, no new service to run, and it resets on a
+// Render free-tier sleep/restart). A reset here just means a premium
+// learner's status gets re-confirmed by Stripe on their next checkout/portal
+// visit or webhook event, and a free learner's daily count starts over —
+// nothing is lost permanently. Move this to Firestore if/when the app is on
+// an always-on plan, or ever runs as more than one instance.
+const premiumByUid = new Map();         // uid -> true while an active subscription exists
+const stripeCustomerByUid = new Map();  // uid -> Stripe customer id
+const dailyConvoCountByUid = new Map(); // "uid::YYYY-MM-DD" -> count
+
+const FREE_DAILY_CONVERSATIONS = 20;
+
+function todayKeyFor(uid) {
+    return `${uid}::${new Date().toISOString().slice(0, 10)}`;
+}
 
 // ==============================
 // Caching — lesson-intro / lesson-practice / lookup
@@ -1364,9 +1443,25 @@ app.get("/scenarios", (req, res) => {
 // server-side — no session storage to manage) plus the new message. To
 // start a fresh conversation, the client sends message: "__START__" with an
 // empty history.
-app.post("/converse", conversationLimiter, async (req, res) => {
+app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res) => {
     try {
         const { scenarioId, language, history, message, objectives, keyPhrases, vocabHistory, customTopic } = req.body;
+
+        // Free-tier daily cap — only applies to signed-in, non-premium learners.
+        // Anonymous use keeps relying solely on the IP limiter above, same as
+        // before this feature existed: there's no account to bill or track a
+        // fair cap against yet, so gating a guest here would just add friction
+        // with no way for them to upgrade past it.
+        if (req.uid && !premiumByUid.get(req.uid)) {
+            const usedSoFar = dailyConvoCountByUid.get(todayKeyFor(req.uid)) || 0;
+            if (usedSoFar >= FREE_DAILY_CONVERSATIONS) {
+                return res.status(402).json({
+                    error: "You've used today's free conversations.",
+                    upgradeRequired: true,
+                    dailyLimit: FREE_DAILY_CONVERSATIONS
+                });
+            }
+        }
 
         let scenario;
         if (scenarioId === CUSTOM_SCENARIO_ID) {
@@ -1439,6 +1534,14 @@ app.post("/converse", conversationLimiter, async (req, res) => {
         });
 
         const result = JSON.parse(response.output_text);
+
+        // Only successful turns count against the daily cap — a failed call
+        // shouldn't cost the learner part of their free allowance.
+        if (req.uid && !premiumByUid.get(req.uid)) {
+            const key = todayKeyFor(req.uid);
+            dailyConvoCountByUid.set(key, (dailyConvoCountByUid.get(key) || 0) + 1);
+        }
+
         res.json({ success: true, ...result });
 
     } catch (error) {
@@ -1615,6 +1718,163 @@ app.post("/lookup", lookupLimiter, async (req, res) => {
         res.status(500).json({
             error: "Couldn't look that up: " + (error.message || "unknown error")
         });
+    }
+});
+
+// ==============================
+// Billing — Stripe Checkout + Customer Portal + webhook
+// ==============================
+
+// GET /billing/status — tells the frontend whether this signed-in learner is
+// premium, and if not, how many of today's free conversations are left.
+// Guests (no valid token) just get signedIn: false; the frontend treats that
+// the same as it always has, with no cap shown at all.
+app.get("/billing/status", attachUserIfSignedIn, (req, res) => {
+    if (!req.uid) {
+        return res.json({ signedIn: false, premium: false });
+    }
+    const isPremium = premiumByUid.get(req.uid) === true;
+    const used = dailyConvoCountByUid.get(todayKeyFor(req.uid)) || 0;
+    res.json({
+        signedIn: true,
+        premium: isPremium,
+        dailyLimit: FREE_DAILY_CONVERSATIONS,
+        dailyUsed: isPremium ? 0 : used,
+        dailyRemaining: isPremium ? null : Math.max(0, FREE_DAILY_CONVERSATIONS - used)
+    });
+});
+
+// POST /billing/create-checkout-session — starts a subscription purchase for
+// the signed-in learner and hands back the Stripe-hosted page to redirect to.
+app.post("/billing/create-checkout-session", attachUserIfSignedIn, async (req, res) => {
+    if (!req.uid) {
+        return res.status(401).json({ error: "Sign in first to upgrade." });
+    }
+    if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_PRICE_ID) {
+        return res.status(500).json({ error: "Billing isn't configured yet." });
+    }
+    try {
+        let customerId = stripeCustomerByUid.get(req.uid);
+        if (!customerId) {
+            const email = typeof req.body?.email === "string" ? req.body.email : undefined;
+            const customer = await getStripe().customers.create({
+                email,
+                // Belt-and-suspenders alongside client_reference_id below — if the
+                // in-memory stripeCustomerByUid map ever resets (a Render restart)
+                // between checkout and the webhook firing, this metadata is a
+                // durable fallback for the webhook to recover the uid from.
+                metadata: { firebaseUid: req.uid }
+            });
+            customerId = customer.id;
+            stripeCustomerByUid.set(req.uid, customerId);
+        }
+        const origin = req.get("origin") || `${req.protocol}://${req.get("host")}`;
+        const session = await getStripe().checkout.sessions.create({
+            mode: "subscription",
+            customer: customerId,
+            client_reference_id: req.uid,
+            line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+            success_url: `${origin}/?upgraded=1`,
+            cancel_url: `${origin}/`
+        });
+        res.json({ url: session.url });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Couldn't start checkout: " + (error.message || "unknown error") });
+    }
+});
+
+// POST /billing/create-portal-session — lets an existing subscriber manage
+// or cancel their subscription on Stripe's own hosted page.
+app.post("/billing/create-portal-session", attachUserIfSignedIn, async (req, res) => {
+    if (!req.uid) {
+        return res.status(401).json({ error: "Sign in first." });
+    }
+    const customerId = stripeCustomerByUid.get(req.uid);
+    if (!customerId) {
+        return res.status(404).json({ error: "No billing account found for this user yet." });
+    }
+    try {
+        const origin = req.get("origin") || `${req.protocol}://${req.get("host")}`;
+        const session = await getStripe().billingPortal.sessions.create({
+            customer: customerId,
+            return_url: `${origin}/`
+        });
+        res.json({ url: session.url });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Couldn't open billing portal: " + (error.message || "unknown error") });
+    }
+});
+
+// POST /webhooks/stripe — Stripe calls this directly (not the browser) every
+// time a subscription starts, renews, or ends, so premium status here stays
+// correct even if a learner closes the tab mid-checkout or cancels from
+// Stripe's own portal instead of the app. Protected by verifying Stripe's
+// signature (not the admin-secret pattern used above) — that's the standard,
+// Stripe-documented way to confirm a webhook request actually came from
+// Stripe and wasn't forged.
+app.post("/webhooks/stripe", async (req, res) => {
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+        return res.status(404).json({ error: "Not found." });
+    }
+    let event;
+    try {
+        event = getStripe().webhooks.constructEvent(
+            req.rawBody,
+            req.get("stripe-signature"),
+            process.env.STRIPE_WEBHOOK_SECRET
+        );
+    } catch (error) {
+        console.error("Stripe webhook signature check failed:", error.message);
+        return res.status(400).json({ error: "Invalid signature." });
+    }
+
+    // Recovers the uid for a Stripe customer id when it's not already in the
+    // in-memory map (e.g. the server restarted between checkout and this
+    // event) by falling back to the metadata set when the customer was created.
+    async function uidForCustomer(customerId) {
+        for (const [uid, id] of stripeCustomerByUid.entries()) {
+            if (id === customerId) return uid;
+        }
+        try {
+            const customer = await getStripe().customers.retrieve(customerId);
+            return customer?.metadata?.firebaseUid || null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    try {
+        switch (event.type) {
+            case "checkout.session.completed": {
+                const session = event.data.object;
+                if (session.client_reference_id && session.customer) {
+                    stripeCustomerByUid.set(session.client_reference_id, session.customer);
+                }
+                break;
+            }
+            case "customer.subscription.created":
+            case "customer.subscription.updated": {
+                const sub = event.data.object;
+                const uid = await uidForCustomer(sub.customer);
+                if (uid) {
+                    stripeCustomerByUid.set(uid, sub.customer);
+                    premiumByUid.set(uid, sub.status === "active" || sub.status === "trialing");
+                }
+                break;
+            }
+            case "customer.subscription.deleted": {
+                const sub = event.data.object;
+                const uid = await uidForCustomer(sub.customer);
+                if (uid) premiumByUid.set(uid, false);
+                break;
+            }
+        }
+        res.json({ received: true });
+    } catch (error) {
+        console.error("Stripe webhook handling failed:", error);
+        res.status(500).json({ error: "Webhook handling failed." });
     }
 });
 

@@ -134,7 +134,13 @@
     display: flex; align-items: center; gap: 12px; padding: 16px 20px;
     border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0;
   }
-  .brand { display: inline-flex; align-items: center; gap: 8px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+  .brand {
+    display: inline-flex; align-items: center; gap: 6px; font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 15px; font-weight: 800; letter-spacing: -0.01em; flex-shrink: 0;
+    background: none; border: none; padding: 4px 6px; margin: 0 -6px 0 0; border-radius: 8px;
+    color: var(--ink); cursor: pointer;
+  }
+  .brand:hover { background: var(--bg); }
   .brand-mark { flex-shrink: 0; }
   .back-btn {
     background: none; border: none; font-size: 20px; cursor: pointer; color: var(--ink-soft);
@@ -157,7 +163,12 @@
     width: 248px; flex-shrink: 0; background: var(--plum); color: #f2ece6;
     display: flex; flex-direction: column; padding: 22px 18px; overflow-y: auto;
   }
-  .sidebar-brand { display: flex; align-items: center; gap: 8px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
+  .sidebar-brand {
+    display: flex; align-items: center; gap: 8px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 18px;
+    font-weight: 800; letter-spacing: -0.01em; background: none; border: none; padding: 0; margin: 0;
+    color: inherit; cursor: pointer; text-align: left;
+  }
+  .sidebar-brand:hover { opacity: 0.85; }
   .sidebar-tagline { font-size: 12.5px; color: rgba(242,236,230,0.65); margin: 8px 0 22px; line-height: 1.4; }
 
   /* Account card — hidden entirely (via inline style) until FIREBASE_CONFIG
@@ -171,6 +182,12 @@
     padding: 9px; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit;
   }
   .account-btn--ghost { background: rgba(255,255,255,0.08); color: rgba(242,236,230,0.85); }
+  .account-btn + .account-btn { margin-top: 8px; }
+  .account-plan-badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+    background: rgba(255,255,255,0.08); color: rgba(242,236,230,0.75); margin-bottom: 10px;
+  }
+  .account-plan-badge--premium { background: rgba(240,131,111,0.18); color: #f0836f; }
 
   .streak-card { background: var(--plum-soft); border-radius: 14px; padding: 14px; margin-bottom: 22px; }
   .streak-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
@@ -202,6 +219,28 @@
     padding: 9px; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit;
   }
   .review-card-btn:disabled { background: rgba(255,255,255,0.08); color: rgba(242,236,230,0.5); cursor: default; }
+
+  .tips-card { background: var(--plum-soft); border-radius: 14px; padding: 14px; margin-bottom: 22px; }
+  .tips-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .tips-card-icon { font-size: 16px; }
+  .tips-card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.65; }
+  .tips-card-list { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+  .tips-card-list li { font-size: 12.5px; line-height: 1.4; color: rgba(242,236,230,0.85); padding-left: 12px; position: relative; }
+  .tips-card-list li::before { content: "—"; position: absolute; left: 0; opacity: 0.4; }
+
+  /* Games entry point — only shown once a learner has vocab cards to play with. */
+  .games-card { background: var(--plum-soft); border-radius: 14px; padding: 14px; margin-bottom: 22px; }
+  .games-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .games-card-icon { font-size: 22px; }
+  .games-card-text { display: flex; flex-direction: column; line-height: 1.2; }
+  .games-card-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 14px; font-weight: 800; }
+  .games-card-sub { font-size: 11.5px; color: rgba(242,236,230,0.65); }
+  .games-card-btns { display: flex; flex-direction: column; gap: 8px; }
+  .games-card-btn {
+    display: flex; align-items: center; gap: 8px; width: 100%; background: rgba(255,255,255,0.08); color: rgba(242,236,230,0.9);
+    border: none; border-radius: 9px; padding: 9px 10px; font-weight: 700; font-size: 12.5px; cursor: pointer; font-family: inherit; text-align: left;
+  }
+  .games-card-btn:hover { background: rgba(255,255,255,0.14); }
 
   .lang-select-wrap { display: block; margin-bottom: 24px; }
   .lang-select-label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.55; margin-bottom: 6px; }
@@ -272,6 +311,40 @@
   .lesson-row--intro .lesson-row-icon { background: var(--surface); border-color: var(--tip-border); }
   .lesson-row--intro.completed .lesson-row-icon { background: var(--tip); border-color: var(--tip); }
   .lesson-row--intro.completed .lesson-row-status { color: var(--tip); }
+
+  /* "Practice your own topic" — a dashed border distinguishes it from the
+     preset lesson rows above/below it (same shape, different affordance:
+     this one asks for input instead of opening a fixed lesson). */
+  .custom-topic-card {
+    display: flex; align-items: center; gap: 14px; padding: 13px 14px; border: 1.5px dashed var(--border);
+    border-radius: 14px; background: var(--surface); cursor: pointer; text-align: left; width: 100%;
+    font-family: inherit; max-width: 640px; margin-bottom: 10px;
+  }
+  .custom-topic-card:hover { border-color: var(--accent); }
+  .custom-topic-icon {
+    width: 40px; height: 40px; border-radius: 50%; background: var(--accent-soft); border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+  }
+  .custom-topic-title { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 14.5px; }
+  .custom-topic-sub { font-size: 12.5px; color: var(--ink-soft); margin-top: 1px; }
+  .custom-topic-form {
+    display: none; flex-direction: column; gap: 10px; max-width: 640px; margin-bottom: 10px;
+    padding: 14px; border: 1.5px solid var(--accent); border-radius: 14px; background: var(--surface);
+  }
+  .custom-topic-form.shown { display: flex; }
+  .custom-topic-input {
+    padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px;
+    font-family: inherit; resize: none; color: var(--ink); background: var(--bg);
+  }
+  .custom-topic-input:focus { outline: none; border-color: var(--accent); }
+  .custom-topic-form-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .custom-topic-btn {
+    width: auto; border: none; border-radius: 9px; padding: 8px 16px; font-weight: 700; font-size: 13px;
+    cursor: pointer; font-family: inherit;
+  }
+  .custom-topic-btn--primary { background: var(--accent); color: #fff; }
+  .custom-topic-btn--primary:disabled { opacity: 0.5; cursor: default; }
+  .custom-topic-btn--ghost { background: var(--bg); color: var(--ink-soft); border: 1.5px solid var(--border); }
 
   @media (max-width: 720px) {
     .home-shell { flex-direction: column; overflow-y: auto; }
@@ -404,6 +477,24 @@
     color: #b91c1c; font-size: 13.5px; display: none;
   }
   .error-banner.shown { display: block; }
+  .error-banner-upgrade-btn {
+    margin-left: 8px; background: var(--accent); color: var(--accent-ink); border: none; border-radius: 7px;
+    padding: 4px 10px; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+
+  /* Soft, informational only — no streak-guilt framing, just a heads-up that
+     today hasn't happened yet while there's still time to keep it going. */
+  .streak-nudge-banner {
+    display: flex; align-items: center; gap: 10px; max-width: 640px; margin: 0 0 16px;
+    padding: 11px 14px; background: var(--tip-bg); border: 1.5px solid var(--tip-border);
+    border-radius: 12px;
+  }
+  .streak-nudge-text { flex: 1; font-size: 13.5px; color: var(--ink); line-height: 1.4; }
+  .streak-nudge-dismiss {
+    background: none; border: none; cursor: pointer; color: var(--ink-soft); font-size: 13px;
+    padding: 2px 4px; line-height: 1; flex-shrink: 0;
+  }
+  .streak-nudge-dismiss:hover { color: var(--ink); }
 
   /* -------- Lesson intro screen -------- */
   /* Warm, welcoming by default (coral family); .intro-body.intro-warm swaps
@@ -505,6 +596,20 @@
   .objectives-phrase-item .phrase-native { font-weight: 600; flex: 1; }
   .objectives-phrase-item .phrase-en { color: var(--ink-soft); font-size: 12px; flex-shrink: 0; text-align: right; }
   .objectives-phrase-item .speak-btn { padding: 2px; font-size: 12px; }
+
+  /* Intro-tier only: a beginner watches this checklist fill in in real time
+     as the AI hands them each phrase — concrete, visible proof of progress
+     beyond just the lesson-goals count. */
+  .objectives-phrases-count { color: var(--tip); font-weight: 700; text-transform: none; letter-spacing: normal; }
+  .objectives-phrase-item.seen { background: var(--tip-bg); border-color: var(--tip-border); }
+  .phrase-seen-check {
+    width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--border); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 10px; color: #fff;
+  }
+  .objectives-phrase-item.seen .phrase-seen-check { background: var(--tip); border-color: var(--tip); }
+  .objectives-phrases-done {
+    margin: 4px 0 0; font-size: 12.5px; color: var(--tip); font-weight: 600; text-align: center;
+  }
 
   /* -------- Lesson practice round (mixed exercise types before the chat) -------- */
   /* Same warm-vs-coral pattern as the lesson intro screen: .intro-warm swaps
@@ -623,6 +728,53 @@
   .review-grade-btn--again:hover { border-color: #d0403a; background: #fdeceb; }
   .review-grade-btn--good { color: #14733f; }
   .review-grade-btn--good:hover { border-color: #1a9c5b; background: #eafbf2; }
+
+  /* -------- Word Puzzle game (Wordle-style, built from the learner's own vocab deck) -------- */
+  .wp-body { flex: 1; overflow-y: auto; padding: 20px 20px 24px; max-width: 480px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+  .wp-empty { text-align: center; color: var(--ink-soft); font-size: 14.5px; padding: 40px 20px; }
+  .wp-grid { display: flex; flex-direction: column; gap: 6px; }
+  .wp-row { display: flex; gap: 6px; }
+  .wp-tile {
+    width: 46px; height: 46px; border: 2px solid var(--border); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 20px; font-weight: 800; text-transform: uppercase; color: var(--ink); flex-shrink: 0;
+  }
+  .wp-tile--correct { background: #1a9c5b; border-color: #1a9c5b; color: #fff; }
+  .wp-tile--present { background: #d9a441; border-color: #d9a441; color: #fff; }
+  .wp-tile--absent { background: var(--ink-soft); border-color: var(--ink-soft); color: #fff; opacity: 0.55; }
+  .wp-hint { font-size: 13px; color: var(--ink-soft); text-align: center; }
+  .wp-input-row { display: flex; gap: 8px; width: 100%; max-width: 320px; }
+  .wp-input {
+    flex: 1; min-width: 0; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-family: inherit;
+    font-size: 16px; text-transform: uppercase; text-align: center; letter-spacing: 0.06em; background: var(--surface); color: var(--ink);
+  }
+  .wp-input:focus { outline: none; border-color: var(--accent); }
+  .wp-submit-btn {
+    background: var(--accent); color: var(--accent-ink); border: none; border-radius: 10px; padding: 10px 18px;
+    font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit; flex-shrink: 0;
+  }
+  .wp-submit-btn:disabled { background: var(--border); color: var(--ink-soft); cursor: default; }
+  .wp-result { text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .wp-result-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; font-weight: 800; }
+  .wp-result-phrase { font-size: 16px; }
+  .wp-result-translation { font-size: 14px; color: var(--ink-soft); font-style: italic; }
+
+  /* -------- Memory Match game (flip pairs of phrase ↔ translation) -------- */
+  .mg-body { flex: 1; overflow-y: auto; padding: 20px 20px 24px; max-width: 640px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 16px; }
+  .mg-empty { text-align: center; color: var(--ink-soft); font-size: 14.5px; padding: 40px 20px; }
+  .mg-status { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--ink-soft); }
+  .mg-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .mg-tile {
+    aspect-ratio: 1; border: 1.5px solid var(--border); border-radius: 12px; background: var(--surface);
+    display: flex; align-items: center; justify-content: center; text-align: center; padding: 6px;
+    font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; color: var(--ink);
+  }
+  .mg-tile--hidden { background: var(--plum-soft); color: transparent; }
+  .mg-tile--hidden::after { content: "?"; color: rgba(242,236,230,0.4); font-size: 18px; }
+  .mg-tile--flipped { border-color: var(--accent); background: var(--accent-soft); }
+  .mg-tile--matched { border-color: #1a9c5b; background: #eafbf2; color: #14733f; cursor: default; opacity: 0.75; }
+  .mg-tile--mismatch { border-color: #d0403a; background: #fdeceb; }
+  .mg-done { text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 20px 0; }
 </style>
 </head>
 <body>
@@ -684,7 +836,7 @@
 <div id="homeScreen" class="screen">
   <div class="home-shell">
     <aside class="sidebar">
-      <span class="sidebar-brand">
+      <button type="button" class="sidebar-brand" id="sidebarBrandBtn" aria-label="Go to home">
         <svg class="brand-mark" width="20" height="20" viewBox="0 0 24 24" fill="none">
           <path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/>
           <circle cx="8.2" cy="10" r="1.3" fill="#fff"/>
@@ -692,7 +844,7 @@
           <circle cx="15.8" cy="10" r="1.3" fill="#fff"/>
         </svg>
         Echoly
-      </span>
+      </button>
       <p class="sidebar-tagline">Learn the phrases you'll actually use.</p>
 
       <div class="account-card" id="accountCard" style="display:none"></div>
@@ -730,6 +882,28 @@
         <button class="review-card-btn" id="reviewCardBtn" disabled>Review now</button>
       </div>
 
+      <div class="tips-card" id="tipsCard" style="display:none">
+        <div class="tips-card-top">
+          <span class="tips-card-icon">💡</span>
+          <span class="tips-card-title">Things to work on</span>
+        </div>
+        <ul class="tips-card-list" id="tipsCardList"></ul>
+      </div>
+
+      <div class="games-card" id="gamesCard" style="display:none">
+        <div class="games-card-top">
+          <span class="games-card-icon">🎮</span>
+          <div class="games-card-text">
+            <span class="games-card-title">Games</span>
+            <span class="games-card-sub">Practice with your saved words</span>
+          </div>
+        </div>
+        <div class="games-card-btns">
+          <button type="button" class="games-card-btn" id="wordPuzzleBtn">🔤 Word Puzzle</button>
+          <button type="button" class="games-card-btn" id="matchGameBtn">🧩 Match Game</button>
+        </div>
+      </div>
+
       <label class="lang-select-wrap">
         <span class="lang-select-label">Language</span>
         <select class="lang-select" id="langSelect"></select>
@@ -744,13 +918,31 @@
       </div>
     </aside>
 
-    <main class="home-main">
+    <main class="home-main" id="homeMain">
       <div class="error-banner" id="homeErrorBanner"></div>
+      <div class="streak-nudge-banner" id="streakNudgeBanner" style="display:none">
+        <span class="streak-nudge-text" id="streakNudgeText"></span>
+        <button type="button" class="streak-nudge-dismiss" id="streakNudgeDismissBtn" aria-label="Dismiss">✕</button>
+      </div>
       <div class="main-header">
         <h1 class="main-tier-title" id="mainTierTitle">Loading…</h1>
         <span class="main-tier-frac" id="mainTierFrac"></span>
       </div>
       <p class="main-tier-subtitle" id="mainTierSubtitle" style="display:none">New here? Start with the basics 👋</p>
+      <button type="button" class="custom-topic-card" id="customTopicCard">
+        <span class="custom-topic-icon">✏️</span>
+        <span>
+          <span class="custom-topic-title">Practice your own topic</span>
+          <span class="custom-topic-sub">Describe any situation and jump straight into a conversation</span>
+        </span>
+      </button>
+      <div class="custom-topic-form" id="customTopicForm">
+        <textarea class="custom-topic-input" id="customTopicInput" rows="2" maxlength="200" placeholder="e.g. ordering food at a Vietnamese restaurant, a job interview, asking for directions…"></textarea>
+        <div class="custom-topic-form-actions">
+          <button type="button" class="custom-topic-btn custom-topic-btn--ghost" id="customTopicCancelBtn">Cancel</button>
+          <button type="button" class="custom-topic-btn custom-topic-btn--primary" id="customTopicStartBtn" disabled>Start conversation</button>
+        </div>
+      </div>
       <div class="lesson-rows" id="lessonRows"></div>
     </main>
   </div>
@@ -759,6 +951,15 @@
 <div id="introScreen" class="screen">
   <div class="topbar">
     <button class="back-btn" id="introBackBtn" aria-label="Back">←</button>
+    <button type="button" class="brand" id="introBrandBtn" aria-label="Go to home">
+      <svg class="brand-mark" width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/>
+        <circle cx="8.2" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="12" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="15.8" cy="10" r="1.3" fill="#fff"/>
+      </svg>
+      Echoly
+    </button>
     <div class="topbar-title">
       <b id="introScenarioTitle">Scenario</b>
       <span id="introLanguageLabel">Language</span>
@@ -787,6 +988,15 @@
 <div id="practiceScreen" class="screen">
   <div class="topbar">
     <button class="back-btn" id="practiceBackBtn" aria-label="Back">←</button>
+    <button type="button" class="brand" id="practiceBrandBtn" aria-label="Go to home">
+      <svg class="brand-mark" width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/>
+        <circle cx="8.2" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="12" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="15.8" cy="10" r="1.3" fill="#fff"/>
+      </svg>
+      Echoly
+    </button>
     <div class="topbar-title">
       <b id="practiceScenarioTitle">Scenario</b>
       <span id="practiceLanguageLabel">Language</span>
@@ -812,6 +1022,15 @@
 <div id="reviewScreen" class="screen">
   <div class="topbar">
     <button class="back-btn" id="reviewBackBtn" aria-label="Back">←</button>
+    <button type="button" class="brand" id="reviewBrandBtn" aria-label="Go to home">
+      <svg class="brand-mark" width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/>
+        <circle cx="8.2" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="12" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="15.8" cy="10" r="1.3" fill="#fff"/>
+      </svg>
+      Echoly
+    </button>
     <div class="topbar-title">
       <b>Review</b>
       <span id="reviewLanguageLabel">Language</span>
@@ -835,9 +1054,72 @@
   </div>
 </div>
 
+<div id="wordPuzzleScreen" class="screen">
+  <div class="topbar">
+    <button class="back-btn" id="wordPuzzleBackBtn" aria-label="Back">←</button>
+    <button type="button" class="brand" id="wordPuzzleBrandBtn" aria-label="Go to home">
+      <svg class="brand-mark" width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/>
+        <circle cx="8.2" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="12" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="15.8" cy="10" r="1.3" fill="#fff"/>
+      </svg>
+      Echoly
+    </button>
+    <div class="topbar-title">
+      <b>Word Puzzle</b>
+      <span id="wordPuzzleLanguageLabel">Language</span>
+    </div>
+  </div>
+  <div class="wp-body" id="wpBody">
+    <div class="wp-empty" id="wpEmpty" style="display:none">Finish a lesson first to build up enough words for a puzzle.</div>
+    <div class="wp-grid" id="wpGrid"></div>
+    <p class="wp-hint" id="wpHint"></p>
+    <div class="wp-input-row" id="wpInputRow">
+      <input type="text" class="wp-input" id="wpInput" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Your guess" />
+      <button type="button" class="wp-submit-btn" id="wpSubmitBtn" disabled>Guess</button>
+    </div>
+    <div class="wp-result" id="wpResult" style="display:none"></div>
+  </div>
+</div>
+
+<div id="matchGameScreen" class="screen">
+  <div class="topbar">
+    <button class="back-btn" id="matchGameBackBtn" aria-label="Back">←</button>
+    <button type="button" class="brand" id="matchGameBrandBtn" aria-label="Go to home">
+      <svg class="brand-mark" width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/>
+        <circle cx="8.2" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="12" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="15.8" cy="10" r="1.3" fill="#fff"/>
+      </svg>
+      Echoly
+    </button>
+    <div class="topbar-title">
+      <b>Match Game</b>
+      <span id="matchGameLanguageLabel">Language</span>
+    </div>
+  </div>
+  <div class="mg-body" id="mgBody">
+    <div class="mg-empty" id="mgEmpty" style="display:none">Finish a couple lessons first to build up enough words to match.</div>
+    <div class="mg-status" id="mgStatus" style="display:none"></div>
+    <div class="mg-grid" id="mgGrid"></div>
+    <div class="mg-done" id="mgDone" style="display:none"></div>
+  </div>
+</div>
+
 <div id="chatScreen" class="screen">
   <div class="topbar">
     <button class="back-btn" id="backBtn" aria-label="Back">←</button>
+    <button type="button" class="brand" id="chatBrandBtn" aria-label="Go to home">
+      <svg class="brand-mark" width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/>
+        <circle cx="8.2" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="12" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="15.8" cy="10" r="1.3" fill="#fff"/>
+      </svg>
+      Echoly
+    </button>
     <div class="topbar-title">
       <b id="chatScenarioTitle">Scenario</b>
       <span id="chatLanguageLabel">Language</span>
@@ -950,6 +1232,12 @@
   let PATH = [];
   let LANGUAGES = [];
   const LESSON_COMPLETE_AFTER = 4; // user messages sent before a lesson is marked done
+
+  // Reserved scenario id (matches server.js) for a learner-typed topic
+  // instead of one of the preset lessons — see startCustomConversation.
+  const CUSTOM_SCENARIO_ID = "custom";
+  const CUSTOM_TOPIC_MAX_LEN = 200;
+  let customConversationCompleted = false; // reset per conversation in startConversation()
 
   // BCP-47 locale for each language the app offers, used for both
   // text-to-speech (SpeechSynthesisUtterance.lang) and speech-to-text
@@ -1075,6 +1363,12 @@
   let currentObjectives = []; // objectives for the ACTIVE lesson (empty once the objectives card is dismissed/not applicable)
   let currentKeyPhrases = []; // key phrases for the ACTIVE lesson — kept visible during the chat, not just on the intro screen
   let completedObjectiveIndices = []; // cumulative, as reported by the server each /converse turn
+  // Intro-tier only: indices into currentKeyPhrases the AI has actually
+  // handed the learner via "tip" so far this conversation (detected by
+  // matching the phrase text — see addAiTurn). Gives a beginner a visible,
+  // filling-up checklist of the exact words they've been shown, instead of
+  // only the completion-banner at the very end.
+  let introPhrasesSeen = new Set();
 
   // Lesson practice round (mixed exercise types shown before the chat starts)
   let practiceLesson = null; // the lesson the current practice round belongs to
@@ -1117,6 +1411,12 @@
   const authSwitchBtn = document.getElementById("authSwitchBtn");
   const authForgotBtn = document.getElementById("authForgotBtn");
   const langSelectEl = document.getElementById("langSelect");
+  const sidebarBrandBtn = document.getElementById("sidebarBrandBtn");
+  const chatBrandBtn = document.getElementById("chatBrandBtn");
+  const introBrandBtn = document.getElementById("introBrandBtn");
+  const practiceBrandBtn = document.getElementById("practiceBrandBtn");
+  const reviewBrandBtn = document.getElementById("reviewBrandBtn");
+  const homeMainEl = document.getElementById("homeMain");
   const streakFlameIconEl = document.getElementById("streakFlameIcon");
   const streakCountEl = document.getElementById("streakCount");
   const streakGoalFracEl = document.getElementById("streakGoalFrac");
@@ -1126,11 +1426,18 @@
   const reviewDueCountEl = document.getElementById("reviewDueCount");
   const reviewDueLabelEl = document.getElementById("reviewDueLabel");
   const reviewCardBtn = document.getElementById("reviewCardBtn");
+  const tipsCardEl = document.getElementById("tipsCard");
+  const tipsCardListEl = document.getElementById("tipsCardList");
   const tierNavEl = document.getElementById("tierNav");
   const mainTierTitleEl = document.getElementById("mainTierTitle");
   const mainTierFracEl = document.getElementById("mainTierFrac");
   const mainTierSubtitleEl = document.getElementById("mainTierSubtitle");
   const lessonRowsEl = document.getElementById("lessonRows");
+  const customTopicCardEl = document.getElementById("customTopicCard");
+  const customTopicFormEl = document.getElementById("customTopicForm");
+  const customTopicInputEl = document.getElementById("customTopicInput");
+  const customTopicCancelBtn = document.getElementById("customTopicCancelBtn");
+  const customTopicStartBtn = document.getElementById("customTopicStartBtn");
   const introBackBtn = document.getElementById("introBackBtn");
   const introScenarioTitleEl = document.getElementById("introScenarioTitle");
   const introLanguageLabelEl = document.getElementById("introLanguageLabel");
@@ -1168,6 +1475,28 @@
   const reviewFlashcardPhraseEl = document.getElementById("reviewFlashcardPhrase");
   const reviewFlashcardTranslationEl = document.getElementById("reviewFlashcardTranslation");
   const reviewFooterActionsEl = document.getElementById("reviewFooterActions");
+  const gamesCardEl = document.getElementById("gamesCard");
+  const wordPuzzleBtn = document.getElementById("wordPuzzleBtn");
+  const matchGameBtn = document.getElementById("matchGameBtn");
+  const wordPuzzleScreen = document.getElementById("wordPuzzleScreen");
+  const wordPuzzleBackBtn = document.getElementById("wordPuzzleBackBtn");
+  const wordPuzzleBrandBtn = document.getElementById("wordPuzzleBrandBtn");
+  const wordPuzzleLanguageLabelEl = document.getElementById("wordPuzzleLanguageLabel");
+  const wpEmptyEl = document.getElementById("wpEmpty");
+  const wpGridEl = document.getElementById("wpGrid");
+  const wpHintEl = document.getElementById("wpHint");
+  const wpInputRowEl = document.getElementById("wpInputRow");
+  const wpInputEl = document.getElementById("wpInput");
+  const wpSubmitBtn = document.getElementById("wpSubmitBtn");
+  const wpResultEl = document.getElementById("wpResult");
+  const matchGameScreen = document.getElementById("matchGameScreen");
+  const matchGameBackBtn = document.getElementById("matchGameBackBtn");
+  const matchGameBrandBtn = document.getElementById("matchGameBrandBtn");
+  const matchGameLanguageLabelEl = document.getElementById("matchGameLanguageLabel");
+  const mgEmptyEl = document.getElementById("mgEmpty");
+  const mgStatusEl = document.getElementById("mgStatus");
+  const mgGridEl = document.getElementById("mgGrid");
+  const mgDoneEl = document.getElementById("mgDone");
   const objectivesCardEl = document.getElementById("objectivesCard");
   const objectivesToggleBtn = document.getElementById("objectivesToggleBtn");
   const objectivesFracEl = document.getElementById("objectivesFrac");
@@ -1186,6 +1515,9 @@
   const micBtn = document.getElementById("micBtn");
   const errorBanner = document.getElementById("errorBanner");
   const homeErrorBanner = document.getElementById("homeErrorBanner");
+  const streakNudgeBannerEl = document.getElementById("streakNudgeBanner");
+  const streakNudgeTextEl = document.getElementById("streakNudgeText");
+  const streakNudgeDismissBtn = document.getElementById("streakNudgeDismissBtn");
 
   // ---------- Progress (per-language, stored in this browser only) ----------
   const PROGRESS_KEY = "echoly_progress_v1";
@@ -1333,6 +1665,32 @@
     syncToCloud();
   });
 
+  // ---------- Streak-loss nudge — soft, dismissable, shown only while there's
+  // still a live streak to lose (i.e. yesterday counted, today hasn't yet).
+  // Dismissing it just hides it for today, stored locally per-browser — it's
+  // a reminder, not a gate, and never blocks anything the app's brand
+  // explicitly promises isn't gamified streak-guilt. ----------
+  const NUDGE_DISMISSED_KEY = "echoly_nudge_dismissed_v1";
+  function isNudgeDismissedToday() {
+    try { return localStorage.getItem(NUDGE_DISMISSED_KEY) === todayDateStr(); } catch (e) { return false; }
+  }
+  function dismissNudgeForToday() {
+    try { localStorage.setItem(NUDGE_DISMISSED_KEY, todayDateStr()); } catch (e) { /* non-fatal */ }
+  }
+  function renderStreakNudge() {
+    const data = getDisplayStreakData();
+    if (data.currentStreak <= 0 || data.todayCount > 0 || isNudgeDismissedToday()) {
+      streakNudgeBannerEl.style.display = "none";
+      return;
+    }
+    streakNudgeTextEl.textContent = `🔥 Your ${data.currentStreak}-day streak is still going — one quick conversation today keeps it alive.`;
+    streakNudgeBannerEl.style.display = "flex";
+  }
+  streakNudgeDismissBtn.addEventListener("click", () => {
+    dismissNudgeForToday();
+    streakNudgeBannerEl.style.display = "none";
+  });
+
   // ---------- Vocab review (spaced repetition, per-language, stored in this browser only) ----------
   const VOCAB_KEY = "echoly_vocab_v1";
   // Leitner-style boxes: a remembered card is promoted to the next box (a
@@ -1401,6 +1759,75 @@
     return out;
   }
 
+  // ---------- "Things to work on" — a running history of the AI's in-conversation
+  // coaching tips, so a learner can glance back at patterns instead of a tip
+  // only ever appearing once, mid-chat, and then being gone for good. Kept
+  // capped and newest-first; this is a log, not a to-do list, so there's no
+  // per-tip dismiss/complete — it just naturally ages older tips out.
+  const TIPS_KEY = "echoly_tips_v1";
+  const TIPS_MAX = 50;
+
+  function loadTipsHistory() {
+    try {
+      const raw = localStorage.getItem(TIPS_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) {
+      return []; // storage unavailable — tips just won't persist this session
+    }
+  }
+  function saveTipsHistory(tips) {
+    try { localStorage.setItem(TIPS_KEY, JSON.stringify(tips)); } catch (e) { /* non-fatal */ }
+  }
+  function addTip(language, scenarioTitle, tip) {
+    if (!tip || !tip.trim()) return;
+    const tips = loadTipsHistory();
+    tips.unshift({ tip: tip.trim(), language, scenario: scenarioTitle, date: todayDateStr() });
+    saveTipsHistory(tips.slice(0, TIPS_MAX));
+  }
+
+  // ---------- Daily AI-conversation counting — quiet instrumentation only.
+  // Not surfaced in the UI and nothing is gated on it yet; this just gives
+  // us real usage numbers (date-keyed, one increment per conversation
+  // started) to look at before deciding whether/where a free-tier limit
+  // would ever make sense. ----------
+  const CONVO_COUNT_KEY = "echoly_convo_counts_v1";
+  const CONVO_COUNT_HISTORY_DAYS = 90; // avoid unbounded growth in localStorage/Firestore
+
+  function loadConvoCounts() {
+    try {
+      const raw = localStorage.getItem(CONVO_COUNT_KEY);
+      const obj = raw ? JSON.parse(raw) : {};
+      return (obj && typeof obj === "object") ? obj : {};
+    } catch (e) {
+      return {};
+    }
+  }
+  function saveConvoCounts(counts) {
+    // Prune anything older than the retention window before writing, so this
+    // doesn't grow forever for a learner who uses the app for months.
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - CONVO_COUNT_HISTORY_DAYS);
+    const cutoffStr = todayDateStrFor(cutoff);
+    const pruned = {};
+    Object.keys(counts).forEach(dateStr => {
+      if (dateStr >= cutoffStr) pruned[dateStr] = counts[dateStr];
+    });
+    try { localStorage.setItem(CONVO_COUNT_KEY, JSON.stringify(pruned)); } catch (e) { /* non-fatal */ }
+  }
+  function todayDateStrFor(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  function recordConversationStarted() {
+    const counts = loadConvoCounts();
+    const today = todayDateStr();
+    counts[today] = (counts[today] || 0) + 1;
+    saveConvoCounts(counts);
+  }
+
   function renderReviewCard() {
     const total = getVocabCards(selectedLanguage).length;
     if (total === 0) {
@@ -1413,6 +1840,18 @@
     reviewDueLabelEl.textContent = due === 1 ? "phrase due" : "phrases due";
     reviewCardBtn.disabled = due === 0;
     reviewCardBtn.textContent = due === 0 ? "All caught up ✓" : "Review now";
+  }
+
+  const TIPS_SHOWN = 3;
+  function renderTipsCard() {
+    const tips = loadTipsHistory().slice(0, TIPS_SHOWN);
+    if (!tips.length) {
+      tipsCardEl.style.display = "none";
+      return;
+    }
+    tipsCardEl.style.display = "block";
+    tipsCardListEl.innerHTML = tips.map(t => `<li></li>`).join("");
+    tipsCardListEl.querySelectorAll("li").forEach((li, i) => { li.textContent = tips[i].tip; });
   }
 
   reviewCardBtn.addEventListener("click", () => {
@@ -1500,18 +1939,295 @@
     renderReviewCard();
   });
 
+  // ---------- Games entry point (sidebar card, shown once there's a vocab deck to play with) ----------
+  function renderGamesCard() {
+    gamesCardEl.style.display = getVocabCards(selectedLanguage).length > 0 ? "block" : "none";
+  }
+
+  // ---------- Word Puzzle (Wordle-style, built from the learner's own vocab deck) ----------
+  const WORD_PUZZLE_KEY = "echoly_wordpuzzle_v1";
+  const WP_MAX_GUESSES = 6;
+  let wpWordCard = null; // { phrase, translation } — today's target word
+  let wpGuesses = [];
+  let wpStatus = "playing"; // "playing" | "won" | "lost"
+
+  // Single-word vocab cards only (letters/accents/hyphens, 3–10 chars) so the
+  // puzzle keeps a recognizable Wordle shape instead of a whole phrase.
+  function getWordPuzzleCandidates(language) {
+    return getVocabCards(language)
+      .filter(c => c.phrase && /^[\p{L}-]{3,10}$/u.test(c.phrase.trim()))
+      .sort((a, b) => a.phrase.localeCompare(b.phrase));
+  }
+  // Deterministic daily pick — same word for a learner studying this language
+  // on this date, no server round trip needed. A tiny string hash seeds it.
+  function hashStr(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) | 0; }
+    return Math.abs(h);
+  }
+  function pickDailyWord(language) {
+    const candidates = getWordPuzzleCandidates(language);
+    if (!candidates.length) return null;
+    return candidates[hashStr(`${todayDateStr()}::${language}`) % candidates.length];
+  }
+  function loadWordPuzzleState() {
+    try {
+      const raw = localStorage.getItem(WORD_PUZZLE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+  }
+  function saveWordPuzzleState(state) {
+    try { localStorage.setItem(WORD_PUZZLE_KEY, JSON.stringify(state)); } catch (e) { /* non-fatal */ }
+  }
+
+  function openWordPuzzle() {
+    trackEvent("game_opened", { game: "word_puzzle", language: selectedLanguage });
+    wordPuzzleLanguageLabelEl.textContent = selectedLanguage;
+    homeScreen.classList.remove("active");
+    wordPuzzleScreen.classList.add("active");
+
+    wpWordCard = pickDailyWord(selectedLanguage);
+    if (!wpWordCard) {
+      wpEmptyEl.style.display = "block";
+      wpGridEl.style.display = "none";
+      wpHintEl.style.display = "none";
+      wpInputRowEl.style.display = "none";
+      wpResultEl.style.display = "none";
+      return;
+    }
+    wpEmptyEl.style.display = "none";
+    wpGridEl.style.display = "flex";
+    wpHintEl.style.display = "block";
+
+    const bank = loadWordPuzzleState();
+    const key = `${selectedLanguage}::${todayDateStr()}`;
+    const saved = bank[key];
+    if (saved && saved.phrase === wpWordCard.phrase) {
+      wpGuesses = saved.guesses;
+      wpStatus = saved.status;
+    } else {
+      wpGuesses = [];
+      wpStatus = "playing";
+      bank[key] = { phrase: wpWordCard.phrase, guesses: [], status: "playing" };
+      saveWordPuzzleState(bank);
+    }
+    renderWordPuzzle();
+  }
+
+  // Two-pass Wordle scoring, compared with diacritics stripped so accents
+  // don't block a match, while the tile still shows what the learner typed.
+  function scoreGuess(guess, answer) {
+    const g = stripDiacritics(guess).toLowerCase().split("");
+    const a = stripDiacritics(answer).toLowerCase().split("");
+    const result = new Array(g.length).fill("absent");
+    const remaining = {};
+    a.forEach((ch, i) => {
+      if (g[i] === ch) { result[i] = "correct"; }
+      else { remaining[ch] = (remaining[ch] || 0) + 1; }
+    });
+    g.forEach((ch, i) => {
+      if (result[i] === "correct") return;
+      if (remaining[ch] > 0) { result[i] = "present"; remaining[ch]--; }
+    });
+    return result;
+  }
+
+  function renderWordPuzzle() {
+    const answer = wpWordCard.phrase;
+    const len = answer.length;
+    const rows = [];
+    for (let i = 0; i < WP_MAX_GUESSES; i++) {
+      const guess = wpGuesses[i];
+      let tiles;
+      if (guess) {
+        const scored = scoreGuess(guess, answer);
+        tiles = guess.split("").map((ch, j) => `<div class="wp-tile wp-tile--${scored[j]}">${ch}</div>`).join("");
+      } else {
+        tiles = Array.from({ length: len }).map(() => `<div class="wp-tile"></div>`).join("");
+      }
+      rows.push(`<div class="wp-row">${tiles}</div>`);
+    }
+    wpGridEl.innerHTML = rows.join("");
+
+    if (wpStatus === "playing") {
+      const triesLeft = WP_MAX_GUESSES - wpGuesses.length;
+      wpHintEl.style.display = "block";
+      wpHintEl.textContent = `Guess the ${len}-letter word — ${triesLeft} tr${triesLeft === 1 ? "y" : "ies"} left`;
+      wpInputRowEl.style.display = "flex";
+      wpResultEl.style.display = "none";
+      wpInputEl.value = "";
+      wpInputEl.maxLength = len;
+      wpSubmitBtn.disabled = true;
+      wpInputEl.focus();
+    } else {
+      wpHintEl.style.display = "none";
+      wpInputRowEl.style.display = "none";
+      wpResultEl.style.display = "flex";
+      wpResultEl.innerHTML = `
+        <p class="wp-result-title">${wpStatus === "won" ? "🎉 Solved it!" : `The word was "${answer}"`}</p>
+        <p class="wp-result-phrase">${answer}</p>
+        <p class="wp-result-translation">${wpWordCard.translation || ""}</p>
+        <button class="start-btn" id="wpDoneBtn">Back to home</button>`;
+      document.getElementById("wpDoneBtn").addEventListener("click", goHome);
+    }
+  }
+
+  wpInputEl.addEventListener("input", () => {
+    wpSubmitBtn.disabled = !wpWordCard || wpInputEl.value.trim().length !== wpWordCard.phrase.length;
+  });
+  wpInputEl.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !wpSubmitBtn.disabled) submitWordPuzzleGuess();
+  });
+  wpSubmitBtn.addEventListener("click", submitWordPuzzleGuess);
+
+  function submitWordPuzzleGuess() {
+    const guess = wpInputEl.value.trim();
+    if (!wpWordCard || guess.length !== wpWordCard.phrase.length) return;
+    wpGuesses.push(guess);
+    const isCorrect = stripDiacritics(guess).toLowerCase() === stripDiacritics(wpWordCard.phrase).toLowerCase();
+    if (isCorrect) {
+      wpStatus = "won";
+      gradeVocabCard(selectedLanguage, wpWordCard.phrase, true);
+      syncToCloud();
+      recordDailyActivity();
+      renderStreakCard();
+      trackEvent("game_completed", { game: "word_puzzle", language: selectedLanguage, result: "won" });
+    } else if (wpGuesses.length >= WP_MAX_GUESSES) {
+      wpStatus = "lost";
+      trackEvent("game_completed", { game: "word_puzzle", language: selectedLanguage, result: "lost" });
+    }
+    const bank = loadWordPuzzleState();
+    const key = `${selectedLanguage}::${todayDateStr()}`;
+    bank[key] = { phrase: wpWordCard.phrase, guesses: wpGuesses, status: wpStatus };
+    saveWordPuzzleState(bank);
+    renderWordPuzzle();
+  }
+
+  wordPuzzleBackBtn.addEventListener("click", () => {
+    wordPuzzleScreen.classList.remove("active");
+    homeScreen.classList.add("active");
+  });
+
+  // ---------- Memory Match (flip pairs of phrase ↔ translation from the vocab deck) ----------
+  const MG_PAIR_COUNT = 6; // 12 tiles — a clean 4-wide grid
+  let mgTiles = [];
+  let mgFlipped = []; // indices currently face-up, not yet resolved
+  let mgMatchedPairs = 0;
+  let mgLocked = false; // true while a mismatched pair is showing before flipping back
+
+  function openMatchGame() {
+    trackEvent("game_opened", { game: "match", language: selectedLanguage });
+    matchGameLanguageLabelEl.textContent = selectedLanguage;
+    homeScreen.classList.remove("active");
+    matchGameScreen.classList.add("active");
+
+    const due = getDueVocabCards(selectedLanguage);
+    const pool = due.length >= 4 ? due : getVocabCards(selectedLanguage);
+    const pairs = shuffle(pool).slice(0, MG_PAIR_COUNT);
+    if (pairs.length < 4) {
+      mgEmptyEl.style.display = "block";
+      mgStatusEl.style.display = "none";
+      mgGridEl.style.display = "none";
+      mgDoneEl.style.display = "none";
+      return;
+    }
+    mgEmptyEl.style.display = "none";
+    mgStatusEl.style.display = "flex";
+    mgGridEl.style.display = "grid";
+    mgDoneEl.style.display = "none";
+
+    mgTiles = shuffle(pairs.flatMap((card, i) => [
+      { pairId: i, phrase: card.phrase, text: card.phrase, matched: false, flipped: false },
+      { pairId: i, phrase: card.phrase, text: card.translation, matched: false, flipped: false },
+    ]));
+    mgFlipped = [];
+    mgMatchedPairs = 0;
+    mgLocked = false;
+    renderMatchGame();
+  }
+
+  function renderMatchGame() {
+    mgStatusEl.textContent = `${mgMatchedPairs} of ${mgTiles.length / 2} pairs matched`;
+    mgGridEl.innerHTML = mgTiles.map((t, i) => {
+      let cls = "mg-tile mg-tile--hidden";
+      if (t.matched) cls = "mg-tile mg-tile--matched";
+      else if (t.flipped) cls = "mg-tile mg-tile--flipped";
+      return `<button type="button" class="${cls}" data-index="${i}" ${t.matched ? "disabled" : ""}>${t.matched || t.flipped ? t.text : ""}</button>`;
+    }).join("");
+  }
+
+  mgGridEl.addEventListener("click", e => {
+    const btn = e.target.closest(".mg-tile");
+    if (!btn || mgLocked) return;
+    const idx = Number(btn.dataset.index);
+    const tile = mgTiles[idx];
+    if (!tile || tile.matched || tile.flipped) return;
+    tile.flipped = true;
+    mgFlipped.push(idx);
+    renderMatchGame();
+    if (mgFlipped.length < 2) return;
+
+    const [i1, i2] = mgFlipped;
+    const t1 = mgTiles[i1], t2 = mgTiles[i2];
+    if (t1.pairId === t2.pairId) {
+      t1.matched = true;
+      t2.matched = true;
+      mgMatchedPairs++;
+      gradeVocabCard(selectedLanguage, t1.phrase, true);
+      syncToCloud();
+      mgFlipped = [];
+      renderMatchGame();
+      if (mgMatchedPairs === mgTiles.length / 2) {
+        recordDailyActivity();
+        renderStreakCard();
+        trackEvent("game_completed", { game: "match", language: selectedLanguage });
+        finishMatchGame();
+      }
+    } else {
+      mgLocked = true;
+      mgGridEl.querySelectorAll(`[data-index="${i1}"], [data-index="${i2}"]`).forEach(el => el.classList.add("mg-tile--mismatch"));
+      setTimeout(() => {
+        t1.flipped = false;
+        t2.flipped = false;
+        mgFlipped = [];
+        mgLocked = false;
+        renderMatchGame();
+      }, 800);
+    }
+  });
+
+  function finishMatchGame() {
+    mgGridEl.style.display = "none";
+    mgStatusEl.style.display = "none";
+    mgDoneEl.style.display = "flex";
+    mgDoneEl.innerHTML = `
+      <p class="wp-result-title">🎉 All matched!</p>
+      <button class="start-btn" id="mgDoneBtn">Back to home</button>`;
+    document.getElementById("mgDoneBtn").addEventListener("click", goHome);
+  }
+
+  matchGameBackBtn.addEventListener("click", () => {
+    matchGameScreen.classList.remove("active");
+    homeScreen.classList.add("active");
+  });
+
+  wordPuzzleBtn.addEventListener("click", openWordPuzzle);
+  matchGameBtn.addEventListener("click", openMatchGame);
+
   // ---------- Accounts: cloud sync over Firestore, auth via Firebase Auth ----------
   // Firestore layout: one document per signed-in user at users/{uid}, holding
   // the same three payloads this app already keeps in localStorage —
   // progress, streak, and vocab — as a single snapshot. Firestore security
   // rules restrict a document to its own owner (see the project README).
   function localDataSnapshot() {
-    return { progress: loadAllProgress(), streak: loadStreakData(), vocab: loadVocabBank() };
+    return { progress: loadAllProgress(), streak: loadStreakData(), vocab: loadVocabBank(), tips: loadTipsHistory(), convoCounts: loadConvoCounts() };
   }
   function applyCloudSnapshot(data) {
     if (data && data.progress) saveAllProgress(data.progress);
     if (data && data.streak) saveStreakData(data.streak);
     if (data && data.vocab) saveVocabBank(data.vocab);
+    if (data && data.tips) saveTipsHistory(data.tips);
+    if (data && data.convoCounts) saveConvoCounts(data.convoCounts);
   }
   // Fire-and-forget — a failed sync (offline, blocked, etc.) just means this
   // browser's local copy stays the source of truth until the next
@@ -1525,8 +2241,18 @@
     if (!accountsEnabled) { accountCardEl.style.display = "none"; return; }
     accountCardEl.style.display = "block";
     if (currentUser) {
+      const isPremium = !!(billingStatus && billingStatus.premium);
+      const remaining = billingStatus && typeof billingStatus.dailyRemaining === "number" ? billingStatus.dailyRemaining : null;
+      const planBadge = isPremium
+        ? `<span class="account-plan-badge account-plan-badge--premium">✨ Premium</span>`
+        : `<span class="account-plan-badge">Free plan${remaining !== null ? ` · ${remaining} convo${remaining === 1 ? "" : "s"} left today` : ""}</span>`;
+      const planBtn = isPremium
+        ? `<button class="account-btn account-btn--ghost" id="accountManageBillingBtn">Manage subscription</button>`
+        : `<button class="account-btn" id="accountUpgradeBtn">Upgrade to Premium</button>`;
       accountCardEl.innerHTML = `
         <p class="account-status" id="accountStatusText"></p>
+        ${planBadge}<br>
+        ${planBtn}
         <button class="account-btn account-btn--ghost" id="accountSignOutBtn">Sign out</button>`;
       const statusEl = document.getElementById("accountStatusText");
       statusEl.appendChild(document.createTextNode("Signed in as "));
@@ -1534,11 +2260,79 @@
       b.textContent = currentUser.email || "you";
       statusEl.appendChild(b);
       document.getElementById("accountSignOutBtn").addEventListener("click", () => fbSignOut(firebaseAuth));
+      const upgradeBtn = document.getElementById("accountUpgradeBtn");
+      if (upgradeBtn) upgradeBtn.addEventListener("click", startCheckout);
+      const manageBtn = document.getElementById("accountManageBillingBtn");
+      if (manageBtn) manageBtn.addEventListener("click", openBillingPortal);
     } else {
       accountCardEl.innerHTML = `
         <p class="account-blurb">💾 Sign in to save your progress and sync it across devices.</p>
         <button class="account-btn" id="accountSignInBtn">Sign in</button>`;
       document.getElementById("accountSignInBtn").addEventListener("click", () => openAuthModal("signin"));
+    }
+  }
+
+  // ---------- Billing (Stripe subscription) — status, checkout, portal ----------
+  let billingStatus = null; // last-known { signedIn, premium, dailyLimit, dailyUsed, dailyRemaining } from /billing/status
+
+  // Firebase ID tokens are short-lived and auto-refreshed by the SDK;
+  // getIdToken() (no args) returns the current cached one, only round-
+  // tripping to Firebase when it's actually close to expiring.
+  async function authHeaders() {
+    if (!currentUser) return {};
+    try {
+      const token = await currentUser.getIdToken();
+      return { Authorization: `Bearer ${token}` };
+    } catch (e) {
+      return {};
+    }
+  }
+
+  async function refreshBillingStatus() {
+    if (!accountsEnabled || !currentUser) { billingStatus = null; renderAccountCard(); return; }
+    try {
+      const headers = await authHeaders();
+      const res = await fetch(`${API_BASE}/billing/status`, { headers });
+      billingStatus = await res.json();
+    } catch (e) {
+      billingStatus = null; // offline, or the server hasn't picked up billing config yet — fail quiet
+    }
+    renderAccountCard();
+  }
+
+  async function startCheckout() {
+    if (!currentUser) return;
+    try {
+      const headers = await authHeaders();
+      const res = await fetch(`${API_BASE}/billing/create-checkout-session`, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ email: currentUser.email || undefined })
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        showError(data.error || "Couldn't start checkout.");
+      }
+    } catch (e) {
+      showError("Couldn't start checkout.");
+    }
+  }
+
+  async function openBillingPortal() {
+    if (!currentUser) return;
+    try {
+      const headers = await authHeaders();
+      const res = await fetch(`${API_BASE}/billing/create-portal-session`, { method: "POST", headers });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        showError(data.error || "Couldn't open billing portal.");
+      }
+    } catch (e) {
+      showError("Couldn't open billing portal.");
     }
   }
 
@@ -1680,6 +2474,17 @@
     renderHome();
     renderStreakCard();
     enterApp();
+
+    // Fire-and-forget, same pattern as syncToCloud — doesn't block entering
+    // the app. If this load is a redirect back from a successful Stripe
+    // Checkout, the webhook that flips premium on can lag the redirect by a
+    // second or two, so one short retry covers that common race without
+    // polling indefinitely.
+    refreshBillingStatus();
+    if (new URLSearchParams(location.search).get("upgraded") === "1") {
+      history.replaceState({}, "", location.pathname);
+      setTimeout(refreshBillingStatus, 2500);
+    }
   }
   function handleSignedOut() {
     authResolved = true;
@@ -1800,12 +2605,38 @@
     renderTierNav();
     renderLessonRows();
     renderReviewCard();
+    renderTipsCard();
+    renderGamesCard();
+    renderStreakNudge();
   }
 
   langSelectEl.addEventListener("change", () => {
     selectedLanguage = langSelectEl.value;
     selectedTier = pickDefaultTier(selectedLanguage);
     renderHome();
+  });
+
+  // Clicking the "Echoly" wordmark — shown in the home sidebar and in every
+  // other screen's topbar — always acts as a home link: leave whatever
+  // screen you're on, land back on a clean default home view (whichever
+  // tier you'd naturally go to next, any in-progress "practice your own
+  // topic" form closed, scrolled up to the top). Safe to call even when
+  // already on the home screen — the screen-class toggles are then no-ops.
+  function goHome() {
+    chatScreen.classList.remove("active");
+    introScreen.classList.remove("active");
+    practiceScreen.classList.remove("active");
+    reviewScreen.classList.remove("active");
+    wordPuzzleScreen.classList.remove("active");
+    matchGameScreen.classList.remove("active");
+    homeScreen.classList.add("active");
+    selectedTier = pickDefaultTier(selectedLanguage);
+    resetCustomTopicForm();
+    renderHome();
+    homeMainEl.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  [sidebarBrandBtn, chatBrandBtn, introBrandBtn, practiceBrandBtn, reviewBrandBtn, wordPuzzleBrandBtn, matchGameBrandBtn].forEach(btn => {
+    btn.addEventListener("click", goHome);
   });
 
   tierNavEl.addEventListener("click", e => {
@@ -1822,9 +2653,40 @@
     if (lesson) openIntro(lesson);
   });
 
+  customTopicCardEl.addEventListener("click", () => {
+    customTopicFormEl.classList.add("shown");
+    customTopicCardEl.style.display = "none";
+    customTopicInputEl.focus();
+  });
+
+  customTopicCancelBtn.addEventListener("click", resetCustomTopicForm);
+
+  customTopicInputEl.addEventListener("input", () => {
+    customTopicStartBtn.disabled = !customTopicInputEl.value.trim();
+  });
+
+  customTopicInputEl.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (!customTopicStartBtn.disabled) startCustomConversation(customTopicInputEl.value);
+    }
+  });
+
+  customTopicStartBtn.addEventListener("click", () => {
+    startCustomConversation(customTopicInputEl.value);
+  });
+
+  function resetCustomTopicForm() {
+    customTopicFormEl.classList.remove("shown");
+    customTopicCardEl.style.display = "flex";
+    customTopicInputEl.value = "";
+    customTopicStartBtn.disabled = true;
+  }
+
   document.getElementById("backBtn").addEventListener("click", () => {
     chatScreen.classList.remove("active");
     homeScreen.classList.add("active");
+    resetCustomTopicForm();
     renderHome(); // reflect any lesson just completed / newly unlocked
   });
 
@@ -2274,14 +3136,24 @@
           <span>${o}</span>
         </li>`;
     }).join("");
+    const isIntroTier = currentScenario && currentScenario.tier === "Intro";
+    const phrasesLabel = isIntroTier
+      ? `Phrases you've learned <span class="objectives-phrases-count">${introPhrasesSeen.size}/${currentKeyPhrases.length}</span>`
+      : "Phrases to use";
     objectivesPhrasesEl.innerHTML = currentKeyPhrases.length ? `
-      <p class="objectives-phrases-label">Phrases to use</p>
-      ${currentKeyPhrases.map((item, i) => `
-        <div class="objectives-phrase-item">
+      <p class="objectives-phrases-label">${phrasesLabel}</p>
+      ${currentKeyPhrases.map((item, i) => {
+        const seen = isIntroTier && introPhrasesSeen.has(i);
+        return `
+        <div class="objectives-phrase-item${seen ? " seen" : ""}">
+          ${isIntroTier ? `<span class="phrase-seen-check">${seen ? "✓" : ""}</span>` : ""}
           ${ttsSupported ? `<button class="speak-btn" type="button" data-index="${i}" aria-label="Listen">🔊</button>` : ""}
           <span class="phrase-native">${item.phrase}</span>
           <span class="phrase-en">${item.translation}</span>
-        </div>`).join("")}
+        </div>`;
+      }).join("")}
+      ${isIntroTier && currentKeyPhrases.length && introPhrasesSeen.size >= currentKeyPhrases.length
+        ? `<p class="objectives-phrases-done">🎉 You've now seen every phrase in this lesson — nice work!</p>` : ""}
     ` : "";
   }
   // Delegated for the same reason as introPhrasesEl above — rebuilt via
@@ -2303,8 +3175,10 @@
     currentObjectives = objectives || [];
     currentKeyPhrases = keyPhrases || [];
     completedObjectiveIndices = [];
+    introPhrasesSeen = new Set();
     history = [];
     userMessageCount = 0;
+    customConversationCompleted = false;
     chatLogEl.innerHTML = "";
     hideError();
     lookupPanel.classList.remove("shown");
@@ -2319,7 +3193,18 @@
     homeScreen.classList.remove("active");
     chatScreen.classList.add("active");
     trackEvent("conversation_started", { scenario: lesson.id, language: selectedLanguage });
+    recordConversationStarted();
     sendMessage("__START__", { silent: true });
+  }
+
+  // Skips the lesson-intro and practice-round screens entirely — a custom
+  // topic has no pre-generated objectives/key phrases to warm up with, it's
+  // meant to drop straight into the conversation.
+  function startCustomConversation(topic) {
+    const clean = (topic || "").replace(/\s+/g, " ").trim().slice(0, CUSTOM_TOPIC_MAX_LEN);
+    if (!clean) return;
+    const lesson = { id: CUSTOM_SCENARIO_ID, tier: "Custom", icon: "✏️", title: clean, customTopic: clean };
+    startConversation(lesson, [], []);
   }
 
   function addUserBubble(text) {
@@ -2371,6 +3256,30 @@
       tipDiv.innerHTML = `<span class="tip-icon">💡</span><span></span>`;
       tipDiv.querySelector("span:last-child").textContent = tip;
       chatLogEl.appendChild(tipDiv);
+      // In an Intro lesson, "tip" is always just "here's the next word to
+      // try" (see buildSystemPrompt's hard rules for this tier) — that's
+      // vocabulary being introduced, not a coaching correction, so it
+      // doesn't belong in the persistent "Things to work on" history.
+      // Beyond Intro, "tip" really is feedback on what the learner said.
+      if (currentScenario.tier !== "Intro") {
+        addTip(selectedLanguage, currentScenario.title, tip);
+      }
+      syncToCloud();
+    }
+
+    // Intro-tier only: a beginner-friendly, filling-up checklist of exactly
+    // which taught phrases they've now been shown, detected by matching the
+    // phrase text the AI was instructed to always name in "tip".
+    if (currentScenario.tier === "Intro" && tip && currentKeyPhrases.length) {
+      const tipLower = tip.toLowerCase();
+      let changed = false;
+      currentKeyPhrases.forEach((item, i) => {
+        if (!introPhrasesSeen.has(i) && item && item.phrase && tipLower.includes(item.phrase.toLowerCase())) {
+          introPhrasesSeen.add(i);
+          changed = true;
+        }
+      });
+      if (changed) renderObjectivesCard();
     }
     scrollToBottom();
   }
@@ -2406,6 +3315,19 @@
     errorBanner.textContent = msg;
     errorBanner.classList.add("shown");
   }
+  // Same banner as showError, but for the one case that has its own fix
+  // available right there — hitting the free daily conversation cap.
+  function showUpgradePrompt() {
+    errorBanner.innerHTML = "";
+    errorBanner.appendChild(document.createTextNode("You've used today's free conversations."));
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "error-banner-upgrade-btn";
+    btn.textContent = "Upgrade for unlimited";
+    btn.addEventListener("click", startCheckout);
+    errorBanner.appendChild(btn);
+    errorBanner.classList.add("shown");
+  }
   function hideError() {
     errorBanner.classList.remove("shown");
   }
@@ -2424,9 +3346,10 @@
     showTyping();
 
     try {
+      const authHeadersForConvo = await authHeaders();
       const res = await fetch(`${API_BASE}/converse`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeadersForConvo },
         body: JSON.stringify({
           scenarioId: currentScenario.id,
           language: selectedLanguage,
@@ -2434,16 +3357,25 @@
           message: text,
           objectives: currentObjectives,
           keyPhrases: currentKeyPhrases,
-          vocabHistory: getVocabHistory(selectedLanguage)
+          vocabHistory: getVocabHistory(selectedLanguage),
+          customTopic: currentScenario.id === CUSTOM_SCENARIO_ID ? currentScenario.customTopic : undefined
         })
       });
       const data = await res.json();
       hideTyping();
 
       if (!res.ok || !data.success) {
-        showError(data.error || "Something went wrong. Please try again.");
+        if (data.upgradeRequired) {
+          showUpgradePrompt();
+        } else {
+          showError(data.error || "Something went wrong. Please try again.");
+        }
         return;
       }
+
+      // A successful reply means this turn counted against today's free cap
+      // (if not premium) — keep the sidebar's remaining-count display current.
+      if (billingStatus && !billingStatus.premium) refreshBillingStatus();
 
       if (Array.isArray(data.completedObjectives)) {
         completedObjectiveIndices = data.completedObjectives;
@@ -2457,23 +3389,46 @@
         history.push({ role: "user", content: text });
         trackEvent("message_sent", { scenario: currentScenario.id, language: selectedLanguage });
         userMessageCount++;
-        const alreadyDone = getCompletedLessons(selectedLanguage).includes(currentScenario.id);
         // A lesson finishes either by hitting all of its objectives, or by
         // the message-count fallback — whichever happens first. The fallback
         // keeps things moving if the learner takes the conversation somewhere
         // the objectives don't quite anticipate.
         const allObjectivesDone = currentObjectives.length > 0 && completedObjectiveIndices.length >= currentObjectives.length;
-        if (!alreadyDone && (allObjectivesDone || userMessageCount >= LESSON_COMPLETE_AFTER)) {
-          markLessonComplete(selectedLanguage, currentScenario.id, currentKeyPhrases);
-          addPhrasesToBank(selectedLanguage, currentKeyPhrases);
-          trackEvent("lesson_completed", { scenario: currentScenario.id, language: selectedLanguage });
-          justCompleted = true;
-          const streakBefore = getDisplayStreakData().currentStreak;
-          const streakData = recordDailyActivity();
-          renderStreakCard();
-          streakAfter = streakData.currentStreak;
-          streakIncreased = streakAfter > streakBefore;
-          syncToCloud();
+        const readyToComplete = allObjectivesDone || userMessageCount >= LESSON_COMPLETE_AFTER;
+        const isCustom = currentScenario.id === CUSTOM_SCENARIO_ID;
+        // Every custom conversation shares the literal id "custom" (there's
+        // no fixed lesson to unlock), so it can't use the normal completed-
+        // lessons list as its "already done" guard the way a real lesson
+        // does — that would permanently mark "custom" done in this language
+        // after the very first one, silently breaking the streak/banner for
+        // every custom conversation after that. customConversationCompleted
+        // is the per-conversation-instance equivalent instead.
+        if (isCustom) {
+          if (readyToComplete && !customConversationCompleted) {
+            customConversationCompleted = true;
+            trackEvent("lesson_completed", { scenario: "custom", language: selectedLanguage });
+            justCompleted = true;
+            const streakBefore = getDisplayStreakData().currentStreak;
+            const streakData = recordDailyActivity();
+            renderStreakCard();
+            streakAfter = streakData.currentStreak;
+            streakIncreased = streakAfter > streakBefore;
+            syncToCloud();
+          }
+        } else {
+          const alreadyDone = getCompletedLessons(selectedLanguage).includes(currentScenario.id);
+          if (!alreadyDone && readyToComplete) {
+            markLessonComplete(selectedLanguage, currentScenario.id, currentKeyPhrases);
+            addPhrasesToBank(selectedLanguage, currentKeyPhrases);
+            trackEvent("lesson_completed", { scenario: currentScenario.id, language: selectedLanguage });
+            justCompleted = true;
+            const streakBefore = getDisplayStreakData().currentStreak;
+            const streakData = recordDailyActivity();
+            renderStreakCard();
+            streakAfter = streakData.currentStreak;
+            streakIncreased = streakAfter > streakBefore;
+            syncToCloud();
+          }
         }
       }
       history.push({ role: "assistant", content: data.reply });
@@ -2623,6 +3578,8 @@
 
   async function init() {
     renderStreakCard(); // independent of the /scenarios fetch below — render it regardless
+    renderTipsCard();
+    renderStreakNudge();
     renderAccountCard();
     if (!accountsEnabled) {
       // No Firebase configured for this deploy — accounts aren't offered,
