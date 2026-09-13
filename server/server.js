@@ -1828,7 +1828,12 @@ app.post("/billing/create-checkout-session", attachUserIfSignedIn, async (req, r
             client_reference_id: req.uid,
             line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
             success_url: `${origin}/?upgraded=1`,
-            cancel_url: `${origin}/`
+            cancel_url: `${origin}/`,
+            // Managed Payments (Stripe's newer opt-out-by-default feature) requires
+            // every product to have a tax code assigned before Checkout will let it
+            // through. We're not using Stripe Tax here, so opt this session out
+            // rather than forcing a tax_code onto the product.
+            managed_payments: { enabled: false }
         });
         res.json({ url: session.url });
     } catch (error) {
