@@ -6,7 +6,11 @@ const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const OpenAI = require("openai");
 const Stripe = require("stripe");
-const admin = require("firebase-admin");
+// firebase-admin v14 dropped the old namespaced API (admin.credential,
+// admin.auth(), etc.) off the top-level import — these live under subpath
+// imports now.
+const { initializeApp, cert } = require("firebase-admin/app");
+const { getAuth } = require("firebase-admin/auth");
 
 const app = express();
 
@@ -54,8 +58,8 @@ app.use(express.json({
 let firebaseAdminReady = false;
 try {
     if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-        admin.initializeApp({
-            credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON))
+        initializeApp({
+            credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON))
         });
         firebaseAdminReady = true;
     }
@@ -74,7 +78,7 @@ async function attachUserIfSignedIn(req, res, next) {
     const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
     if (firebaseAdminReady && idToken) {
         try {
-            const decoded = await admin.auth().verifyIdToken(idToken);
+            const decoded = await getAuth().verifyIdToken(idToken);
             req.uid = decoded.uid;
         } catch (error) {
             // Stale/invalid token — fall through as a guest rather than erroring;
@@ -134,11 +138,11 @@ const lessonIntroCache = new Map();
 const lessonPracticeCache = new Map();
 const lookupCache = new Map();
 
-function scenarioCacheKey(scenarioId, language) {
-    return `${scenarioId}::${language}`;
+function scenarioCacheKey(scenarioId, language, nativeLanguage) {
+    return `${scenarioId}::${language}::${nativeLanguage}`;
 }
-function lookupCacheKey(phrase, language) {
-    return `${language}::${phrase.trim().toLowerCase()}`;
+function lookupCacheKey(phrase, language, nativeLanguage) {
+    return `${language}::${nativeLanguage}::${phrase.trim().toLowerCase()}`;
 }
 
 // Simple manual override so a bad cached entry (an off generation that
@@ -1092,6 +1096,32 @@ const LANGUAGES = [
     "Greek", "Turkish", "Polish", "Swedish", "Vietnamese", "Thai", "Indonesian", "Hebrew"
 ];
 
+// Every language a learner can pick as the one THEY already speak — every
+// learning language works both ways (a French speaker can learn Spanish,
+// a Spanish speaker can learn French), plus English since this app didn't
+// originally assume every learner speaks it. Defaults to "English" so
+// existing learners who've never touched this setting see no change.
+const NATIVE_LANGUAGES = ["English", ...LANGUAGES];
+const DEFAULT_NATIVE_LANGUAGE = "English";
+function normalizeNativeLanguage(value) {
+    return NATIVE_LANGUAGES.includes(value) ? value : DEFAULT_NATIVE_LANGUAGE;
+}
+
+// Languages not ordinarily written in the Latin alphabet — for these, every
+// prompt below also asks the model for a "romanization" alongside the
+// ${language} text (Hanyu Pinyin for Mandarin, Hepburn romaji for Japanese,
+// etc.) so a learner who can't yet read the native script has something to
+// sound the word out with. Left as an empty string by the model for every
+// other language.
+const NON_LATIN_SCRIPT_LANGUAGES = new Set([
+    "Japanese", "Mandarin Chinese", "Korean", "Arabic", "Russian", "Hindi", "Greek", "Thai", "Hebrew"
+]);
+function romanizationNote(language) {
+    return NON_LATIN_SCRIPT_LANGUAGES.has(language)
+        ? ` ${language} isn't usually written in the Latin alphabet, so also give its standard romanization (e.g. Hanyu Pinyin for Mandarin, Hepburn romaji for Japanese, Revised Romanization for Korean) in the matching "...Romanization" field.`
+        : ` ${language} is written in the Latin alphabet, so leave the matching "...Romanization" field as an empty string.`;
+}
+
 // `objectives` (from /lesson-intro, echoed back by the client on every
 // /converse call) turns this from an open-ended chat into something with a
 // goal: the model is asked to grade the learner's progress against them each
@@ -1105,7 +1135,7 @@ const LANGUAGES = [
 // today's lesson. Together they're used below to keep every conversation,
 // at every tier, grounded in words the learner has actually seen rather
 // than whatever the model feels like reaching for.
-function buildSystemPrompt(language, scenario, objectives, keyPhrases, vocabHistory) {
+function buildSystemPrompt(language, scenario, objectives, keyPhrases, vocabHistory, nativeLanguage) {
     const hasObjectives = Array.isArray(objectives) && objectives.length > 0;
     const objectivesSection = hasObjectives
         ? `\n\nThis conversation also has a short list of lesson objectives the learner is trying to accomplish:\n${objectives.map((o, i) => `${i}. ${o}`).join("\n")}\nAfter the learner's latest message, and considering the whole conversation so far (not just this one message), decide which of these objectives (by their 0-based index above) have now been reasonably satisfied — be a little generous about it, not a strict grader; near enough counts. Once an objective is satisfied, keep including its index in every later turn too, even if the conversation has moved on. Put the full, cumulative list of satisfied indices in "completedObjectives" (empty array if none yet).`
@@ -1130,7 +1160,7 @@ function buildSystemPrompt(language, scenario, objectives, keyPhrases, vocabHist
 
     let levelGuidance = "";
     if (isIntro) {
-        levelGuidance = `\n\nThis is a BASICS lesson — assume the learner may not know any ${language} yet. This overrides the usual "reply" and "tip" rules above.${hasKnownPhrases ? `\n\nThe learner has been shown this exact, complete list of ${language} phrases so far — this lesson's phrases plus every earlier basics lesson they've already completed — and nothing else:\n${knownPhrasesList}\n\nHard rules for "reply" in this lesson:\n- Use ONLY the phrases above (plus a name the learner gives you) — never introduce a new word, verb form, or sentence structure that isn't on that list.\n- "reply" must be just ONE short phrase from that list, standing alone — a greeting or exclamation, not a full sentence explaining what to say or how to say it (no "you can say...", no connecting clauses). Someone meeting this word for the very first time needs to see it used plainly, not embedded in a bigger sentence.` : `\n\nKeep "reply" itself to one very short, simple phrase — no subordinate clauses or explaining what to say, just a plain in-character reaction.`}\n- Every turn in this lesson, including the very first ("__START__") turn, use "tip" to explicitly hand them the next phrase to try — the exact ${language} phrase plus its English meaning, e.g. "Try saying: ¡Hola! — it means Hello." Never leave "tip" empty in this lesson, not even on a good attempt or the first turn — there should always be a next phrase to try. That's the only field where any teaching or explaining happens — never inside "reply".\n- If the phrase doesn't obviously follow from what's just been said — teaching a standalone word like "yes" or "mother" right after a greeting can otherwise feel like a random vocabulary drop — ground "tip" with one short, natural reason it's useful instead of just a bare translation, e.g. "Try saying: sí — it means yes. You'll use it constantly to answer simple questions." Keep "tip" to at most 2 short sentences either way.\n- Keep the language in "tip" itself dead simple — short sentences, everyday words, no grammar jargon (never terms like "conjugation", "accusative", "infinitive", etc.) — write it the way you'd patiently explain something to someone on their very first day of ever learning a language.\n- Be warm, patient, and encouraging about any attempt, even an imperfect one — talk to them like a supportive first-day teacher, not a native speaker in a hurry. The vocabulary being minimal doesn't mean the tone should be flat.`;
+        levelGuidance = `\n\nThis is a BASICS lesson — assume the learner may not know any ${language} yet. This overrides the usual "reply" and "tip" rules above.${hasKnownPhrases ? `\n\nThe learner has been shown this exact, complete list of ${language} phrases so far — this lesson's phrases plus every earlier basics lesson they've already completed — and nothing else:\n${knownPhrasesList}\n\nHard rules for "reply" in this lesson:\n- Use ONLY the phrases above (plus a name the learner gives you) — never introduce a new word, verb form, or sentence structure that isn't on that list.\n- "reply" must be just ONE short phrase from that list, standing alone — a greeting or exclamation, not a full sentence explaining what to say or how to say it (no "you can say...", no connecting clauses). Someone meeting this word for the very first time needs to see it used plainly, not embedded in a bigger sentence.` : `\n\nKeep "reply" itself to one very short, simple phrase — no subordinate clauses or explaining what to say, just a plain in-character reaction.`}\n- Every turn in this lesson, including the very first ("__START__") turn, use "tip" to explicitly hand them the next phrase to try — the exact ${language} phrase plus its ${nativeLanguage} meaning, e.g. "Try saying: ¡Hola! — it means Hello." Never leave "tip" empty in this lesson, not even on a good attempt or the first turn — there should always be a next phrase to try. That's the only field where any teaching or explaining happens — never inside "reply".\n- If the phrase doesn't obviously follow from what's just been said — teaching a standalone word like "yes" or "mother" right after a greeting can otherwise feel like a random vocabulary drop — ground "tip" with one short, natural reason it's useful instead of just a bare translation, e.g. "Try saying: sí — it means yes. You'll use it constantly to answer simple questions." Keep "tip" to at most 2 short sentences either way.\n- Keep the language in "tip" itself dead simple — short sentences, everyday words, no grammar jargon (never terms like "conjugation", "accusative", "infinitive", etc.) — write it the way you'd patiently explain something to someone on their very first day of ever learning a language.\n- Be warm, patient, and encouraging about any attempt, even an imperfect one — talk to them like a supportive first-day teacher, not a native speaker in a hurry. The vocabulary being minimal doesn't mean the tone should be flat.`;
     } else if (hasKnownPhrases) {
         // Beyond the intro track, a hard allowlist gets unworkable fast (by
         // lesson 20+ it's a huge fixed phrase list and every reply starts
@@ -1148,9 +1178,10 @@ function buildSystemPrompt(language, scenario, objectives, keyPhrases, vocabHist
 
 Rules for every turn:
 - Stay fully in character. Write "reply" ONLY in ${language} — short (1-3 sentences), natural, everyday phrasing a real native speaker would actually use in this situation, not textbook-formal language.
-- "replyTranslation" is a plain English translation of exactly what you wrote in "reply", so the learner can check their understanding. Never put English in "reply" itself.
-- Look at the learner's last message (in ${language}). If anything was unnatural, grammatically off, or not how a native speaker would actually say it, put ONE short, specific, encouraging coaching note in "tip" (English, max 2 sentences) — show what they said and a more natural way to say it. If their message was already good, or this is the very first turn, leave "tip" as an empty string. Never put coaching inside "reply" — that field is 100% in-character.
-- If the learner writes in English or seems stuck, stay in character in ${language} but simplify your reply, and use "tip" to gently suggest a phrase they could use.
+- "replyTranslation" is a plain ${nativeLanguage} translation of exactly what you wrote in "reply", so the learner can check their understanding. Never put ${nativeLanguage} in "reply" itself.
+- "replyRomanization" is the romanization of exactly what you wrote in "reply", following the rule below — leave it as an empty string when that rule says to.${romanizationNote(language)}
+- Look at the learner's last message (in ${language}). If anything was unnatural, grammatically off, or not how a native speaker would actually say it, put ONE short, specific, encouraging coaching note in "tip" (${nativeLanguage}, max 2 sentences) — show what they said and a more natural way to say it. If their message was already good, or this is the very first turn, leave "tip" as an empty string. Never put coaching inside "reply" — that field is 100% in-character.
+- If the learner writes in ${nativeLanguage} or seems stuck, stay in character in ${language} but simplify your reply, and use "tip" to gently suggest a phrase they could use.
 - The learner's message will be exactly "__START__" only to signal the very start of the conversation — when you see that, ${scenario.opening}, as your character naturally would, and leave "tip" empty. Never mention "__START__" or break character to acknowledge it.${levelGuidance}${objectivesSection}`;
 }
 
@@ -1163,10 +1194,11 @@ const CONVERSATION_JSON_SCHEMA = {
         properties: {
             reply: { type: "string" },
             replyTranslation: { type: "string" },
+            replyRomanization: { type: "string" },
             tip: { type: "string" },
             completedObjectives: { type: "array", items: { type: "integer" } }
         },
-        required: ["reply", "replyTranslation", "tip", "completedObjectives"],
+        required: ["reply", "replyTranslation", "replyRomanization", "tip", "completedObjectives"],
         additionalProperties: false
     }
 };
@@ -1180,17 +1212,18 @@ const CONVERSATION_JSON_SCHEMA = {
 // are generated here (not stored per-scenario) for the same reason
 // buildSystemPrompt generates dialogue dynamically: no per-scenario,
 // per-language content to hand-author and keep in sync across 90 lessons.
-function buildLessonIntroPrompt(language, scenario) {
+function buildLessonIntroPrompt(language, scenario, nativeLanguage) {
+    const romanizationLine = `Each "keyPhrases" entry also needs a "romanization" field.${romanizationNote(language)}`;
     if (scenario.tier === "Intro") {
         return `The learner is an absolute beginner about to learn some of their very first words of ${language}, on this topic: ${scenario.blurb}
 
-- "objectives": exactly 3 short, concrete goals for this lesson (in English, each under 8 words, phrased like a checklist item) — focused on LEARNING and trying out new words on this topic, not on accomplishing a task (e.g. "Learn to say hello", "Learn to say goodbye", "Try greeting the tutor").
-- "keyPhrases": 5 to 8 essential ${language} words or phrases for this specific topic, each with its plain English translation — exactly the vocabulary this lesson is meant to teach, simple and commonly used, ordered from most to least essential.`;
+- "objectives": exactly 3 short, concrete goals for this lesson (in ${nativeLanguage}, each under 8 words, phrased like a checklist item) — focused on LEARNING and trying out new words on this topic, not on accomplishing a task (e.g. "Learn to say hello", "Learn to say goodbye", "Try greeting the tutor").
+- "keyPhrases": 5 to 8 essential ${language} words or phrases for this specific topic, each with its plain ${nativeLanguage} translation — exactly the vocabulary this lesson is meant to teach, simple and commonly used, ordered from most to least essential. ${romanizationLine}`;
     }
     return `The learner is about to practice this scenario in ${language}: ${scenario.blurb} They'll be roleplaying with ${scenario.character}.
 
-- "objectives": exactly 3 short, concrete goals for what the learner should try to accomplish during this conversation (in English, each under 8 words, phrased like a checklist item — e.g. "Greet the barista", "Order a drink", "Ask the price"). Make them specific to this scenario, not generic filler.
-- "keyPhrases": 4 to 6 short, useful phrases in ${language} the learner will likely want for this scenario, each with its plain English translation — natural, everyday phrasing a native speaker would actually use, not textbook-formal.`;
+- "objectives": exactly 3 short, concrete goals for what the learner should try to accomplish during this conversation (in ${nativeLanguage}, each under 8 words, phrased like a checklist item — e.g. "Greet the barista", "Order a drink", "Ask the price"). Make them specific to this scenario, not generic filler.
+- "keyPhrases": 4 to 6 short, useful phrases in ${language} the learner will likely want for this scenario, each with its plain ${nativeLanguage} translation — natural, everyday phrasing a native speaker would actually use, not textbook-formal. ${romanizationLine}`;
 }
 
 const LESSON_INTRO_JSON_SCHEMA = {
@@ -1207,9 +1240,10 @@ const LESSON_INTRO_JSON_SCHEMA = {
                     type: "object",
                     properties: {
                         phrase: { type: "string" },
-                        translation: { type: "string" }
+                        translation: { type: "string" },
+                        romanization: { type: "string" }
                     },
-                    required: ["phrase", "translation"],
+                    required: ["phrase", "translation", "romanization"],
                     additionalProperties: false
                 }
             }
@@ -1229,24 +1263,26 @@ const LESSON_INTRO_JSON_SCHEMA = {
 // being five multiple-choice questions in a row. Generated per-request for
 // the same reason buildLessonIntroPrompt is: no per-scenario, per-language
 // content to hand-author and keep in sync across 100 lessons.
-function buildLessonPracticePrompt(language, scenario) {
+function buildLessonPracticePrompt(language, scenario, nativeLanguage) {
     const isIntro = scenario.tier === "Intro";
     const levelNote = isIntro
         ? `The learner is an absolute beginner — keep every word and sentence extremely simple, using only vocabulary a total beginner would already have been taught for this exact topic.`
         : `The learner already knows some ${language} — keep vocabulary and sentence complexity appropriate for a ${scenario.tier.toLowerCase()}-level learner.`;
+    const rz = romanizationNote(language);
 
     return `Before roleplaying this scenario in ${language}, the learner does a short warm-up practice round testing vocabulary and phrases for this topic: ${scenario.blurb}
 ${levelNote}
+The learner's own native language, for every translation/instruction below, is ${nativeLanguage}.
 
 Generate exactly 5 practice exercises, one of each of these types, in this exact order: "multiple_choice", "fill_blank", "word_bank", "true_false", "matching". Every exercise must be tightly focused on vocabulary and phrases relevant to this specific topic, and each exercise's "kind" field must be set to exactly the matching type name below.
 
-- multiple_choice: "prompt" is a short ${language} word or phrase. "options" is an array of exactly 4 short English translations, only one of which is correct. "correctIndex" is the 0-based index of the correct option.
-- fill_blank: "sentence" is a short ${language} sentence with exactly one blank shown as "___". "correctAnswer" is the single ${language} word or short phrase that correctly fills the blank. "translation" is the English translation of the complete, correct sentence.
-- word_bank: "englishPrompt" is a short English sentence. "words" is that sentence's ${language} translation split into individual words/tokens, given in SCRAMBLED (shuffled) order. "correctOrder" is an array of the same length giving the 0-based indices into "words" that puts them back into a grammatically correct ${language} sentence.
-- true_false: "statement" is one English sentence claiming that a specific ${language} word or phrase means something — sometimes make the claim true, sometimes false. "isTrue" is whether the claim is actually correct.
-- matching: "pairs" is an array of exactly 4 objects, each with a "term" (a ${language} word or phrase for this topic) and its "meaning" (the correct English translation).
+- multiple_choice: "prompt" is a short ${language} word or phrase. "options" is an array of exactly 4 short ${nativeLanguage} translations, only one of which is correct. "correctIndex" is the 0-based index of the correct option. "promptRomanization" is "prompt"'s romanization.${rz}
+- fill_blank: "sentence" is a short ${language} sentence with exactly one blank shown as "___". "correctAnswer" is the single ${language} word or short phrase that correctly fills the blank. "translation" is the ${nativeLanguage} translation of the complete, correct sentence. "sentenceRomanization" is the romanization of the complete, correct ${language} sentence (with the blank filled in).${rz}
+- word_bank: "prompt" is a short ${nativeLanguage} sentence. "words" is that sentence's ${language} translation split into individual words/tokens, given in SCRAMBLED (shuffled) order. "correctOrder" is an array of the same length giving the 0-based indices into "words" that puts them back into a grammatically correct ${language} sentence. "wordsRomanization" is an array the same length as "words", giving the romanization of each entry in "words" at the same index (not reordered).${rz}
+- true_false: "statement" is one ${nativeLanguage} sentence claiming that a specific ${language} word or phrase means something — sometimes make the claim true, sometimes false. "isTrue" is whether the claim is actually correct.
+- matching: "pairs" is an array of exactly 4 objects, each with a "term" (a ${language} word or phrase for this topic), its "meaning" (the correct ${nativeLanguage} translation), and "termRomanization" (the romanization of "term").${rz}
 
-Every exercise also needs a short "instruction" field in plain English telling the learner what to do, e.g. "Choose the correct meaning", "Fill in the blank", "Put the words in order", "True or false?", "Match each word to its meaning".`;
+Every exercise also needs a short "instruction" field in plain ${nativeLanguage} telling the learner what to do, e.g. "Choose the correct meaning", "Fill in the blank", "Put the words in order", "True or false?", "Match each word to its meaning".`;
 }
 
 const PRACTICE_JSON_SCHEMA = {
@@ -1266,10 +1302,11 @@ const PRACTICE_JSON_SCHEMA = {
                                 kind: { type: "string", enum: ["multiple_choice"] },
                                 instruction: { type: "string" },
                                 prompt: { type: "string" },
+                                promptRomanization: { type: "string" },
                                 options: { type: "array", items: { type: "string" } },
                                 correctIndex: { type: "integer" }
                             },
-                            required: ["kind", "instruction", "prompt", "options", "correctIndex"],
+                            required: ["kind", "instruction", "prompt", "promptRomanization", "options", "correctIndex"],
                             additionalProperties: false
                         },
                         {
@@ -1278,10 +1315,11 @@ const PRACTICE_JSON_SCHEMA = {
                                 kind: { type: "string", enum: ["fill_blank"] },
                                 instruction: { type: "string" },
                                 sentence: { type: "string" },
+                                sentenceRomanization: { type: "string" },
                                 correctAnswer: { type: "string" },
                                 translation: { type: "string" }
                             },
-                            required: ["kind", "instruction", "sentence", "correctAnswer", "translation"],
+                            required: ["kind", "instruction", "sentence", "sentenceRomanization", "correctAnswer", "translation"],
                             additionalProperties: false
                         },
                         {
@@ -1289,11 +1327,12 @@ const PRACTICE_JSON_SCHEMA = {
                             properties: {
                                 kind: { type: "string", enum: ["word_bank"] },
                                 instruction: { type: "string" },
-                                englishPrompt: { type: "string" },
+                                prompt: { type: "string" },
                                 words: { type: "array", items: { type: "string" } },
+                                wordsRomanization: { type: "array", items: { type: "string" } },
                                 correctOrder: { type: "array", items: { type: "integer" } }
                             },
-                            required: ["kind", "instruction", "englishPrompt", "words", "correctOrder"],
+                            required: ["kind", "instruction", "prompt", "words", "wordsRomanization", "correctOrder"],
                             additionalProperties: false
                         },
                         {
@@ -1318,9 +1357,10 @@ const PRACTICE_JSON_SCHEMA = {
                                         type: "object",
                                         properties: {
                                             term: { type: "string" },
+                                            termRomanization: { type: "string" },
                                             meaning: { type: "string" }
                                         },
-                                        required: ["term", "meaning"],
+                                        required: ["term", "termRomanization", "meaning"],
                                         additionalProperties: false
                                     }
                                 }
@@ -1343,11 +1383,14 @@ const PRACTICE_JSON_SCHEMA = {
 // A learner can search any word, phrase, or saying while inside a lesson —
 // separate from the roleplay conversation itself, so it needs its own
 // prompt/schema rather than reusing buildSystemPrompt/CONVERSATION_JSON_SCHEMA.
-function buildLookupPrompt(language) {
-    return `The learner is studying ${language}. They will send a short word, phrase, or saying — it may be written in English or in ${language}.
+function buildLookupPrompt(language, nativeLanguage) {
+    const rz = romanizationNote(language);
+    return `The learner is studying ${language} and their own native language is ${nativeLanguage}. They will send a short word, phrase, or saying — it may be written in ${nativeLanguage} or in ${language}.
 
-- "translation": if what they sent is in English, translate it into natural, everyday ${language} — how a native speaker would actually say it in conversation, not a stiff word-for-word translation. If what they sent is already in ${language}, translate it into natural English instead.
-- "relatedPhrases": give 4 to 6 other short, useful phrases or sayings in ${language} that are related in topic or would come up in the same kind of conversation as what they searched — each with its plain English translation. These should genuinely help the learner go deeper on the topic they searched, not just be random unrelated phrases.`;
+- "translation": if what they sent is in ${nativeLanguage}, translate it into natural, everyday ${language} — how a native speaker would actually say it in conversation, not a stiff word-for-word translation. If what they sent is already in ${language}, translate it into natural ${nativeLanguage} instead.
+- "phraseRomanization": the romanization of what they searched, ONLY if what they searched was itself written in ${language} (leave as an empty string if they searched in ${nativeLanguage}, or if ${language} doesn't need one).${rz}
+- "translationRomanization": the romanization of the "translation" field, ONLY if "translation" ended up in ${language} (leave as an empty string if "translation" ended up in ${nativeLanguage}, or if ${language} doesn't need one).${rz}
+- "relatedPhrases": give 4 to 6 other short, useful phrases or sayings in ${language} that are related in topic or would come up in the same kind of conversation as what they searched — each with its plain ${nativeLanguage} translation and its "romanization" field.${rz} These should genuinely help the learner go deeper on the topic they searched, not just be random unrelated phrases.`;
 }
 
 const LOOKUP_JSON_SCHEMA = {
@@ -1358,20 +1401,23 @@ const LOOKUP_JSON_SCHEMA = {
         type: "object",
         properties: {
             translation: { type: "string" },
+            phraseRomanization: { type: "string" },
+            translationRomanization: { type: "string" },
             relatedPhrases: {
                 type: "array",
                 items: {
                     type: "object",
                     properties: {
                         phrase: { type: "string" },
-                        translation: { type: "string" }
+                        translation: { type: "string" },
+                        romanization: { type: "string" }
                     },
-                    required: ["phrase", "translation"],
+                    required: ["phrase", "translation", "romanization"],
                     additionalProperties: false
                 }
             }
         },
-        required: ["translation", "relatedPhrases"],
+        required: ["translation", "phraseRomanization", "translationRomanization", "relatedPhrases"],
         additionalProperties: false
     }
 };
@@ -1433,7 +1479,7 @@ app.get("/scenarios", (req, res) => {
     const list = Object.entries(SCENARIOS).map(([id, s]) => ({
         id, tier: s.tier, title: s.title, blurb: s.blurb, icon: s.icon
     }));
-    res.json({ scenarios: list, languages: LANGUAGES });
+    res.json({ scenarios: list, languages: LANGUAGES, nativeLanguages: NATIVE_LANGUAGES });
 });
 
 // ==============================
@@ -1446,6 +1492,7 @@ app.get("/scenarios", (req, res) => {
 app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res) => {
     try {
         const { scenarioId, language, history, message, objectives, keyPhrases, vocabHistory, customTopic } = req.body;
+        const nativeLanguage = normalizeNativeLanguage(req.body.nativeLanguage);
 
         // Free-tier daily cap — only applies to signed-in, non-premium learners.
         // Anonymous use keeps relying solely on the IP limiter above, same as
@@ -1526,7 +1573,7 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
         const response = await getClient().responses.create({
             model: MODEL,
             input: [
-                { role: "system", content: buildSystemPrompt(language, scenario, safeObjectives, safeKeyPhrases, safeVocabHistory) },
+                { role: "system", content: buildSystemPrompt(language, scenario, safeObjectives, safeKeyPhrases, safeVocabHistory, nativeLanguage) },
                 ...historyInput,
                 { role: "user", content: message }
             ],
@@ -1562,6 +1609,7 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
 app.post("/lesson-intro", introLimiter, async (req, res) => {
     try {
         const { scenarioId, language } = req.body;
+        const nativeLanguage = normalizeNativeLanguage(req.body.nativeLanguage);
 
         const scenario = SCENARIOS[scenarioId];
         if (!scenario) {
@@ -1577,7 +1625,7 @@ app.post("/lesson-intro", introLimiter, async (req, res) => {
             });
         }
 
-        const cacheKey = scenarioCacheKey(scenarioId, language);
+        const cacheKey = scenarioCacheKey(scenarioId, language, nativeLanguage);
         const cached = lessonIntroCache.get(cacheKey);
         if (cached) {
             return res.json({ success: true, ...cached });
@@ -1586,7 +1634,7 @@ app.post("/lesson-intro", introLimiter, async (req, res) => {
         const response = await getClient().responses.create({
             model: MODEL,
             input: [
-                { role: "system", content: buildLessonIntroPrompt(language, scenario) },
+                { role: "system", content: buildLessonIntroPrompt(language, scenario, nativeLanguage) },
                 { role: "user", content: "Generate the lesson intro." }
             ],
             text: { format: LESSON_INTRO_JSON_SCHEMA }
@@ -1615,6 +1663,7 @@ app.post("/lesson-intro", introLimiter, async (req, res) => {
 app.post("/lesson-practice", practiceLimiter, async (req, res) => {
     try {
         const { scenarioId, language } = req.body;
+        const nativeLanguage = normalizeNativeLanguage(req.body.nativeLanguage);
 
         const scenario = SCENARIOS[scenarioId];
         if (!scenario) {
@@ -1630,7 +1679,7 @@ app.post("/lesson-practice", practiceLimiter, async (req, res) => {
             });
         }
 
-        const cacheKey = scenarioCacheKey(scenarioId, language);
+        const cacheKey = scenarioCacheKey(scenarioId, language, nativeLanguage);
         const cached = lessonPracticeCache.get(cacheKey);
         if (cached) {
             return res.json({ success: true, exercises: cached.exercises });
@@ -1639,7 +1688,7 @@ app.post("/lesson-practice", practiceLimiter, async (req, res) => {
         const response = await getClient().responses.create({
             model: MODEL,
             input: [
-                { role: "system", content: buildLessonPracticePrompt(language, scenario) },
+                { role: "system", content: buildLessonPracticePrompt(language, scenario, nativeLanguage) },
                 { role: "user", content: "Generate the practice round." }
             ],
             text: { format: PRACTICE_JSON_SCHEMA }
@@ -1668,6 +1717,7 @@ app.post("/lesson-practice", practiceLimiter, async (req, res) => {
 app.post("/lookup", lookupLimiter, async (req, res) => {
     try {
         const { phrase, language, scenarioId } = req.body;
+        const nativeLanguage = normalizeNativeLanguage(req.body.nativeLanguage);
 
         if (!LANGUAGES.includes(language)) {
             return res.status(400).json({ error: "Unsupported language." });
@@ -1692,18 +1742,18 @@ app.post("/lookup", lookupLimiter, async (req, res) => {
         // of the result (translation, notes, etc.) is what's cached, since
         // that part is the same for this phrase+language no matter who's
         // asking or which lesson they're in.
-        let result = lookupCache.get(lookupCacheKey(trimmedPhrase, language));
+        let result = lookupCache.get(lookupCacheKey(trimmedPhrase, language, nativeLanguage));
         if (!result) {
             const response = await getClient().responses.create({
                 model: MODEL,
                 input: [
-                    { role: "system", content: buildLookupPrompt(language) },
+                    { role: "system", content: buildLookupPrompt(language, nativeLanguage) },
                     { role: "user", content: trimmedPhrase }
                 ],
                 text: { format: LOOKUP_JSON_SCHEMA }
             });
             result = JSON.parse(response.output_text);
-            lookupCache.set(lookupCacheKey(trimmedPhrase, language), result);
+            lookupCache.set(lookupCacheKey(trimmedPhrase, language, nativeLanguage), result);
         }
 
         const suggestedLesson = findRelatedLesson(
