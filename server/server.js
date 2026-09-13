@@ -83,6 +83,9 @@ async function attachUserIfSignedIn(req, res, next) {
         } catch (error) {
             // Stale/invalid token — fall through as a guest rather than erroring;
             // a leftover token in the browser shouldn't break the conversation.
+            // TEMP DEBUG — remove once the 401 on /billing/create-checkout-session
+            // is diagnosed; this is the only place that swallowed the real reason.
+            console.error("verifyIdToken failed:", error.code || error.message);
         }
     }
     next();
