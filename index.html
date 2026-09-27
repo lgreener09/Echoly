@@ -188,6 +188,11 @@
     background: rgba(255,255,255,0.08); color: rgba(242,236,230,0.75); margin-bottom: 10px;
   }
   .account-plan-badge--premium { background: rgba(240,131,111,0.18); color: #f0836f; }
+  .account-referral-bonus { font-size: 11.5px; color: rgba(242,236,230,0.6); margin: -4px 0 10px; }
+  .account-referral-msg {
+    font-size: 12px; font-weight: 600; color: var(--accent-ink); background: var(--accent);
+    border-radius: 9px; padding: 8px 10px; margin: 0 0 10px; line-height: 1.4;
+  }
 
   .streak-card { background: var(--plum-soft); border-radius: 14px; padding: 14px; margin-bottom: 22px; }
   .streak-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
@@ -378,6 +383,7 @@
     background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; font-size: 15px;
   }
   .lookup-original { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 4px; }
+  .lookup-romanization { font-size: 12.5px; color: var(--ink-soft); font-style: italic; opacity: 0.85; margin-top: 2px; }
   .lookup-related-label {
     font-family: 'Bricolage Grotesque', sans-serif; font-size: 12px; font-weight: 700; color: var(--ink-soft);
     text-transform: uppercase; letter-spacing: 0.05em; margin: 2px 0 0;
@@ -387,7 +393,9 @@
     background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; font-size: 13.5px;
     display: flex; justify-content: space-between; gap: 10px; align-items: baseline;
   }
+  .lookup-related-item .rel-phrase-col { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
   .lookup-related-item .rel-phrase { font-weight: 600; }
+  .lookup-related-item .rel-romanization { font-size: 11px; color: var(--ink-soft); font-style: italic; opacity: 0.8; }
   .lookup-related-item .rel-translation { color: var(--ink-soft); font-size: 12.5px; flex-shrink: 0; text-align: right; }
   .lookup-suggested {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -424,6 +432,10 @@
   }
   .translation { font-size: 13px; color: var(--ink-soft); font-style: italic; display: none; }
   .translation.shown { display: block; }
+  /* Romanization (pinyin, romaji, etc.) of the AI's reply — shown right
+     under the bubble, not hidden behind the translation toggle, since it's
+     a reading aid rather than a meaning spoiler. */
+  .bubble-romanization { font-size: 12px; color: var(--ink-soft); font-style: italic; opacity: 0.85; padding: 0 4px; }
 
   .tip-card {
     align-self: flex-start; max-width: 82%; background: var(--tip-bg); border: 1px solid var(--tip-border);
@@ -542,6 +554,13 @@
   .intro-phrase-item .phrase-emoji { flex-shrink: 0; font-size: 13px; opacity: 0.8; }
   .intro-phrase-item .phrase-native { font-weight: 600; flex: 1; }
   .intro-phrase-item .phrase-en { color: var(--ink-soft); font-size: 12.5px; flex-shrink: 0; text-align: right; }
+  /* Stacks a word/phrase with its romanization (pinyin, romaji, etc.) —
+     shared by the intro key-phrases list and the in-chat objectives card,
+     both of which already used a bare .phrase-native span for just the
+     target-language text. Only rendered when the phrase has one. */
+  .phrase-native-col { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+  .phrase-native-col .phrase-native { flex: none; }
+  .phrase-romanization { font-size: 11px; color: var(--ink-soft); font-style: italic; opacity: 0.85; }
 
   .intro-footer { padding: 16px 20px; border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; max-width: 640px; margin: 0 auto; width: 100%; }
   .start-btn {
@@ -645,6 +664,7 @@
 
   .practice-fill-sentence { font-size: 18px; text-align: center; line-height: 1.7; margin: 0 0 8px; }
   .practice-fill-translation { font-size: 13px; color: var(--ink-soft); font-style: italic; text-align: center; margin: 0 0 18px; }
+  .practice-romanization { font-size: 14px; color: var(--ink-soft); font-style: italic; text-align: center; margin: -12px 0 18px; opacity: 0.85; }
   .practice-fill-input {
     border: none; border-bottom: 2px solid var(--accent); text-align: center; font-family: inherit;
     font-size: 18px; font-weight: 700; width: 150px; padding: 2px 4px; outline: none; background: transparent; color: var(--ink);
@@ -657,9 +677,12 @@
   }
   .practice-word-bank-pool { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
   .practice-word-chip {
-    border: 1.5px solid var(--border); border-radius: 10px; padding: 8px 13px; background: var(--surface);
-    font-family: inherit; font-size: 14.5px; font-weight: 600; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    border: 1.5px solid var(--border); border-radius: 10px; padding: 6px 13px; background: var(--surface);
+    font-family: inherit; cursor: pointer;
   }
+  .practice-word-chip-text { font-size: 14.5px; font-weight: 600; }
+  .practice-word-chip-rz { font-size: 10.5px; font-weight: 500; color: var(--ink-soft); font-style: italic; opacity: 0.85; }
   .practice-word-chip:hover { border-color: var(--accent); }
   .practice-body.intro-warm .practice-word-chip:hover { border-color: var(--tip); }
   .practice-word-chip.placed { opacity: 0.35; cursor: default; }
@@ -691,6 +714,8 @@
   .practice-body.intro-warm .practice-match-item.selected { border-color: var(--tip); background: var(--tip-bg); }
   .practice-match-item.matched { border-color: #1a9c5b; background: #eafbf2; color: #14733f; cursor: default; }
   .practice-match-item.mismatch { border-color: #d0403a; background: #fdeceb; }
+  .practice-match-term-text { display: block; }
+  .practice-match-term-rz { display: block; font-size: 11px; font-weight: 500; font-style: italic; opacity: 0.75; margin-top: 2px; }
 
   .practice-feedback { margin-top: 16px; padding: 12px 15px; border-radius: 12px; font-size: 13.5px; display: flex; gap: 8px; align-items: flex-start; }
   .practice-feedback.correct { background: #eafbf2; color: #14733f; }
@@ -716,6 +741,7 @@
   .review-flashcard-phrase-row { display: flex; align-items: center; gap: 8px; }
   .review-flashcard-phrase { font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.01em; }
   .review-flashcard-translation { font-size: 15px; color: var(--ink-soft); font-style: italic; margin: 0; }
+  .review-flashcard-romanization { font-size: 14px; color: var(--ink-soft); font-style: italic; opacity: 0.8; margin: -4px 0 0; }
 
   .review-footer { padding: 16px 20px; border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; max-width: 640px; margin: 0 auto; width: 100%; }
   .review-footer-actions { display: flex; gap: 10px; }
@@ -775,6 +801,64 @@
   .mg-tile--matched { border-color: #1a9c5b; background: #eafbf2; color: #14733f; cursor: default; opacity: 0.75; }
   .mg-tile--mismatch { border-color: #d0403a; background: #fdeceb; }
   .mg-done { text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 20px 0; }
+
+  /* -------- Quick Quiz + Listening Challenge (both a phrase-then-4-options
+     round, so they share the .qz-option / .qz-result look; Listening swaps
+     the visible phrase for a play button) -------- */
+  .qz-body, .lc-body { flex: 1; overflow-y: auto; padding: 20px 20px 24px; max-width: 480px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; align-items: center; }
+  .qz-empty, .lc-empty { text-align: center; color: var(--ink-soft); font-size: 14.5px; padding: 40px 20px; }
+  .qz-main, .lc-main { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .qz-progress, .lc-progress { font-size: 12.5px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; }
+  .qz-prompt { font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px; font-weight: 800; text-align: center; margin: 4px 0 0; }
+  .qz-romanization { font-size: 15px; color: var(--ink-soft); font-style: italic; margin: -8px 0 0; }
+  .qz-options, .lc-options { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 360px; }
+  .qz-option {
+    border: 1.5px solid var(--border); border-radius: 12px; padding: 13px 16px; background: var(--surface);
+    font-family: inherit; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; color: var(--ink);
+  }
+  .qz-option:hover:not(:disabled) { border-color: var(--accent); }
+  .qz-option:disabled { cursor: default; }
+  .qz-option.correct { border-color: #1a9c5b; background: #eafbf2; color: #14733f; }
+  .qz-option.incorrect { border-color: #d0403a; background: #fdeceb; color: #a5312c; }
+  .qz-result, .ss-result { text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+
+  .lc-play-btn {
+    width: 76px; height: 76px; border-radius: 50%; border: none; background: var(--accent); color: var(--accent-ink);
+    font-size: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-top: 8px;
+  }
+  .lc-play-btn:hover { filter: brightness(1.08); }
+  .lc-hint { font-size: 13px; color: var(--ink-soft); text-align: center; margin: -6px 0 0; }
+  .lc-reveal { text-align: center; display: flex; flex-direction: column; gap: 2px; }
+  .lc-reveal .lc-reveal-phrase { font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; font-weight: 800; }
+  .lc-reveal .phrase-romanization { font-size: 14px; }
+
+  /* -------- Sentence Scramble — reuses the practice screen's word-chip
+     classes (.practice-word-chip etc.) for the tap-to-build UI, since it's
+     visually identical to the lesson-practice word_bank exercise type. -------- */
+  .ss-body { flex: 1; overflow-y: auto; padding: 20px 20px 24px; max-width: 480px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .ss-empty { text-align: center; color: var(--ink-soft); font-size: 14.5px; padding: 40px 20px; }
+  .ss-main { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .ss-progress { font-size: 12.5px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; align-self: center; }
+  .ss-reveal { text-align: center; display: flex; flex-direction: column; gap: 2px; }
+  .ss-reveal .ss-reveal-phrase { font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 800; }
+  .ss-done { text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 20px 0; }
+  .ss-footer { padding: 14px 20px 20px; border-top: 1px solid var(--border); max-width: 480px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+  .ss-footer .start-btn { width: 100%; }
+
+  /* -------- Speed Round — a timed flashcard blitz; reuses .review-flashcard
+     and .review-grade-btn for the card/grading look. -------- */
+  .sr-body { flex: 1; overflow-y: auto; padding: 20px 20px 24px; max-width: 480px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .sr-empty { text-align: center; color: var(--ink-soft); font-size: 14.5px; padding: 40px 20px; }
+  .sr-main { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .sr-hud { display: flex; justify-content: space-between; width: 100%; align-items: center; }
+  .sr-timer { font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .sr-score { font-size: 13.5px; font-weight: 700; color: var(--ink-soft); }
+  .sr-actions { display: flex; gap: 10px; width: 100%; max-width: 360px; }
+  .sr-actions .start-btn, .sr-actions .review-grade-btn { flex: 1; }
+  .sr-done { text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 20px 0; }
+  .sr-final-score { font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 800; margin: 0; }
+  .sr-new-best { color: var(--tip); font-weight: 700; margin: 0; }
+  .sr-best-line { color: var(--ink-soft); margin: 0; }
 </style>
 </head>
 <body>
@@ -901,8 +985,17 @@
         <div class="games-card-btns">
           <button type="button" class="games-card-btn" id="wordPuzzleBtn">🔤 Word Puzzle</button>
           <button type="button" class="games-card-btn" id="matchGameBtn">🧩 Match Game</button>
+          <button type="button" class="games-card-btn" id="quickQuizBtn">⚡ Quick Quiz</button>
+          <button type="button" class="games-card-btn" id="listeningBtn">🎧 Listening Challenge</button>
+          <button type="button" class="games-card-btn" id="scrambleBtn">🔀 Sentence Scramble</button>
+          <button type="button" class="games-card-btn" id="speedRoundBtn">⏱️ Speed Round</button>
         </div>
       </div>
+
+      <label class="lang-select-wrap">
+        <span class="lang-select-label">I speak</span>
+        <select class="lang-select" id="nativeLangSelect"></select>
+      </label>
 
       <label class="lang-select-wrap">
         <span class="lang-select-label">Language</span>
@@ -1046,6 +1139,7 @@
       <div class="review-flashcard-phrase-row" id="reviewFlashcardPhraseRow">
         <span class="review-flashcard-phrase" id="reviewFlashcardPhrase"></span>
       </div>
+      <p class="review-flashcard-romanization" id="reviewFlashcardRomanization" style="display:none"></p>
       <p class="review-flashcard-translation" id="reviewFlashcardTranslation" style="display:none"></p>
     </div>
   </div>
@@ -1105,6 +1199,134 @@
     <div class="mg-status" id="mgStatus" style="display:none"></div>
     <div class="mg-grid" id="mgGrid"></div>
     <div class="mg-done" id="mgDone" style="display:none"></div>
+  </div>
+</div>
+
+<div id="quickQuizScreen" class="screen">
+  <div class="topbar">
+    <button class="back-btn" id="quickQuizBackBtn" aria-label="Back">←</button>
+    <button type="button" class="brand" id="quickQuizBrandBtn" aria-label="Go to home">
+      <svg class="brand-mark" width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/>
+        <circle cx="8.2" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="12" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="15.8" cy="10" r="1.3" fill="#fff"/>
+      </svg>
+      Echoly
+    </button>
+    <div class="topbar-title">
+      <b>Quick Quiz</b>
+      <span id="quickQuizLanguageLabel">Language</span>
+    </div>
+  </div>
+  <div class="qz-body" id="qzBody">
+    <div class="qz-empty" id="qzEmpty" style="display:none">Finish a lesson first to build up enough words for a quiz.</div>
+    <div class="qz-main" id="qzMain">
+      <p class="qz-progress" id="qzProgress"></p>
+      <p class="qz-prompt" id="qzPrompt"></p>
+      <p class="qz-romanization" id="qzRomanization" style="display:none"></p>
+      <div class="qz-options" id="qzOptions"></div>
+      <div class="qz-result" id="qzResult" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<div id="listeningScreen" class="screen">
+  <div class="topbar">
+    <button class="back-btn" id="listeningBackBtn" aria-label="Back">←</button>
+    <button type="button" class="brand" id="listeningBrandBtn" aria-label="Go to home">
+      <svg class="brand-mark" width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/>
+        <circle cx="8.2" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="12" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="15.8" cy="10" r="1.3" fill="#fff"/>
+      </svg>
+      Echoly
+    </button>
+    <div class="topbar-title">
+      <b>Listening Challenge</b>
+      <span id="listeningLanguageLabel">Language</span>
+    </div>
+  </div>
+  <div class="lc-body" id="lcBody">
+    <div class="lc-empty" id="lcEmpty" style="display:none"></div>
+    <div class="lc-main" id="lcMain">
+      <p class="lc-progress" id="lcProgress"></p>
+      <button type="button" class="lc-play-btn" id="lcPlayBtn" aria-label="Play the phrase">🔊</button>
+      <p class="lc-hint">Listen, then choose what it means</p>
+      <div class="lc-options" id="lcOptions"></div>
+      <div class="lc-reveal" id="lcReveal" style="display:none"></div>
+      <div class="qz-result" id="lcResult" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<div id="scrambleScreen" class="screen">
+  <div class="topbar">
+    <button class="back-btn" id="scrambleBackBtn" aria-label="Back">←</button>
+    <button type="button" class="brand" id="scrambleBrandBtn" aria-label="Go to home">
+      <svg class="brand-mark" width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/>
+        <circle cx="8.2" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="12" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="15.8" cy="10" r="1.3" fill="#fff"/>
+      </svg>
+      Echoly
+    </button>
+    <div class="topbar-title">
+      <b>Sentence Scramble</b>
+      <span id="scrambleLanguageLabel">Language</span>
+    </div>
+  </div>
+  <div class="ss-body" id="ssBody">
+    <div class="ss-empty" id="ssEmpty" style="display:none">Finish a few lessons first to build up multi-word phrases to unscramble.</div>
+    <div class="ss-main" id="ssMain">
+      <p class="ss-progress" id="ssProgress"></p>
+      <p class="practice-prompt" id="ssPrompt" style="font-size:16px"></p>
+      <div class="practice-word-bank-answer" id="ssAnswer"></div>
+      <div class="practice-word-bank-pool" id="ssPool"></div>
+      <div class="ss-reveal" id="ssReveal" style="display:none"></div>
+      <div class="qz-result" id="ssResult" style="display:none"></div>
+    </div>
+    <div class="ss-done" id="ssDone" style="display:none"></div>
+  </div>
+  <div class="ss-footer" id="ssFooter">
+    <button class="start-btn" id="ssActionBtn" disabled>Check</button>
+  </div>
+</div>
+
+<div id="speedRoundScreen" class="screen">
+  <div class="topbar">
+    <button class="back-btn" id="speedRoundBackBtn" aria-label="Back">←</button>
+    <button type="button" class="brand" id="speedRoundBrandBtn" aria-label="Go to home">
+      <svg class="brand-mark" width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/>
+        <circle cx="8.2" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="12" cy="10" r="1.3" fill="#fff"/>
+        <circle cx="15.8" cy="10" r="1.3" fill="#fff"/>
+      </svg>
+      Echoly
+    </button>
+    <div class="topbar-title">
+      <b>Speed Round</b>
+      <span id="speedRoundLanguageLabel">Language</span>
+    </div>
+  </div>
+  <div class="sr-body" id="srBody">
+    <div class="sr-empty" id="srEmpty" style="display:none">Finish a couple lessons first to build up enough words for a speed round.</div>
+    <div class="sr-main" id="srMain">
+      <div class="sr-hud">
+        <span class="sr-timer" id="srTimer">60s</span>
+        <span class="sr-score" id="srScoreLabel">Score: 0</span>
+      </div>
+      <div class="review-flashcard">
+        <p class="review-flashcard-phrase" id="srPhrase"></p>
+        <p class="review-flashcard-romanization" id="srRomanization" style="display:none"></p>
+        <p class="review-flashcard-translation" id="srTranslation" style="display:none"></p>
+      </div>
+      <div class="sr-actions" id="srActions"></div>
+    </div>
+    <div class="sr-done" id="srDone" style="display:none"></div>
   </div>
 </div>
 
@@ -1182,7 +1404,7 @@
   let authMode = "signin"; // "signin" | "signup" — which form the auth modal is showing
   let authResolved = false; // true once we know, one way or another, whether someone's signed in
   // Populated once (if ever) the dynamic import below resolves.
-  let fbOnAuthStateChanged, fbCreateUser, fbSignIn, fbSignOut, fbGoogleProvider, fbSignInWithPopup, fbSendPasswordReset;
+  let fbOnAuthStateChanged, fbCreateUser, fbSignIn, fbSignOut, fbGoogleProvider, fbSignInWithPopup, fbSendPasswordReset, fbGetAdditionalUserInfo;
   let fbDoc, fbGetDoc, fbSetDoc;
 
   // Firebase is loaded from Google's CDN with a dynamic import — NOT a
@@ -1209,6 +1431,7 @@
       fbGoogleProvider = authMod.GoogleAuthProvider;
       fbSignInWithPopup = authMod.signInWithPopup;
       fbSendPasswordReset = authMod.sendPasswordResetEmail;
+      fbGetAdditionalUserInfo = authMod.getAdditionalUserInfo;
       fbDoc = storeMod.doc;
       fbGetDoc = storeMod.getDoc;
       fbSetDoc = storeMod.setDoc;
@@ -1349,6 +1572,23 @@
 
   let selectedLanguage = null;
   let selectedTier = null;
+  // The language the learner already speaks — every AI-generated translation,
+  // lesson objective, coaching tip, and exercise instruction is written in
+  // this language instead of a hardcoded English, so someone learning
+  // Mandarin who speaks Spanish sees Spanish meanings, not English ones.
+  // Persisted locally and synced to Firestore just like the vocab/streak
+  // data (see localDataSnapshot/applyCloudSnapshot below); defaults to
+  // English so an existing learner who's never touched this setting sees
+  // no change in behavior.
+  const NATIVE_LANG_KEY = "echoly_native_lang_v1";
+  function loadNativeLanguage() {
+    try { return localStorage.getItem(NATIVE_LANG_KEY) || "English"; } catch (e) { return "English"; }
+  }
+  function saveNativeLanguage(lang) {
+    try { localStorage.setItem(NATIVE_LANG_KEY, lang); } catch (e) { /* non-fatal */ }
+  }
+  let NATIVE_LANGUAGES = ["English"]; // replaced once /scenarios responds
+  let selectedNativeLanguage = loadNativeLanguage();
   let currentScenario = null;
   let history = []; // [{role: "user"|"assistant", content}]
   let sending = false;
@@ -1411,6 +1651,7 @@
   const authSwitchBtn = document.getElementById("authSwitchBtn");
   const authForgotBtn = document.getElementById("authForgotBtn");
   const langSelectEl = document.getElementById("langSelect");
+  const nativeLangSelectEl = document.getElementById("nativeLangSelect");
   const sidebarBrandBtn = document.getElementById("sidebarBrandBtn");
   const chatBrandBtn = document.getElementById("chatBrandBtn");
   const introBrandBtn = document.getElementById("introBrandBtn");
@@ -1473,6 +1714,7 @@
   const reviewFlashcardLabelEl = document.getElementById("reviewFlashcardLabel");
   const reviewFlashcardPhraseRowEl = document.getElementById("reviewFlashcardPhraseRow");
   const reviewFlashcardPhraseEl = document.getElementById("reviewFlashcardPhrase");
+  const reviewFlashcardRomanizationEl = document.getElementById("reviewFlashcardRomanization");
   const reviewFlashcardTranslationEl = document.getElementById("reviewFlashcardTranslation");
   const reviewFooterActionsEl = document.getElementById("reviewFooterActions");
   const gamesCardEl = document.getElementById("gamesCard");
@@ -1497,6 +1739,60 @@
   const mgStatusEl = document.getElementById("mgStatus");
   const mgGridEl = document.getElementById("mgGrid");
   const mgDoneEl = document.getElementById("mgDone");
+  const quickQuizBtn = document.getElementById("quickQuizBtn");
+  const quickQuizScreen = document.getElementById("quickQuizScreen");
+  const quickQuizBackBtn = document.getElementById("quickQuizBackBtn");
+  const quickQuizBrandBtn = document.getElementById("quickQuizBrandBtn");
+  const quickQuizLanguageLabelEl = document.getElementById("quickQuizLanguageLabel");
+  const qzEmptyEl = document.getElementById("qzEmpty");
+  const qzMainEl = document.getElementById("qzMain");
+  const qzProgressEl = document.getElementById("qzProgress");
+  const qzPromptEl = document.getElementById("qzPrompt");
+  const qzRomanizationEl = document.getElementById("qzRomanization");
+  const qzOptionsEl = document.getElementById("qzOptions");
+  const qzResultEl = document.getElementById("qzResult");
+  const listeningBtn = document.getElementById("listeningBtn");
+  const listeningScreen = document.getElementById("listeningScreen");
+  const listeningBackBtn = document.getElementById("listeningBackBtn");
+  const listeningBrandBtn = document.getElementById("listeningBrandBtn");
+  const listeningLanguageLabelEl = document.getElementById("listeningLanguageLabel");
+  const lcEmptyEl = document.getElementById("lcEmpty");
+  const lcMainEl = document.getElementById("lcMain");
+  const lcProgressEl = document.getElementById("lcProgress");
+  const lcPlayBtn = document.getElementById("lcPlayBtn");
+  const lcOptionsEl = document.getElementById("lcOptions");
+  const lcRevealEl = document.getElementById("lcReveal");
+  const lcResultEl = document.getElementById("lcResult");
+  const scrambleBtn = document.getElementById("scrambleBtn");
+  const scrambleScreen = document.getElementById("scrambleScreen");
+  const scrambleBackBtn = document.getElementById("scrambleBackBtn");
+  const scrambleBrandBtn = document.getElementById("scrambleBrandBtn");
+  const scrambleLanguageLabelEl = document.getElementById("scrambleLanguageLabel");
+  const ssEmptyEl = document.getElementById("ssEmpty");
+  const ssMainEl = document.getElementById("ssMain");
+  const ssProgressEl = document.getElementById("ssProgress");
+  const ssPromptEl = document.getElementById("ssPrompt");
+  const ssAnswerEl = document.getElementById("ssAnswer");
+  const ssPoolEl = document.getElementById("ssPool");
+  const ssRevealEl = document.getElementById("ssReveal");
+  const ssResultEl = document.getElementById("ssResult");
+  const ssDoneEl = document.getElementById("ssDone");
+  const ssFooterEl = document.getElementById("ssFooter");
+  const ssActionBtn = document.getElementById("ssActionBtn");
+  const speedRoundBtn = document.getElementById("speedRoundBtn");
+  const speedRoundScreen = document.getElementById("speedRoundScreen");
+  const speedRoundBackBtn = document.getElementById("speedRoundBackBtn");
+  const speedRoundBrandBtn = document.getElementById("speedRoundBrandBtn");
+  const speedRoundLanguageLabelEl = document.getElementById("speedRoundLanguageLabel");
+  const srEmptyEl = document.getElementById("srEmpty");
+  const srMainEl = document.getElementById("srMain");
+  const srTimerEl = document.getElementById("srTimer");
+  const srScoreLabelEl = document.getElementById("srScoreLabel");
+  const srPhraseEl = document.getElementById("srPhrase");
+  const srRomanizationEl = document.getElementById("srRomanization");
+  const srTranslationEl = document.getElementById("srTranslation");
+  const srActionsEl = document.getElementById("srActions");
+  const srDoneEl = document.getElementById("srDone");
   const objectivesCardEl = document.getElementById("objectivesCard");
   const objectivesToggleBtn = document.getElementById("objectivesToggleBtn");
   const objectivesFracEl = document.getElementById("objectivesFrac");
@@ -1721,7 +2017,7 @@
     let changed = false;
     phrases.forEach(p => {
       if (!p || !p.phrase || known.has(p.phrase)) return;
-      bank[language].push({ phrase: p.phrase, translation: p.translation || "", box: 0, nextReviewDate: today });
+      bank[language].push({ phrase: p.phrase, translation: p.translation || "", romanization: p.romanization || "", box: 0, nextReviewDate: today });
       known.add(p.phrase);
       changed = true;
     });
@@ -1877,6 +2173,15 @@
     reviewProgressFillEl.style.width = `${Math.round((reviewIndex / reviewCards.length) * 100)}%`;
     reviewFlashcardLabelEl.textContent = "Try to recall it, then reveal the answer";
     reviewFlashcardPhraseEl.textContent = card.phrase;
+    // Shown right away, unlike the translation below — a pronunciation aid
+    // isn't a spoiler the way the meaning is, so it doesn't need "recall
+    // it first" to gate it.
+    if (card.romanization) {
+      reviewFlashcardRomanizationEl.textContent = card.romanization;
+      reviewFlashcardRomanizationEl.style.display = "block";
+    } else {
+      reviewFlashcardRomanizationEl.style.display = "none";
+    }
     reviewFlashcardTranslationEl.style.display = "none";
     reviewFlashcardPhraseRowEl.querySelectorAll(".speak-btn").forEach(b => b.remove());
     if (ttsSupported) {
@@ -1922,6 +2227,7 @@
     reviewProgressLabelEl.textContent = `${reviewCards.length} of ${reviewCards.length}`;
     reviewFlashcardLabelEl.textContent = "";
     reviewFlashcardPhraseRowEl.querySelectorAll(".speak-btn").forEach(b => b.remove());
+    reviewFlashcardRomanizationEl.style.display = "none";
     reviewFlashcardPhraseEl.textContent = `🎉 ${reviewCorrectCount}/${reviewCards.length} remembered`;
     reviewFlashcardTranslationEl.textContent = "Nice work — come back tomorrow for more.";
     reviewFlashcardTranslationEl.style.display = "block";
@@ -2214,13 +2520,497 @@
   wordPuzzleBtn.addEventListener("click", openWordPuzzle);
   matchGameBtn.addEventListener("click", openMatchGame);
 
+  // ---------- Shared by every multiple-choice-style game below (Quick Quiz,
+  // Listening Challenge): builds 4 options for one target card — its real
+  // translation plus 3 distractors pulled from other saved cards, shuffled
+  // together — and returns the index the correct one landed on. ----------
+  function buildMultipleChoiceOptions(language, targetCard) {
+    const others = getVocabCards(language).filter(c => c.phrase !== targetCard.phrase);
+    const distractors = shuffle(others).slice(0, 3).map(c => c.translation);
+    const optionTexts = shuffle([targetCard.translation, ...distractors]);
+    return { options: optionTexts, correctIndex: optionTexts.indexOf(targetCard.translation) };
+  }
+
+  // ---------- Quick Quiz (multiple-choice speed round through the vocab deck) ----------
+  const QZ_ROUND_COUNT = 8;
+  let qzCards = [];
+  let qzIndex = 0;
+  let qzScore = 0;
+  let qzCorrectIndex = 0;
+  let qzAnswered = false;
+
+  function openQuickQuiz() {
+    trackEvent("game_opened", { game: "quick_quiz", language: selectedLanguage });
+    quickQuizLanguageLabelEl.textContent = selectedLanguage;
+    homeScreen.classList.remove("active");
+    quickQuizScreen.classList.add("active");
+
+    // Needs at least 4 cards total — one target plus 3 distractors.
+    const due = getDueVocabCards(selectedLanguage);
+    const pool = due.length >= 4 ? due : getVocabCards(selectedLanguage);
+    if (pool.length < 4) {
+      qzEmptyEl.style.display = "block";
+      qzMainEl.style.display = "none";
+      return;
+    }
+    qzEmptyEl.style.display = "none";
+    qzMainEl.style.display = "flex";
+    qzCards = shuffle(pool).slice(0, Math.min(QZ_ROUND_COUNT, pool.length));
+    qzIndex = 0;
+    qzScore = 0;
+    renderQuickQuizRound();
+  }
+
+  function renderQuickQuizRound() {
+    const card = qzCards[qzIndex];
+    qzAnswered = false;
+    qzProgressEl.textContent = `${qzIndex + 1} of ${qzCards.length} · Score ${qzScore}`;
+    qzPromptEl.textContent = card.phrase;
+    qzRomanizationEl.style.display = card.romanization ? "block" : "none";
+    qzRomanizationEl.textContent = card.romanization || "";
+    qzResultEl.style.display = "none";
+    qzOptionsEl.style.display = "flex";
+
+    const { options, correctIndex } = buildMultipleChoiceOptions(selectedLanguage, card);
+    qzCorrectIndex = correctIndex;
+    qzOptionsEl.innerHTML = options.map((t, i) => `<button type="button" class="qz-option" data-index="${i}">${t}</button>`).join("");
+  }
+
+  qzOptionsEl.addEventListener("click", e => {
+    const btn = e.target.closest(".qz-option");
+    if (!btn || qzAnswered) return;
+    qzAnswered = true;
+    const idx = Number(btn.dataset.index);
+    const card = qzCards[qzIndex];
+    const correct = idx === qzCorrectIndex;
+    qzOptionsEl.querySelectorAll(".qz-option").forEach((b, i) => {
+      b.disabled = true;
+      if (i === qzCorrectIndex) b.classList.add("correct");
+      else if (i === idx) b.classList.add("incorrect");
+    });
+    if (correct) qzScore++;
+    gradeVocabCard(selectedLanguage, card.phrase, correct);
+    syncToCloud();
+    setTimeout(advanceQuickQuiz, 700);
+  });
+
+  function advanceQuickQuiz() {
+    if (!quickQuizScreen.classList.contains("active")) return; // learner already left the screen
+    if (qzIndex < qzCards.length - 1) {
+      qzIndex++;
+      renderQuickQuizRound();
+    } else {
+      finishQuickQuiz();
+    }
+  }
+
+  function finishQuickQuiz() {
+    recordDailyActivity();
+    renderStreakCard();
+    trackEvent("game_completed", { game: "quick_quiz", language: selectedLanguage, score: qzScore, total: qzCards.length });
+    qzOptionsEl.style.display = "none";
+    qzResultEl.style.display = "flex";
+    qzResultEl.innerHTML = `
+      <p class="wp-result-title">🎉 ${qzScore}/${qzCards.length} correct</p>
+      <button class="start-btn" id="qzDoneBtn">Back to home</button>`;
+    document.getElementById("qzDoneBtn").addEventListener("click", goHome);
+  }
+
+  quickQuizBackBtn.addEventListener("click", () => {
+    quickQuizScreen.classList.remove("active");
+    homeScreen.classList.add("active");
+  });
+  quickQuizBtn.addEventListener("click", openQuickQuiz);
+
+  // ---------- Listening Challenge (hear a saved phrase, pick its meaning) ----------
+  const LC_ROUND_COUNT = 8;
+  let lcCards = [];
+  let lcIndex = 0;
+  let lcScore = 0;
+  let lcCorrectIndex = 0;
+  let lcAnswered = false;
+
+  function openListening() {
+    trackEvent("game_opened", { game: "listening", language: selectedLanguage });
+    listeningLanguageLabelEl.textContent = selectedLanguage;
+    homeScreen.classList.remove("active");
+    listeningScreen.classList.add("active");
+
+    if (!ttsSupported) {
+      lcEmptyEl.textContent = "Your browser doesn't support text-to-speech, so this game isn't available here.";
+      lcEmptyEl.style.display = "block";
+      lcMainEl.style.display = "none";
+      return;
+    }
+    const due = getDueVocabCards(selectedLanguage);
+    const pool = due.length >= 4 ? due : getVocabCards(selectedLanguage);
+    if (pool.length < 4) {
+      lcEmptyEl.textContent = "Finish a lesson first to build up enough words to listen for.";
+      lcEmptyEl.style.display = "block";
+      lcMainEl.style.display = "none";
+      return;
+    }
+    lcEmptyEl.style.display = "none";
+    lcMainEl.style.display = "flex";
+    lcCards = shuffle(pool).slice(0, Math.min(LC_ROUND_COUNT, pool.length));
+    lcIndex = 0;
+    lcScore = 0;
+    renderListeningRound();
+  }
+
+  function renderListeningRound() {
+    const card = lcCards[lcIndex];
+    lcAnswered = false;
+    lcProgressEl.textContent = `${lcIndex + 1} of ${lcCards.length} · Score ${lcScore}`;
+    lcRevealEl.style.display = "none";
+    lcResultEl.style.display = "none";
+    lcOptionsEl.style.display = "flex";
+    lcPlayBtn.style.display = "flex";
+
+    const { options, correctIndex } = buildMultipleChoiceOptions(selectedLanguage, card);
+    lcCorrectIndex = correctIndex;
+    lcOptionsEl.innerHTML = options.map((t, i) => `<button type="button" class="qz-option" data-index="${i}">${t}</button>`).join("");
+    speakText(card.phrase, selectedLanguage);
+  }
+
+  lcPlayBtn.addEventListener("click", () => {
+    const card = lcCards[lcIndex];
+    if (card) speakText(card.phrase, selectedLanguage);
+  });
+
+  lcOptionsEl.addEventListener("click", e => {
+    const btn = e.target.closest(".qz-option");
+    if (!btn || lcAnswered) return;
+    lcAnswered = true;
+    const idx = Number(btn.dataset.index);
+    const card = lcCards[lcIndex];
+    const correct = idx === lcCorrectIndex;
+    lcOptionsEl.querySelectorAll(".qz-option").forEach((b, i) => {
+      b.disabled = true;
+      if (i === lcCorrectIndex) b.classList.add("correct");
+      else if (i === idx) b.classList.add("incorrect");
+    });
+    if (correct) lcScore++;
+    gradeVocabCard(selectedLanguage, card.phrase, correct);
+    syncToCloud();
+    lcRevealEl.style.display = "block";
+    lcRevealEl.innerHTML = `
+      <span class="lc-reveal-phrase">${card.phrase}</span>
+      ${card.romanization ? `<span class="phrase-romanization">${card.romanization}</span>` : ""}`;
+    setTimeout(advanceListening, 1400); // longer pause than Quick Quiz — there's a reveal to read here too
+  });
+
+  function advanceListening() {
+    if (!listeningScreen.classList.contains("active")) return;
+    if (lcIndex < lcCards.length - 1) {
+      lcIndex++;
+      renderListeningRound();
+    } else {
+      finishListening();
+    }
+  }
+
+  function finishListening() {
+    recordDailyActivity();
+    renderStreakCard();
+    trackEvent("game_completed", { game: "listening", language: selectedLanguage, score: lcScore, total: lcCards.length });
+    lcPlayBtn.style.display = "none";
+    lcOptionsEl.style.display = "none";
+    lcRevealEl.style.display = "none";
+    lcResultEl.style.display = "flex";
+    lcResultEl.innerHTML = `
+      <p class="wp-result-title">🎉 ${lcScore}/${lcCards.length} correct</p>
+      <button class="start-btn" id="lcDoneBtn">Back to home</button>`;
+    document.getElementById("lcDoneBtn").addEventListener("click", goHome);
+  }
+
+  listeningBackBtn.addEventListener("click", () => {
+    listeningScreen.classList.remove("active");
+    homeScreen.classList.add("active");
+  });
+  listeningBtn.addEventListener("click", openListening);
+
+  // ---------- Sentence Scramble (tap a multi-word phrase's words back into order) ----------
+  const SS_ROUND_COUNT = 5;
+  let ssCards = [];
+  let ssIndex = 0;
+  let ssScore = 0;
+  let ssWords = []; // [{word, origIndex}], already shuffled for this round
+  let ssOrder = []; // indices into ssWords, in the order the learner tapped them
+  let ssAnswered = false;
+
+  // Only phrases with 3+ whitespace-separated words make a meaningful
+  // scramble — mirrors getWordPuzzleCandidates' single-word filter for Word
+  // Puzzle, just the opposite length constraint. A vocab deck built from a
+  // language that doesn't space words (e.g. Mandarin, Japanese) will simply
+  // have few or no candidates, same as Word Puzzle does for very long words.
+  function getScrambleCandidates(language) {
+    return getVocabCards(language).filter(c => c.phrase && c.phrase.trim().split(/\s+/).length >= 3);
+  }
+
+  function openScramble() {
+    trackEvent("game_opened", { game: "sentence_scramble", language: selectedLanguage });
+    scrambleLanguageLabelEl.textContent = selectedLanguage;
+    homeScreen.classList.remove("active");
+    scrambleScreen.classList.add("active");
+
+    const candidates = getScrambleCandidates(selectedLanguage);
+    if (!candidates.length) {
+      ssEmptyEl.style.display = "block";
+      ssMainEl.style.display = "none";
+      ssDoneEl.style.display = "none";
+      ssFooterEl.style.display = "none";
+      return;
+    }
+    ssEmptyEl.style.display = "none";
+    ssMainEl.style.display = "flex";
+    ssDoneEl.style.display = "none";
+    ssFooterEl.style.display = "block";
+    ssCards = shuffle(candidates).slice(0, Math.min(SS_ROUND_COUNT, candidates.length));
+    ssIndex = 0;
+    ssScore = 0;
+    renderScrambleRound();
+  }
+
+  function renderScrambleRound() {
+    const card = ssCards[ssIndex];
+    ssAnswered = false;
+    ssOrder = [];
+    const correctWords = card.phrase.trim().split(/\s+/);
+    ssWords = shuffle(correctWords.map((word, origIndex) => ({ word, origIndex })));
+    ssProgressEl.textContent = `${ssIndex + 1} of ${ssCards.length} · Score ${ssScore}`;
+    ssPromptEl.textContent = card.translation;
+    ssRevealEl.style.display = "none";
+    ssResultEl.style.display = "none";
+    ssActionBtn.textContent = "Check";
+    ssActionBtn.disabled = true;
+    ssActionBtn.onclick = checkScramble;
+    renderScrambleState();
+  }
+
+  function renderScrambleState() {
+    ssAnswerEl.innerHTML = ssOrder.map(i =>
+      `<button type="button" class="practice-word-chip answer-chip" data-index="${i}">${ssWords[i].word}</button>`).join("");
+    ssPoolEl.innerHTML = ssWords.map((w, i) =>
+      `<button type="button" class="practice-word-chip${ssOrder.includes(i) ? " placed" : ""}" data-index="${i}"${ssOrder.includes(i) ? " disabled" : ""}>${w.word}</button>`).join("");
+    if (!ssAnswered) ssActionBtn.disabled = ssOrder.length !== ssWords.length;
+  }
+
+  ssAnswerEl.addEventListener("click", e => {
+    const btn = e.target.closest(".answer-chip");
+    if (!btn || ssAnswered) return;
+    const idx = Number(btn.dataset.index);
+    ssOrder = ssOrder.filter(i => i !== idx);
+    renderScrambleState();
+  });
+  ssPoolEl.addEventListener("click", e => {
+    const btn = e.target.closest(".practice-word-chip:not(.placed)");
+    if (!btn || ssAnswered) return;
+    ssOrder.push(Number(btn.dataset.index));
+    renderScrambleState();
+  });
+
+  function checkScramble() {
+    if (ssAnswered || ssOrder.length !== ssWords.length) return;
+    ssAnswered = true;
+    const card = ssCards[ssIndex];
+    const isCorrect = ssOrder.every((wordIndex, position) => ssWords[wordIndex].origIndex === position);
+    if (isCorrect) ssScore++;
+    gradeVocabCard(selectedLanguage, card.phrase, isCorrect);
+    syncToCloud();
+
+    ssRevealEl.style.display = "flex";
+    ssRevealEl.innerHTML = `
+      <span class="ss-reveal-phrase">${card.phrase}</span>
+      ${card.romanization ? `<span class="phrase-romanization">${card.romanization}</span>` : ""}`;
+    ssResultEl.style.display = "flex";
+    ssResultEl.className = `qz-result ss-result ${isCorrect ? "correct" : "incorrect"}`;
+    ssResultEl.innerHTML = isCorrect ? `<span>✅ Correct!</span>` : `<span>❌ Not quite</span>`;
+
+    ssActionBtn.textContent = ssIndex < ssCards.length - 1 ? "Next" : "Finish";
+    ssActionBtn.disabled = false;
+    ssActionBtn.onclick = advanceScramble;
+  }
+
+  function advanceScramble() {
+    if (ssIndex < ssCards.length - 1) {
+      ssIndex++;
+      renderScrambleRound();
+    } else {
+      finishScramble();
+    }
+  }
+
+  function finishScramble() {
+    recordDailyActivity();
+    renderStreakCard();
+    trackEvent("game_completed", { game: "sentence_scramble", language: selectedLanguage, score: ssScore, total: ssCards.length });
+    ssMainEl.style.display = "none";
+    ssFooterEl.style.display = "none";
+    ssDoneEl.style.display = "flex";
+    ssDoneEl.innerHTML = `
+      <p class="wp-result-title">🎉 ${ssScore}/${ssCards.length} correct</p>
+      <button class="start-btn" id="ssDoneBtn">Back to home</button>`;
+    document.getElementById("ssDoneBtn").addEventListener("click", goHome);
+  }
+
+  scrambleBackBtn.addEventListener("click", () => {
+    scrambleScreen.classList.remove("active");
+    homeScreen.classList.add("active");
+  });
+  scrambleBtn.addEventListener("click", openScramble);
+
+  // ---------- Speed Round (60-second timed flashcard blitz, self-graded) ----------
+  const SR_DURATION_SECONDS = 60;
+  const SR_BEST_KEY = "echoly_speedround_best_v1"; // per-language local high score — a personal best, not synced to the cloud
+  let srCards = [];
+  let srIndex = 0;
+  let srScore = 0;
+  let srAttempts = 0;
+  let srTimeLeft = SR_DURATION_SECONDS;
+  let srTimerHandle = null;
+  let srRevealed = false;
+  let srActive = false;
+
+  function loadSpeedRoundBest() {
+    try { return JSON.parse(localStorage.getItem(SR_BEST_KEY) || "{}"); } catch (e) { return {}; }
+  }
+  function saveSpeedRoundBest(bank) {
+    try { localStorage.setItem(SR_BEST_KEY, JSON.stringify(bank)); } catch (e) { /* non-fatal */ }
+  }
+  function getSpeedRoundBest(language) {
+    return loadSpeedRoundBest()[language] || 0;
+  }
+  // Returns true if this run set a new best (and saves it) — used to decide
+  // which message the finish screen shows.
+  function maybeSaveSpeedRoundBest(language, score) {
+    const bank = loadSpeedRoundBest();
+    if (score > (bank[language] || 0)) {
+      bank[language] = score;
+      saveSpeedRoundBest(bank);
+      return true;
+    }
+    return false;
+  }
+
+  function stopSpeedRoundTimer() {
+    clearInterval(srTimerHandle);
+    srTimerHandle = null;
+    srActive = false;
+  }
+
+  function openSpeedRound() {
+    trackEvent("game_opened", { game: "speed_round", language: selectedLanguage });
+    speedRoundLanguageLabelEl.textContent = selectedLanguage;
+    homeScreen.classList.remove("active");
+    speedRoundScreen.classList.add("active");
+    stopSpeedRoundTimer();
+
+    // Needs at least 3 cards — otherwise the same 1-2 phrases would just
+    // repeat back to back for the whole 60 seconds.
+    const pool = getVocabCards(selectedLanguage);
+    if (pool.length < 3) {
+      srEmptyEl.style.display = "block";
+      srMainEl.style.display = "none";
+      srDoneEl.style.display = "none";
+      return;
+    }
+    srEmptyEl.style.display = "none";
+    srMainEl.style.display = "flex";
+    srDoneEl.style.display = "none";
+    srCards = shuffle(pool);
+    srIndex = 0;
+    srScore = 0;
+    srAttempts = 0;
+    srTimeLeft = SR_DURATION_SECONDS;
+    srActive = true;
+    srTimerEl.textContent = `${srTimeLeft}s`;
+    srScoreLabelEl.textContent = "Score: 0";
+    renderSpeedRoundCard();
+    srTimerHandle = setInterval(tickSpeedRound, 1000);
+  }
+
+  function tickSpeedRound() {
+    srTimeLeft--;
+    srTimerEl.textContent = `${Math.max(srTimeLeft, 0)}s`;
+    if (srTimeLeft <= 0) finishSpeedRound();
+  }
+
+  function renderSpeedRoundCard() {
+    // Ran through the whole shuffled deck before time ran out — reshuffle
+    // and keep drilling rather than stopping early.
+    if (srIndex >= srCards.length) {
+      srCards = shuffle(srCards);
+      srIndex = 0;
+    }
+    const card = srCards[srIndex];
+    srRevealed = false;
+    srPhraseEl.textContent = card.phrase;
+    srRomanizationEl.style.display = card.romanization ? "block" : "none";
+    srRomanizationEl.textContent = card.romanization || "";
+    srTranslationEl.style.display = "none";
+    srActionsEl.innerHTML = `<button type="button" class="start-btn" id="srRevealBtn">Show answer</button>`;
+    document.getElementById("srRevealBtn").addEventListener("click", revealSpeedRoundCard);
+  }
+
+  function revealSpeedRoundCard() {
+    if (srRevealed || !srActive) return;
+    srRevealed = true;
+    const card = srCards[srIndex];
+    srTranslationEl.textContent = card.translation;
+    srTranslationEl.style.display = "block";
+    srActionsEl.innerHTML = `
+      <button type="button" class="review-grade-btn review-grade-btn--again" id="srMissedBtn">Missed it</button>
+      <button type="button" class="review-grade-btn review-grade-btn--good" id="srGotBtn">Got it</button>`;
+    document.getElementById("srMissedBtn").addEventListener("click", () => gradeSpeedRoundCard(false));
+    document.getElementById("srGotBtn").addEventListener("click", () => gradeSpeedRoundCard(true));
+  }
+
+  function gradeSpeedRoundCard(remembered) {
+    if (!srActive) return;
+    const card = srCards[srIndex];
+    gradeVocabCard(selectedLanguage, card.phrase, remembered);
+    srAttempts++;
+    if (remembered) srScore++;
+    srScoreLabelEl.textContent = `Score: ${srScore}`;
+    srIndex++;
+    if (srActive) renderSpeedRoundCard();
+  }
+
+  function finishSpeedRound() {
+    if (!srActive) return; // stopSpeedRoundTimer() already ran for this round — never finish twice
+    stopSpeedRoundTimer();
+    syncToCloud();
+    if (srAttempts > 0) {
+      recordDailyActivity();
+      renderStreakCard();
+    }
+    trackEvent("game_completed", { game: "speed_round", language: selectedLanguage, score: srScore, attempts: srAttempts });
+    const isNewBest = srAttempts > 0 && maybeSaveSpeedRoundBest(selectedLanguage, srScore);
+    srMainEl.style.display = "none";
+    srDoneEl.style.display = "flex";
+    srDoneEl.innerHTML = `
+      <p class="wp-result-title">⏱️ Time's up!</p>
+      <p class="sr-final-score">${srScore} correct${srAttempts ? ` of ${srAttempts}` : ""}</p>
+      ${isNewBest ? `<p class="sr-new-best">🏆 New best for ${selectedLanguage}!</p>` : `<p class="sr-best-line">Best for ${selectedLanguage}: ${getSpeedRoundBest(selectedLanguage)}</p>`}
+      <button type="button" class="start-btn" id="srDoneBtn">Back to home</button>`;
+    document.getElementById("srDoneBtn").addEventListener("click", goHome);
+  }
+
+  speedRoundBackBtn.addEventListener("click", () => {
+    stopSpeedRoundTimer();
+    speedRoundScreen.classList.remove("active");
+    homeScreen.classList.add("active");
+  });
+  speedRoundBtn.addEventListener("click", openSpeedRound);
+
   // ---------- Accounts: cloud sync over Firestore, auth via Firebase Auth ----------
   // Firestore layout: one document per signed-in user at users/{uid}, holding
   // the same three payloads this app already keeps in localStorage —
   // progress, streak, and vocab — as a single snapshot. Firestore security
   // rules restrict a document to its own owner (see the project README).
   function localDataSnapshot() {
-    return { progress: loadAllProgress(), streak: loadStreakData(), vocab: loadVocabBank(), tips: loadTipsHistory(), convoCounts: loadConvoCounts() };
+    return { progress: loadAllProgress(), streak: loadStreakData(), vocab: loadVocabBank(), tips: loadTipsHistory(), convoCounts: loadConvoCounts(), nativeLanguage: selectedNativeLanguage };
   }
   function applyCloudSnapshot(data) {
     if (data && data.progress) saveAllProgress(data.progress);
@@ -2228,6 +3018,11 @@
     if (data && data.vocab) saveVocabBank(data.vocab);
     if (data && data.tips) saveTipsHistory(data.tips);
     if (data && data.convoCounts) saveConvoCounts(data.convoCounts);
+    if (data && typeof data.nativeLanguage === "string" && data.nativeLanguage) {
+      selectedNativeLanguage = data.nativeLanguage;
+      saveNativeLanguage(selectedNativeLanguage);
+      populateNativeLangSelect();
+    }
   }
   // Fire-and-forget — a failed sync (offline, blocked, etc.) just means this
   // browser's local copy stays the source of truth until the next
@@ -2243,16 +3038,29 @@
     if (currentUser) {
       const isPremium = !!(billingStatus && billingStatus.premium);
       const remaining = billingStatus && typeof billingStatus.dailyRemaining === "number" ? billingStatus.dailyRemaining : null;
+      const referralBonus = billingStatus && typeof billingStatus.referralBonus === "number" ? billingStatus.referralBonus : 0;
       const planBadge = isPremium
         ? `<span class="account-plan-badge account-plan-badge--premium">✨ Premium</span>`
         : `<span class="account-plan-badge">Free plan${remaining !== null ? ` · ${remaining} convo${remaining === 1 ? "" : "s"} left today` : ""}</span>`;
       const planBtn = isPremium
         ? `<button class="account-btn account-btn--ghost" id="accountManageBillingBtn">Manage subscription</button>`
         : `<button class="account-btn" id="accountUpgradeBtn">Upgrade to Premium</button>`;
+      // Shown once, right after a successful claim (see claimReferralIfPending) —
+      // consumed here so it doesn't reappear on the next render.
+      const claimBannerHtml = referralMessage
+        ? `<p class="account-referral-msg">${referralMessage}</p>`
+        : "";
+      referralMessage = null;
+      const referralBonusHtml = !isPremium && referralBonus > 0
+        ? `<p class="account-referral-bonus">+${referralBonus} convo${referralBonus === 1 ? "" : "s"}/day from referrals</p>`
+        : "";
       accountCardEl.innerHTML = `
         <p class="account-status" id="accountStatusText"></p>
         ${planBadge}<br>
+        ${referralBonusHtml}
+        ${claimBannerHtml}
         ${planBtn}
+        <button class="account-btn account-btn--ghost" id="accountInviteBtn">Invite a friend</button>
         <button class="account-btn account-btn--ghost" id="accountSignOutBtn">Sign out</button>`;
       const statusEl = document.getElementById("accountStatusText");
       statusEl.appendChild(document.createTextNode("Signed in as "));
@@ -2264,6 +3072,12 @@
       if (upgradeBtn) upgradeBtn.addEventListener("click", startCheckout);
       const manageBtn = document.getElementById("accountManageBillingBtn");
       if (manageBtn) manageBtn.addEventListener("click", openBillingPortal);
+      const inviteBtn = document.getElementById("accountInviteBtn");
+      if (inviteBtn) inviteBtn.addEventListener("click", async () => {
+        const ok = await copyReferralLink(currentUser.uid);
+        inviteBtn.textContent = ok ? "Link copied!" : referralLinkFor(currentUser.uid);
+        setTimeout(() => { inviteBtn.textContent = "Invite a friend"; }, 2500);
+      });
     } else {
       accountCardEl.innerHTML = `
         <p class="account-blurb">💾 Sign in to save your progress and sync it across devices.</p>
@@ -2300,8 +3114,18 @@
     renderAccountCard();
   }
 
+  // The account card (where Upgrade/Manage subscription live) only ever
+  // appears in the home screen's sidebar, so errors from these two actions
+  // go to homeErrorBanner specifically — not the generic `errorBanner`,
+  // which belongs to the chat screen and stays invisible from here.
+  function showHomeError(msg) {
+    homeErrorBanner.textContent = msg;
+    homeErrorBanner.classList.add("shown");
+  }
+
   async function startCheckout() {
     if (!currentUser) return;
+    trackEvent("upgrade_clicked");
     try {
       const headers = await authHeaders();
       const res = await fetch(`${API_BASE}/billing/create-checkout-session`, {
@@ -2311,12 +3135,18 @@
       });
       const data = await res.json();
       if (res.ok && data.url) {
+        // Fires right before the redirect away from the page — this is the
+        // real "reached Stripe" signal, distinct from just clicking the
+        // button, so the funnel between the two is visible in GA4.
+        trackEvent("checkout_redirect");
         window.location.href = data.url;
       } else {
-        showError(data.error || "Couldn't start checkout.");
+        trackEvent("checkout_error", { reason: data.error || "unknown" });
+        showHomeError(data.error || "Couldn't start checkout.");
       }
     } catch (e) {
-      showError("Couldn't start checkout.");
+      trackEvent("checkout_error", { reason: "network_error" });
+      showHomeError("Couldn't start checkout.");
     }
   }
 
@@ -2329,10 +3159,57 @@
       if (res.ok && data.url) {
         window.location.href = data.url;
       } else {
-        showError(data.error || "Couldn't open billing portal.");
+        showHomeError(data.error || "Couldn't open billing portal.");
       }
     } catch (e) {
-      showError("Couldn't open billing portal.");
+      showHomeError("Couldn't open billing portal.");
+    }
+  }
+
+  // ---------- Referrals ----------
+  // A referral link is just ?ref=<their uid> — no separate code to generate
+  // or look up. Captured once on load (see handleSignedIn below) and claimed
+  // automatically the moment a signed-in learner lands with one in the URL.
+  let referralMessage = null; // set after a claim attempt, read once by renderAccountCard
+
+  async function claimReferralIfPending() {
+    const code = new URLSearchParams(location.search).get("ref");
+    if (!code || !currentUser) return;
+    history.replaceState({}, "", location.pathname); // don't reclaim on refresh
+    if (code === currentUser.uid) return; // can't refer yourself
+    try {
+      const headers = await authHeaders();
+      const res = await fetch(`${API_BASE}/referral/claim`, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ code })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        trackEvent("referral_claimed");
+        referralMessage = `You and your friend each got +${data.bonusConversations} conversations/day! 🎉`;
+        await refreshBillingStatus();
+      }
+      // A 409 ("already claimed") or 400 is expected on a repeat visit with
+      // an old link still in the URL/history — fail quiet, nothing to show.
+    } catch (e) {
+      // Offline or the server's briefly unreachable — the link still works
+      // next time they land with it, so just drop this attempt.
+    }
+  }
+
+  function referralLinkFor(uid) {
+    return `${location.origin}${location.pathname}?ref=${uid}`;
+  }
+
+  async function copyReferralLink(uid) {
+    const link = referralLinkFor(uid);
+    try {
+      await navigator.clipboard.writeText(link);
+      trackEvent("referral_link_copied");
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -2409,6 +3286,7 @@
     try {
       if (authMode === "signup") {
         await fbCreateUser(firebaseAuth, email, password);
+        trackEvent("sign_up", { method: "email" });
       } else {
         await fbSignIn(firebaseAuth, email, password);
       }
@@ -2426,7 +3304,14 @@
     if (notReady) { showAuthError(notReady); return; }
     authErrorBanner.classList.remove("shown");
     try {
-      await fbSignInWithPopup(firebaseAuth, new fbGoogleProvider());
+      const result = await fbSignInWithPopup(firebaseAuth, new fbGoogleProvider());
+      // getAdditionalUserInfo tells us whether this Google account just
+      // created its first-ever account here vs. is signing back in — the
+      // popup flow is identical either way, so this is the only way to
+      // know which one just happened.
+      if (fbGetAdditionalUserInfo && fbGetAdditionalUserInfo(result)?.isNewUser) {
+        trackEvent("sign_up", { method: "google" });
+      }
       closeAuthModal();
     } catch (err) {
       const msg = friendlyAuthError(err);
@@ -2482,8 +3367,11 @@
     // polling indefinitely.
     refreshBillingStatus();
     if (new URLSearchParams(location.search).get("upgraded") === "1") {
+      trackEvent("subscription_upgraded");
       history.replaceState({}, "", location.pathname);
       setTimeout(refreshBillingStatus, 2500);
+    } else {
+      claimReferralIfPending();
     }
   }
   function handleSignedOut() {
@@ -2554,6 +3442,19 @@
     ).join("");
   }
 
+  function populateNativeLangSelect() {
+    // Deliberately doesn't reset selectedNativeLanguage when it's not (yet)
+    // in NATIVE_LANGUAGES — this can be called before /scenarios has
+    // returned the real list (e.g. a cloud sync landing first), and
+    // NATIVE_LANGUAGES is just ["English"] until then. Mutating the stored
+    // preference during that narrow window would silently discard a synced
+    // non-English choice. Once the real list is in, the next call here
+    // marks the right option selected; nothing is lost in between.
+    nativeLangSelectEl.innerHTML = NATIVE_LANGUAGES.map(lang =>
+      `<option value="${lang}"${lang === selectedNativeLanguage ? " selected" : ""}>${lang}</option>`
+    ).join("");
+  }
+
   function renderTierNav() {
     const completed = getCompletedLessons(selectedLanguage);
     tierNavEl.innerHTML = getTiersInOrder().map(tier => {
@@ -2616,6 +3517,12 @@
     renderHome();
   });
 
+  nativeLangSelectEl.addEventListener("change", () => {
+    selectedNativeLanguage = nativeLangSelectEl.value;
+    saveNativeLanguage(selectedNativeLanguage);
+    syncToCloud();
+  });
+
   // Clicking the "Echoly" wordmark — shown in the home sidebar and in every
   // other screen's topbar — always acts as a home link: leave whatever
   // screen you're on, land back on a clean default home view (whichever
@@ -2629,13 +3536,19 @@
     reviewScreen.classList.remove("active");
     wordPuzzleScreen.classList.remove("active");
     matchGameScreen.classList.remove("active");
+    quickQuizScreen.classList.remove("active");
+    listeningScreen.classList.remove("active");
+    scrambleScreen.classList.remove("active");
+    speedRoundScreen.classList.remove("active");
+    stopSpeedRoundTimer(); // no-op unless a speed round is mid-timer when this fires
     homeScreen.classList.add("active");
     selectedTier = pickDefaultTier(selectedLanguage);
     resetCustomTopicForm();
     renderHome();
     homeMainEl.scrollTo({ top: 0, behavior: "smooth" });
   }
-  [sidebarBrandBtn, chatBrandBtn, introBrandBtn, practiceBrandBtn, reviewBrandBtn, wordPuzzleBrandBtn, matchGameBrandBtn].forEach(btn => {
+  [sidebarBrandBtn, chatBrandBtn, introBrandBtn, practiceBrandBtn, reviewBrandBtn, wordPuzzleBrandBtn, matchGameBrandBtn,
+   quickQuizBrandBtn, listeningBrandBtn, scrambleBrandBtn, speedRoundBrandBtn].forEach(btn => {
     btn.addEventListener("click", goHome);
   });
 
@@ -2707,7 +3620,10 @@
         ${ttsSupported
           ? `<button class="speak-btn" type="button" data-index="${i}" aria-label="Listen">🔊</button>`
           : `<span class="phrase-emoji">💬</span>`}
-        <span class="phrase-native">${item.phrase}</span>
+        <span class="phrase-native-col">
+          <span class="phrase-native">${item.phrase}</span>
+          ${item.romanization ? `<span class="phrase-romanization">${item.romanization}</span>` : ""}
+        </span>
         <span class="phrase-en">${item.translation}</span>
       </div>`).join("");
   }
@@ -2757,12 +3673,12 @@
         fetch(`${API_BASE}/lesson-intro`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scenarioId: lesson.id, language: selectedLanguage })
+          body: JSON.stringify({ scenarioId: lesson.id, language: selectedLanguage, nativeLanguage: selectedNativeLanguage })
         }),
         fetch(`${API_BASE}/lesson-practice`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scenarioId: lesson.id, language: selectedLanguage })
+          body: JSON.stringify({ scenarioId: lesson.id, language: selectedLanguage, nativeLanguage: selectedNativeLanguage })
         }).catch(() => null)
       ]);
       const introData = await introRes.json();
@@ -2862,6 +3778,7 @@
   function renderMultipleChoice(ex) {
     practiceExerciseAreaEl.innerHTML = `
       <p class="practice-prompt">${ex.prompt}</p>
+      ${ex.promptRomanization ? `<p class="practice-romanization">${ex.promptRomanization}</p>` : ""}
       <div class="practice-options">
         ${ex.options.map((opt, i) => `<button class="practice-option" data-index="${i}">${opt}</button>`).join("")}
       </div>`;
@@ -2880,8 +3797,12 @@
     const parts = ex.sentence.split("___");
     const before = parts[0] || "";
     const after = parts.slice(1).join("___") || "";
+    // sentenceRomanization romanizes the COMPLETE correct sentence, so it's
+    // kept hidden (id="fillBlankRomanization") until checkAnswer() reveals
+    // it — showing it up front would hand over the blank's answer.
     practiceExerciseAreaEl.innerHTML = `
       <p class="practice-fill-sentence"></p>
+      <p class="practice-romanization" id="fillBlankRomanization" style="display:none"></p>
       <p class="practice-fill-translation"></p>`;
     const sentenceEl = practiceExerciseAreaEl.querySelector(".practice-fill-sentence");
     sentenceEl.appendChild(document.createTextNode(before));
@@ -2905,19 +3826,28 @@
   function renderWordBank(ex) {
     wordBankOrder = [];
     practiceExerciseAreaEl.innerHTML = `
-      <p class="practice-prompt" style="font-size:16px">${ex.englishPrompt}</p>
+      <p class="practice-prompt" style="font-size:16px">${ex.prompt}</p>
       <div class="practice-word-bank-answer" id="wordBankAnswer"></div>
       <div class="practice-word-bank-pool" id="wordBankPool"></div>`;
     renderWordBankState(ex);
   }
 
+  // Each chip's own romanization is shown under it — it helps read the
+  // word without hinting at the correct ORDER, so unlike fill_blank's
+  // sentence-level romanization it's safe to show from the start.
+  function wordChipHtml(ex, i, extraClass, disabled) {
+    const rz = (Array.isArray(ex.wordsRomanization) && ex.wordsRomanization[i]) ? ex.wordsRomanization[i] : "";
+    return `<button class="practice-word-chip${extraClass}" data-index="${i}"${disabled ? " disabled" : ""}>
+      <span class="practice-word-chip-text">${ex.words[i]}</span>
+      ${rz ? `<span class="practice-word-chip-rz">${rz}</span>` : ""}
+    </button>`;
+  }
+
   function renderWordBankState(ex) {
     const answerEl = document.getElementById("wordBankAnswer");
     const poolEl = document.getElementById("wordBankPool");
-    answerEl.innerHTML = wordBankOrder.map(i =>
-      `<button class="practice-word-chip answer-chip" data-index="${i}">${ex.words[i]}</button>`).join("");
-    poolEl.innerHTML = ex.words.map((w, i) =>
-      `<button class="practice-word-chip${wordBankOrder.includes(i) ? " placed" : ""}" data-index="${i}"${wordBankOrder.includes(i) ? " disabled" : ""}>${w}</button>`).join("");
+    answerEl.innerHTML = wordBankOrder.map(i => wordChipHtml(ex, i, " answer-chip", false)).join("");
+    poolEl.innerHTML = ex.words.map((w, i) => wordChipHtml(ex, i, wordBankOrder.includes(i) ? " placed" : "", wordBankOrder.includes(i))).join("");
 
     answerEl.querySelectorAll(".answer-chip").forEach(chip => {
       chip.addEventListener("click", () => {
@@ -2983,7 +3913,10 @@
     termsCol.innerHTML = ex.pairs.map((p, i) => {
       const matched = matchPairsState[i] !== null;
       const selected = matchSelectedTermIndex === i;
-      return `<button class="practice-match-item${matched ? " matched" : ""}${selected ? " selected" : ""}" data-index="${i}"${matched ? " disabled" : ""}>${p.term}</button>`;
+      return `<button class="practice-match-item${matched ? " matched" : ""}${selected ? " selected" : ""}" data-index="${i}"${matched ? " disabled" : ""}>
+        <span class="practice-match-term-text">${p.term}</span>
+        ${p.termRomanization ? `<span class="practice-match-term-rz">${p.termRomanization}</span>` : ""}
+      </button>`;
     }).join("");
     meaningsCol.innerHTML = matchShuffledMeanings.map(m => {
       const matched = matchPairsState.indexOf(m.originalIndex) !== -1;
@@ -3050,6 +3983,10 @@
       input.disabled = true;
       input.style.borderBottomColor = isCorrect ? "#1a9c5b" : "#d0403a";
       correctText = ex.correctAnswer; // translation is already shown under the sentence, no need to repeat it here
+      if (ex.sentenceRomanization) {
+        const rzEl = document.getElementById("fillBlankRomanization");
+        if (rzEl) { rzEl.textContent = ex.sentenceRomanization; rzEl.style.display = "block"; }
+      }
     } else if (ex.kind === "word_bank") {
       isCorrect = wordBankOrder.length === ex.correctOrder.length &&
         wordBankOrder.every((idx, i) => idx === ex.correctOrder[i]);
@@ -3148,7 +4085,10 @@
         <div class="objectives-phrase-item${seen ? " seen" : ""}">
           ${isIntroTier ? `<span class="phrase-seen-check">${seen ? "✓" : ""}</span>` : ""}
           ${ttsSupported ? `<button class="speak-btn" type="button" data-index="${i}" aria-label="Listen">🔊</button>` : ""}
-          <span class="phrase-native">${item.phrase}</span>
+          <span class="phrase-native-col">
+            <span class="phrase-native">${item.phrase}</span>
+            ${item.romanization ? `<span class="phrase-romanization">${item.romanization}</span>` : ""}
+          </span>
           <span class="phrase-en">${item.translation}</span>
         </div>`;
       }).join("")}
@@ -3216,7 +4156,7 @@
     scrollToBottom();
   }
 
-  function addAiTurn(reply, replyTranslation, tip) {
+  function addAiTurn(reply, replyTranslation, tip, replyRomanization) {
     const div = document.createElement("div");
     div.className = "turn ai";
     const bubbleRow = document.createElement("div");
@@ -3235,6 +4175,13 @@
       bubbleRow.appendChild(speakBtn);
     }
     div.appendChild(bubbleRow);
+
+    if (replyRomanization && replyRomanization.trim()) {
+      const rz = document.createElement("div");
+      rz.className = "bubble-romanization";
+      rz.textContent = replyRomanization;
+      div.appendChild(rz);
+    }
 
     const toggle = document.createElement("button");
     toggle.className = "translate-toggle";
@@ -3353,6 +4300,7 @@
         body: JSON.stringify({
           scenarioId: currentScenario.id,
           language: selectedLanguage,
+          nativeLanguage: selectedNativeLanguage,
           history,
           message: text,
           objectives: currentObjectives,
@@ -3432,7 +4380,7 @@
         }
       }
       history.push({ role: "assistant", content: data.reply });
-      addAiTurn(data.reply, data.replyTranslation, data.tip);
+      addAiTurn(data.reply, data.replyTranslation, data.tip, data.replyRomanization);
       if (justCompleted) addCompletionBanner(streakIncreased, streakAfter);
 
     } catch (err) {
@@ -3476,10 +4424,25 @@
     const orig = document.createElement("div");
     orig.className = "lookup-original";
     orig.textContent = `"${data.phrase}"`;
+    translationDiv.appendChild(orig);
+    // phraseRomanization/translationRomanization are only ever filled in on
+    // whichever of these two is actually in the target language — see
+    // buildLookupPrompt server-side — so at most one of these two renders.
+    if (data.phraseRomanization) {
+      const origRz = document.createElement("div");
+      origRz.className = "lookup-romanization";
+      origRz.textContent = data.phraseRomanization;
+      translationDiv.appendChild(origRz);
+    }
     const trans = document.createElement("div");
     trans.textContent = data.translation;
-    translationDiv.appendChild(orig);
     translationDiv.appendChild(trans);
+    if (data.translationRomanization) {
+      const transRz = document.createElement("div");
+      transRz.className = "lookup-romanization";
+      transRz.textContent = data.translationRomanization;
+      translationDiv.appendChild(transRz);
+    }
     lookupResultsEl.appendChild(translationDiv);
 
     if (Array.isArray(data.relatedPhrases) && data.relatedPhrases.length) {
@@ -3493,13 +4456,22 @@
       data.relatedPhrases.forEach(item => {
         const row = document.createElement("div");
         row.className = "lookup-related-item";
+        const phraseCol = document.createElement("span");
+        phraseCol.className = "rel-phrase-col";
         const phraseSpan = document.createElement("span");
         phraseSpan.className = "rel-phrase";
         phraseSpan.textContent = item.phrase;
+        phraseCol.appendChild(phraseSpan);
+        if (item.romanization) {
+          const rzSpan = document.createElement("span");
+          rzSpan.className = "rel-romanization";
+          rzSpan.textContent = item.romanization;
+          phraseCol.appendChild(rzSpan);
+        }
         const transSpan = document.createElement("span");
         transSpan.className = "rel-translation";
         transSpan.textContent = item.translation;
-        row.appendChild(phraseSpan);
+        row.appendChild(phraseCol);
         row.appendChild(transSpan);
         list.appendChild(row);
       });
@@ -3539,6 +4511,7 @@
         body: JSON.stringify({
           phrase,
           language: selectedLanguage,
+          nativeLanguage: selectedNativeLanguage,
           scenarioId: currentScenario ? currentScenario.id : null
         })
       });
@@ -3599,9 +4572,11 @@
       }
       PATH = data.scenarios;
       LANGUAGES = data.languages;
+      NATIVE_LANGUAGES = Array.isArray(data.nativeLanguages) && data.nativeLanguages.length ? data.nativeLanguages : ["English", ...LANGUAGES];
       selectedLanguage = LANGUAGES[0];
       selectedTier = pickDefaultTier(selectedLanguage);
       populateLangSelect();
+      populateNativeLangSelect();
       renderHome();
     } catch (err) {
       mainTierTitleEl.textContent = "";
