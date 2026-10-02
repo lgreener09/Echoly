@@ -11,7 +11,6 @@ const Stripe = require("stripe");
 // imports now.
 const { initializeApp, cert } = require("firebase-admin/app");
 const { getAuth } = require("firebase-admin/auth");
-const { getFirestore } = require("firebase-admin/firestore");
 
 const app = express();
 
@@ -49,24 +48,20 @@ app.use(express.json({
 
 // ==============================
 // Firebase Admin — verifies the ID token a signed-in learner's browser sends,
-// so the server knows *who* is calling (used for everything below), and also
-// gives the server its own Firestore access via `db`, used only for billing
-// state (see the "Billing state" section below) — everything else a learner
-// sees (progress, streak, vocab) stays exactly as it was: written directly
-// by the client, secured by Firestore rules, never touched here. Optional:
+// so the server knows *who* is calling without ever touching Firestore
+// directly (Firestore itself stays entirely client-only, exactly as before —
+// this is only used to check "is this really uid X", nothing else). Optional:
 // if no service account is configured, signed-in-only features (premium,
 // the free-tier daily cap) simply don't activate and every request is
 // treated as a guest, same as before this feature existed.
 // ==============================
 let firebaseAdminReady = false;
-let db = null;
 try {
     if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
         initializeApp({
             credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON))
         });
         firebaseAdminReady = true;
-        db = getFirestore();
     }
 } catch (error) {
     console.error("Firebase Admin failed to initialize — check FIREBASE_SERVICE_ACCOUNT_JSON:", error.message);
@@ -104,70 +99,21 @@ function getStripe() {
     return stripeClient;
 }
 
-// Billing state (premium status + Stripe customer id) is the one piece of
-// per-user state that's genuinely expensive to lose: unlike the caches below,
-// losing it doesn't just cost a cache miss or reset something free — it
-// makes someone who is actively paying look like a free user, capped at
-// FREE_DAILY_CONVERSATIONS, until their next Stripe webhook happens to fire
-// (which, for a stable subscription with no changes, can be a month away at
-// renewal). So this lives in Firestore — the `billing` collection, one doc
-// per uid, written only by this server via the Admin SDK and never touched
-// by the client — rather than a plain in-memory Map, and survives a Render
-// free-tier sleep/restart intact. `db` is null when Firebase Admin isn't
-// configured (see above); every helper below treats that the same as "no
-// record yet" so billing simply stays inactive rather than erroring.
-function billingCollection() {
-    return db.collection("billing");
-}
-
-async function getBillingRecord(uid) {
-    if (!db) return { premium: false, stripeCustomerId: null };
-    const snap = await billingCollection().doc(uid).get();
-    if (!snap.exists) return { premium: false, stripeCustomerId: null };
-    const data = snap.data();
-    return { premium: data.premium === true, stripeCustomerId: data.stripeCustomerId || null };
-}
-
-async function setBillingRecord(uid, fields) {
-    if (!db) return;
-    await billingCollection().doc(uid).set(fields, { merge: true });
-}
-
-// Recovers the uid for a Stripe customer id from Firestore. Falls back to
-// the metadata set when the customer was created (belt-and-suspenders for a
-// customer whose billing doc write hasn't landed yet) — same fallback this
-// had before Firestore backed it, just reached a different way.
-async function uidForStripeCustomer(customerId) {
-    if (!db) return null;
-    const snap = await billingCollection().where("stripeCustomerId", "==", customerId).limit(1).get();
-    if (!snap.empty) return snap.docs[0].id;
-    try {
-        const customer = await getStripe().customers.retrieve(customerId);
-        return customer?.metadata?.firebaseUid || null;
-    } catch (error) {
-        return null;
-    }
-}
-
-// Everything below is still a plain in-memory Map, and deliberately so — a
-// reset here (a Render free-tier sleep/restart) just means a free learner's
-// daily count or referral bonus starts over, which costs nothing anyone paid
-// for. That's a different risk than the billing state above, so it keeps the
-// original, simpler tradeoff: free to add, no Firestore round-trip per
-// request, nothing lost that matters.
+// In-memory entitlement + usage tracking — same tradeoff as the lesson
+// caches below (free to add, no new service to run, and it resets on a
+// Render free-tier sleep/restart). A reset here just means a premium
+// learner's status gets re-confirmed by Stripe on their next checkout/portal
+// visit or webhook event, and a free learner's daily count starts over —
+// nothing is lost permanently. Move this to Firestore if/when the app is on
+// an always-on plan, or ever runs as more than one instance.
+const premiumByUid = new Map();         // uid -> true while an active subscription exists
+const stripeCustomerByUid = new Map();  // uid -> Stripe customer id
 const dailyConvoCountByUid = new Map(); // "uid::YYYY-MM-DD" -> count
-const referralBonusByUid = new Map();   // uid -> extra conversations/day earned from referrals (added to FREE_DAILY_CONVERSATIONS, not consumed — same reset tradeoff as the maps above)
-const referredByUid = new Map();        // uid -> the uid of whoever referred them, set once the first time a referral is claimed
 
 const FREE_DAILY_CONVERSATIONS = 20;
-const REFERRAL_BONUS_CONVERSATIONS = 10; // added to both sides' daily limit when a referral is claimed
 
 function todayKeyFor(uid) {
     return `${uid}::${new Date().toISOString().slice(0, 10)}`;
-}
-
-function dailyLimitFor(uid) {
-    return FREE_DAILY_CONVERSATIONS + (referralBonusByUid.get(uid) || 0);
 }
 
 // ==============================
@@ -279,7 +225,7 @@ const practiceLimiter = rateLimit({
     message: { error: "Too many practice rounds started recently. Please wait a few minutes and try again." }
 });
 
-// Serves the frontend (index.html = landing page, app.html = the app; one level up from this server/ folder)
+// Serves the frontend (index.html, one level up from this server/ folder)
 // from this same Express app — one service, one URL, no CORS setup needed
 // between two different domains. Locally, open http://localhost:3000 during
 // development (not index.html directly).
@@ -1552,24 +1498,14 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
         // Anonymous use keeps relying solely on the IP limiter above, same as
         // before this feature existed: there's no account to bill or track a
         // fair cap against yet, so gating a guest here would just add friction
-        // with no way for them to upgrade past it. Fetched once here and
-        // reused below (rather than a second Firestore read after the reply)
-        // so a signed-in learner's turn costs at most one billing lookup.
-        const isPremium = req.uid ? (await getBillingRecord(req.uid)).premium : false;
-        // The cap counts CONVERSATIONS, not messages: only the opening turn of
-        // a conversation (the client's "__START__", sent with an empty
-        // history) is checked and counted. Previously every message counted,
-        // so "20 free conversations" ran out after roughly four real ones,
-        // and a learner could be cut off mid-conversation.
-        const isNewConversation = message === "__START__" || !Array.isArray(history) || history.length === 0;
-        if (req.uid && !isPremium && isNewConversation) {
+        // with no way for them to upgrade past it.
+        if (req.uid && !premiumByUid.get(req.uid)) {
             const usedSoFar = dailyConvoCountByUid.get(todayKeyFor(req.uid)) || 0;
-            const limit = dailyLimitFor(req.uid);
-            if (usedSoFar >= limit) {
+            if (usedSoFar >= FREE_DAILY_CONVERSATIONS) {
                 return res.status(402).json({
                     error: "You've used today's free conversations.",
                     upgradeRequired: true,
-                    dailyLimit: limit
+                    dailyLimit: FREE_DAILY_CONVERSATIONS
                 });
             }
         }
@@ -1646,9 +1582,9 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
 
         const result = JSON.parse(response.output_text);
 
-        // Only a successfully started conversation counts against the daily
-        // cap — a failed call shouldn't cost the learner part of their allowance.
-        if (req.uid && !isPremium && isNewConversation) {
+        // Only successful turns count against the daily cap — a failed call
+        // shouldn't cost the learner part of their free allowance.
+        if (req.uid && !premiumByUid.get(req.uid)) {
             const key = todayKeyFor(req.uid);
             dailyConvoCountByUid.set(key, (dailyConvoCountByUid.get(key) || 0) + 1);
         }
@@ -1843,53 +1779,18 @@ app.post("/lookup", lookupLimiter, async (req, res) => {
 // premium, and if not, how many of today's free conversations are left.
 // Guests (no valid token) just get signedIn: false; the frontend treats that
 // the same as it always has, with no cap shown at all.
-app.get("/billing/status", attachUserIfSignedIn, async (req, res) => {
+app.get("/billing/status", attachUserIfSignedIn, (req, res) => {
     if (!req.uid) {
         return res.json({ signedIn: false, premium: false });
     }
-    const isPremium = (await getBillingRecord(req.uid)).premium;
+    const isPremium = premiumByUid.get(req.uid) === true;
     const used = dailyConvoCountByUid.get(todayKeyFor(req.uid)) || 0;
-    const limit = dailyLimitFor(req.uid);
     res.json({
         signedIn: true,
         premium: isPremium,
-        dailyLimit: limit,
+        dailyLimit: FREE_DAILY_CONVERSATIONS,
         dailyUsed: isPremium ? 0 : used,
-        dailyRemaining: isPremium ? null : Math.max(0, limit - used),
-        referralCode: req.uid,
-        referralBonus: referralBonusByUid.get(req.uid) || 0,
-        hasClaimedReferral: referredByUid.has(req.uid)
-    });
-});
-
-// POST /referral/claim — a new (or at least first-time-claiming) signed-in
-// learner redeems a friend's referral code (their friend's uid). Bumps both
-// sides' daily free-conversation limit by REFERRAL_BONUS_CONVERSATIONS, once
-// per learner — claiming again, or claiming your own code, is rejected.
-// Doesn't verify the code belongs to a real Firebase user — the only
-// downside of a made-up code is a harmless, unclaimed bonus sitting on a
-// uid nobody owns, not worth a Firebase Admin lookup to prevent.
-app.post("/referral/claim", attachUserIfSignedIn, (req, res) => {
-    if (!req.uid) {
-        return res.status(401).json({ error: "Sign in first to claim a referral." });
-    }
-    const code = typeof req.body?.code === "string" ? req.body.code.trim() : "";
-    if (!code) {
-        return res.status(400).json({ error: "Missing referral code." });
-    }
-    if (code === req.uid) {
-        return res.status(400).json({ error: "You can't refer yourself." });
-    }
-    if (referredByUid.has(req.uid)) {
-        return res.status(409).json({ error: "You've already claimed a referral bonus." });
-    }
-    referredByUid.set(req.uid, code);
-    referralBonusByUid.set(req.uid, (referralBonusByUid.get(req.uid) || 0) + REFERRAL_BONUS_CONVERSATIONS);
-    referralBonusByUid.set(code, (referralBonusByUid.get(code) || 0) + REFERRAL_BONUS_CONVERSATIONS);
-    res.json({
-        success: true,
-        bonusConversations: REFERRAL_BONUS_CONVERSATIONS,
-        newDailyLimit: dailyLimitFor(req.uid)
+        dailyRemaining: isPremium ? null : Math.max(0, FREE_DAILY_CONVERSATIONS - used)
     });
 });
 
@@ -1903,19 +1804,19 @@ app.post("/billing/create-checkout-session", attachUserIfSignedIn, async (req, r
         return res.status(500).json({ error: "Billing isn't configured yet." });
     }
     try {
-        let { stripeCustomerId: customerId } = await getBillingRecord(req.uid);
+        let customerId = stripeCustomerByUid.get(req.uid);
         if (!customerId) {
             const email = typeof req.body?.email === "string" ? req.body.email : undefined;
             const customer = await getStripe().customers.create({
                 email,
-                // Belt-and-suspenders alongside client_reference_id below — if
-                // this customer's billing doc write below is somehow delayed or
-                // lost, this metadata is a durable fallback for the webhook to
-                // recover the uid from (see uidForStripeCustomer above).
+                // Belt-and-suspenders alongside client_reference_id below — if the
+                // in-memory stripeCustomerByUid map ever resets (a Render restart)
+                // between checkout and the webhook firing, this metadata is a
+                // durable fallback for the webhook to recover the uid from.
                 metadata: { firebaseUid: req.uid }
             });
             customerId = customer.id;
-            await setBillingRecord(req.uid, { stripeCustomerId: customerId });
+            stripeCustomerByUid.set(req.uid, customerId);
         }
         const origin = req.get("origin") || `${req.protocol}://${req.get("host")}`;
         const session = await getStripe().checkout.sessions.create({
@@ -1923,13 +1824,8 @@ app.post("/billing/create-checkout-session", attachUserIfSignedIn, async (req, r
             customer: customerId,
             client_reference_id: req.uid,
             line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
-            success_url: `${origin}/app.html?upgraded=1`,
-            cancel_url: `${origin}/app.html`,
-            // Managed Payments (Stripe's newer opt-out-by-default feature) requires
-            // every product to have a tax code assigned before Checkout will let it
-            // through. We're not using Stripe Tax here, so opt this session out
-            // rather than forcing a tax_code onto the product.
-            managed_payments: { enabled: false }
+            success_url: `${origin}/?upgraded=1`,
+            cancel_url: `${origin}/`
         });
         res.json({ url: session.url });
     } catch (error) {
@@ -1944,7 +1840,7 @@ app.post("/billing/create-portal-session", attachUserIfSignedIn, async (req, res
     if (!req.uid) {
         return res.status(401).json({ error: "Sign in first." });
     }
-    const { stripeCustomerId: customerId } = await getBillingRecord(req.uid);
+    const customerId = stripeCustomerByUid.get(req.uid);
     if (!customerId) {
         return res.status(404).json({ error: "No billing account found for this user yet." });
     }
@@ -1952,7 +1848,7 @@ app.post("/billing/create-portal-session", attachUserIfSignedIn, async (req, res
         const origin = req.get("origin") || `${req.protocol}://${req.get("host")}`;
         const session = await getStripe().billingPortal.sessions.create({
             customer: customerId,
-            return_url: `${origin}/app.html`
+            return_url: `${origin}/`
         });
         res.json({ url: session.url });
     } catch (error) {
@@ -1984,31 +1880,44 @@ app.post("/webhooks/stripe", async (req, res) => {
         return res.status(400).json({ error: "Invalid signature." });
     }
 
+    // Recovers the uid for a Stripe customer id when it's not already in the
+    // in-memory map (e.g. the server restarted between checkout and this
+    // event) by falling back to the metadata set when the customer was created.
+    async function uidForCustomer(customerId) {
+        for (const [uid, id] of stripeCustomerByUid.entries()) {
+            if (id === customerId) return uid;
+        }
+        try {
+            const customer = await getStripe().customers.retrieve(customerId);
+            return customer?.metadata?.firebaseUid || null;
+        } catch (error) {
+            return null;
+        }
+    }
+
     try {
         switch (event.type) {
             case "checkout.session.completed": {
                 const session = event.data.object;
                 if (session.client_reference_id && session.customer) {
-                    await setBillingRecord(session.client_reference_id, { stripeCustomerId: session.customer });
+                    stripeCustomerByUid.set(session.client_reference_id, session.customer);
                 }
                 break;
             }
             case "customer.subscription.created":
             case "customer.subscription.updated": {
                 const sub = event.data.object;
-                const uid = await uidForStripeCustomer(sub.customer);
+                const uid = await uidForCustomer(sub.customer);
                 if (uid) {
-                    await setBillingRecord(uid, {
-                        stripeCustomerId: sub.customer,
-                        premium: sub.status === "active" || sub.status === "trialing"
-                    });
+                    stripeCustomerByUid.set(uid, sub.customer);
+                    premiumByUid.set(uid, sub.status === "active" || sub.status === "trialing");
                 }
                 break;
             }
             case "customer.subscription.deleted": {
                 const sub = event.data.object;
-                const uid = await uidForStripeCustomer(sub.customer);
-                if (uid) await setBillingRecord(uid, { premium: false });
+                const uid = await uidForCustomer(sub.customer);
+                if (uid) premiumByUid.set(uid, false);
                 break;
             }
         }
