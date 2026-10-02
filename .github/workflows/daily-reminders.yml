@@ -1,0 +1,38 @@
+# Calls the Echoly server once an hour to send any daily practice reminder
+# emails that are due (see server/reminders.js). The server decides who gets
+# one — this just knocks on the door.
+#
+# Setup (one time): GitHub repo → Settings → Secrets and variables → Actions
+# → New repository secret → name CRON_SECRET, value = the same CRON_SECRET
+# you set on Render.
+#
+# Note: GitHub pauses scheduled workflows in repos with no commits for 60
+# days. If reminders ever stop, check the Actions tab and re-enable it.
+name: Daily reminder emails
+
+on:
+  schedule:
+    - cron: "17 * * * *"   # every hour at :17
+  workflow_dispatch: {}     # lets you run it by hand from the Actions tab
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger reminder run
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: https://echoly-enjr.onrender.com
+        run: |
+          if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET secret not set yet; skipping."; exit 0; fi
+          # Render's free tier sleeps when idle, so the first request can take
+          # up to a minute while it wakes up. Retry a few times.
+          for i in 1 2 3; do
+            code=$(curl -s -o response.json -w "%{http_code}" --max-time 240 \
+              -X POST -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/cron/send-reminders")
+            echo "Attempt $i: HTTP $code"; cat response.json; echo
+            if [ "$code" = "200" ] || [ "$code" = "409" ] || [ "$code" = "503" ]; then exit 0; fi
+            sleep 30
+          done
+          exit 1

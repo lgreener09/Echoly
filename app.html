@@ -227,6 +227,26 @@
     .today-go { width: 100%; }
   }
 
+  /* Daily reminder email: toggle in the account card + one-time prompt on home */
+  .account-reminder {
+    display: flex; align-items: center; gap: 9px; margin: 2px 0 12px; font-size: 12.5px;
+    color: rgba(242,236,230,0.85); cursor: pointer; line-height: 1.35;
+  }
+  .account-reminder input { width: 16px; height: 16px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer; }
+  .reminder-prompt {
+    display: none; align-items: center; gap: 12px; flex-wrap: wrap; max-width: 640px; margin: 0 0 16px;
+    padding: 13px 15px; background: var(--surface); border: 1.5px solid var(--accent); border-radius: 14px;
+  }
+  .reminder-prompt.shown { display: flex; }
+  .reminder-prompt-text { flex: 1; min-width: 220px; font-size: 13.5px; line-height: 1.4; }
+  .reminder-prompt-text b { display: block; font-family: 'Bricolage Grotesque', sans-serif; font-size: 15px; }
+  .reminder-prompt-actions { display: flex; gap: 8px; }
+  .reminder-prompt-actions button {
+    border-radius: 9px; padding: 8px 14px; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .reminder-yes { background: var(--accent); color: #fff; border: none; }
+  .reminder-no { background: var(--bg); color: var(--ink-soft); border: 1.5px solid var(--border); }
+
   /* Guest "save your progress" nudge, shown in the chat after a guest's
      first finished conversation. */
   .guest-save-card {
@@ -1173,6 +1193,14 @@
         <span class="streak-nudge-text" id="streakNudgeText"></span>
         <button type="button" class="streak-nudge-dismiss" id="streakNudgeDismissBtn" aria-label="Dismiss">✕</button>
       </div>
+      <div class="reminder-prompt" id="reminderPrompt">
+        <span style="font-size:22px">📬</span>
+        <span class="reminder-prompt-text"><b>Want a nudge each evening?</b>Get one short email with your next conversation, only on days you haven't practiced yet.</span>
+        <span class="reminder-prompt-actions">
+          <button type="button" class="reminder-yes" id="reminderYesBtn">Yes, remind me</button>
+          <button type="button" class="reminder-no" id="reminderNoBtn">No thanks</button>
+        </span>
+      </div>
       <section class="today-card" id="todayCard" style="display:none">
         <p class="today-eyebrow" id="todayEyebrow">Today's conversation</p>
         <div class="today-main">
@@ -1802,6 +1830,30 @@
   }
   function saveOnboarding(o) {
     try { localStorage.setItem(ONBOARDING_KEY, JSON.stringify(o)); } catch (e) { /* non-fatal */ }
+  }
+
+  // ---------- Daily reminder email preference (signed-in learners only) ----------
+  // { enabled, decided, tz, updatedAt } — synced to users/{uid} with the rest
+  // of the snapshot, where the server's hourly reminder job reads it (see
+  // server/reminders.js). Opt-in only; off until the learner says yes.
+  const REMINDERS_KEY = "echoly_reminders_v1";
+  function loadReminderPrefs() {
+    try {
+      const o = JSON.parse(localStorage.getItem(REMINDERS_KEY) || "null");
+      return (o && typeof o === "object") ? o : {};
+    } catch (e) { return {}; }
+  }
+  function saveReminderPrefs(o) {
+    try { localStorage.setItem(REMINDERS_KEY, JSON.stringify(o)); } catch (e) { /* non-fatal */ }
+  }
+  function setRemindersEnabled(enabled) {
+    let tz = "America/Toronto";
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || tz; } catch (e) { /* keep default */ }
+    saveReminderPrefs({ enabled: !!enabled, decided: true, tz, updatedAt: new Date().toISOString() });
+    trackEvent(enabled ? "reminders_on" : "reminders_off");
+    syncToCloud();
+    renderAccountCard();
+    renderReminderPrompt();
   }
 
   // Each goal shapes the home screen's quick-start conversations. The last
@@ -3262,7 +3314,7 @@
   // progress, streak, and vocab — as a single snapshot. Firestore security
   // rules restrict a document to its own owner (see the project README).
   function localDataSnapshot() {
-    return { progress: loadAllProgress(), streak: loadStreakData(), vocab: loadVocabBank(), tips: loadTipsHistory(), convoCounts: loadConvoCounts(), nativeLanguage: selectedNativeLanguage, onboarding: loadOnboarding() };
+    return { progress: loadAllProgress(), streak: loadStreakData(), vocab: loadVocabBank(), tips: loadTipsHistory(), convoCounts: loadConvoCounts(), nativeLanguage: selectedNativeLanguage, onboarding: loadOnboarding(), reminders: loadReminderPrefs() };
   }
   function applyCloudSnapshot(data) {
     if (data && data.progress) saveAllProgress(data.progress);
@@ -3270,6 +3322,9 @@
     if (data && data.vocab) saveVocabBank(data.vocab);
     if (data && data.tips) saveTipsHistory(data.tips);
     if (data && data.convoCounts) saveConvoCounts(data.convoCounts);
+    if (data && data.reminders && typeof data.reminders === "object") {
+      saveReminderPrefs(data.reminders);
+    }
     if (data && data.onboarding && typeof data.onboarding === "object") {
       saveOnboarding(data.onboarding);
       // If the lesson path has already loaded, switch to the synced
@@ -3321,6 +3376,7 @@
         ${planBadge}<br>
         ${referralBonusHtml}
         ${claimBannerHtml}
+        <label class="account-reminder"><input type="checkbox" id="accountReminderToggle"${loadReminderPrefs().enabled ? " checked" : ""}> 📬 Daily practice reminder email</label>
         ${planBtn}
         <button class="account-btn account-btn--ghost" id="accountInviteBtn">Invite a friend</button>
         <button class="account-btn account-btn--ghost" id="accountSignOutBtn">Sign out</button>`;
@@ -3330,6 +3386,7 @@
       b.textContent = currentUser.email || "you";
       statusEl.appendChild(b);
       document.getElementById("accountSignOutBtn").addEventListener("click", () => fbSignOut(firebaseAuth));
+      document.getElementById("accountReminderToggle").addEventListener("change", e => setRemindersEnabled(e.target.checked));
       const upgradeBtn = document.getElementById("accountUpgradeBtn");
       if (upgradeBtn) upgradeBtn.addEventListener("click", startCheckout);
       const manageBtn = document.getElementById("accountManageBillingBtn");
@@ -3689,7 +3746,11 @@
   function handleSignedOut() {
     authResolved = true;
     currentUser = null;
+    // Email-reminder consent belongs to the account that gave it — never let
+    // a different account signing in later on this browser inherit it.
+    try { localStorage.removeItem(REMINDERS_KEY); } catch (e) { /* non-fatal */ }
     renderAccountCard();
+    renderReminderPrompt();
     if (requestedAuthMode && !requestedAuthModeConsumed) {
       requestedAuthModeConsumed = true;
       enterApp({ skipOnboarding: true });
@@ -3962,7 +4023,24 @@
     }
   });
 
+  // Asked once, to signed-in learners who've finished at least one
+  // conversation — after a win, when a reminder actually sounds useful.
+  function renderReminderPrompt() {
+    const el = document.getElementById("reminderPrompt");
+    const prefs = loadReminderPrefs();
+    const finishedOne = !!loadStreakData().lastActiveDate;
+    el.classList.toggle("shown", !!(accountsEnabled && currentUser && !prefs.decided && finishedOne));
+  }
+  document.getElementById("reminderYesBtn").addEventListener("click", () => setRemindersEnabled(true));
+  document.getElementById("reminderNoBtn").addEventListener("click", () => {
+    saveReminderPrefs({ ...loadReminderPrefs(), enabled: false, decided: true, updatedAt: new Date().toISOString() });
+    trackEvent("reminders_declined");
+    syncToCloud();
+    renderReminderPrompt();
+  });
+
   function renderHome() {
+    renderReminderPrompt();
     renderTodayCard();
     renderTierNav();
     renderLessonRows();

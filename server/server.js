@@ -283,6 +283,9 @@ const practiceLimiter = rateLimit({
 // from this same Express app — one service, one URL, no CORS setup needed
 // between two different domains. Locally, open http://localhost:3000 during
 // development (not index.html directly).
+// The static root is the whole project folder, which includes this
+// server/ folder — don't serve the server's own source files to the web.
+app.use("/server", (req, res) => res.status(404).end());
 app.use(express.static(path.join(__dirname, "..")));
 
 // ==============================
@@ -2018,6 +2021,10 @@ app.post("/webhooks/stripe", async (req, res) => {
         res.status(500).json({ error: "Webhook handling failed." });
     }
 });
+
+// Daily practice reminder emails — opt-in, off until configured. See
+// reminders.js for how it works and which environment variables turn it on.
+require("./reminders")({ app, getDb: () => db, getAuth, SCENARIOS });
 
 // Render (and most hosts) assign their own port via the PORT environment
 // variable — the app has to listen on whatever they hand it, not a
