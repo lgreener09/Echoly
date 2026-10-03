@@ -391,8 +391,62 @@ const SCENARIOS = {
         character: "a warm, patient language tutor teaching phrases every beginner needs early on",
         opening: "greet the learner and teach them how to say \"I don't understand\""
     },
+    // Added after launch, at the END of the Intro tier so nobody's place in
+    // the path moved. cafe_order's `unlockAfter` keeps the first Beginner
+    // lesson open for anyone who'd already finished the original Intro
+    // tier (it used to follow asking_for_help_basics directly).
+    how_do_you_say_basics: {
+        tier: "Intro",
+        title: "How Do You Say…?",
+        blurb: "Ask what words mean and how to say things, so you can keep going when you're stuck.",
+        icon: "💬",
+        character: "a warm, patient language tutor teaching the phrases that rescue any conversation",
+        opening: "greet the learner and teach them how to ask \"How do you say…?\", then invite them to try it"
+    },
+    ordering_basics: {
+        tier: "Intro",
+        title: "Ordering Food & Drinks",
+        blurb: "Say \"I'd like…\" and ask for water, coffee, the menu and the bill.",
+        icon: "🥤",
+        character: "a warm, patient language tutor teaching the first words you need to order at a café or restaurant",
+        opening: "greet the learner and teach them how to say \"I'd like…\", then invite them to try it"
+    },
+    where_is_basics: {
+        tier: "Intro",
+        title: "Where Is…?",
+        blurb: "Ask where things are, and understand left, right and straight ahead.",
+        icon: "📍",
+        character: "a warm, patient language tutor teaching how to ask for and understand simple directions",
+        opening: "greet the learner and teach them how to ask \"Where is the bathroom?\", then invite them to try it"
+    },
+    prices_basics: {
+        tier: "Intro",
+        title: "Prices & Paying",
+        blurb: "Ask how much something costs and say how you'd like to pay.",
+        icon: "💳",
+        character: "a warm, patient language tutor teaching the words for prices, money and paying",
+        opening: "greet the learner and teach them how to ask \"How much is it?\", then invite them to try it"
+    },
+    likes_basics: {
+        tier: "Intro",
+        title: "Likes & Dislikes",
+        blurb: "Say what you like, love and don't like, the heart of every bit of small talk.",
+        icon: "❤️",
+        character: "a warm, patient language tutor teaching how to talk about what you like and don't like",
+        opening: "greet the learner and teach them how to say \"I like…\", then invite them to try it"
+    },
+    first_conversation: {
+        tier: "Intro",
+        title: "Your First Real Conversation",
+        blurb: "Put it all together in a relaxed chat with a friendly local, using what you've learned.",
+        icon: "🏆",
+        milestone: true,
+        character: "a friendly local the learner has just met at a café, who chats slowly and kindly, reacting naturally to what the learner says and asking simple follow-up questions",
+        opening: "greet the learner warmly, as a friendly stranger at the next table would, and ask how they are"
+    },
     cafe_order: {
         tier: "Beginner",
+        unlockAfter: "asking_for_help_basics",
         title: "Order a coffee",
         blurb: "Practice ordering at a café counter.",
         icon: "☕",
@@ -1534,7 +1588,8 @@ app.get("/", (req, res) => {
 
 app.get("/scenarios", (req, res) => {
     const list = Object.entries(SCENARIOS).map(([id, s]) => ({
-        id, tier: s.tier, title: s.title, blurb: s.blurb, icon: s.icon
+        id, tier: s.tier, title: s.title, blurb: s.blurb, icon: s.icon,
+        unlockAfter: s.unlockAfter || undefined, milestone: s.milestone || undefined
     }));
     res.json({ scenarios: list, languages: LANGUAGES, nativeLanguages: NATIVE_LANGUAGES });
 });

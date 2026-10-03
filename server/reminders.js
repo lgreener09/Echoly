@@ -133,7 +133,10 @@ function buildPlan(userDoc, SCENARIOS) {
     const onboarding = (userDoc && userDoc.onboarding) || {};
     const language = onboarding.language || Object.keys(progress)[0] || "Spanish";
     const completed = (progress[language] && Array.isArray(progress[language].completed)) ? progress[language].completed : [];
-    const nextId = Object.keys(SCENARIOS).find(id => !completed.includes(id));
+    // Same rule as the app: Intro lessons added after a learner moved on to
+    // later tiers don't count as their "next" lesson.
+    const movedOn = Object.keys(SCENARIOS).some(id => SCENARIOS[id].tier !== "Intro" && completed.includes(id));
+    const nextId = Object.keys(SCENARIOS).find(id => !completed.includes(id) && !(movedOn && SCENARIOS[id].tier === "Intro"));
     const next = nextId ? { id: nextId, ...SCENARIOS[nextId] } : null;
     const topics = GOAL_TOPICS[onboarding.goal] || GOAL_TOPICS.fun;
     return { language, next, topics, completedCount: completed.length };

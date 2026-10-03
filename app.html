@@ -3835,7 +3835,19 @@
     const lesson = PATH[index];
     if (completed.includes(lesson.id)) return "completed";
     if (index === 0 || completed.includes(PATH[index - 1].id)) return "current";
+    // Lessons added to the Intro tier after launch sit in front of the first
+    // Beginner lesson; `unlockAfter` keeps it open for learners who'd already
+    // reached it, so nobody gets locked out of where they were.
+    if (lesson.unlockAfter && completed.includes(lesson.unlockAfter)) return "current";
     return "locked";
+  }
+  // The learner's next lesson. Intro lessons they skipped past (because they
+  // were added after the learner had moved on to later tiers) don't drag
+  // them back to the start; those stay available in the Intro list.
+  function findNextLesson(language) {
+    const completed = getCompletedLessons(language);
+    const movedOn = PATH.some(l => l.tier !== "Intro" && completed.includes(l.id));
+    return PATH.find(l => !completed.includes(l.id) && !(movedOn && l.tier === "Intro")) || null;
   }
 
   // Tier order is derived from PATH itself (first-appearance order) rather
@@ -3852,8 +3864,7 @@
   // not-yet-completed lesson in path order, falling back to the first tier if
   // everything (or nothing) is complete.
   function pickDefaultTier(language) {
-    const completed = getCompletedLessons(language);
-    const nextLesson = PATH.find(lesson => !completed.includes(lesson.id));
+    const nextLesson = findNextLesson(language);
     return (nextLesson || PATH[0]).tier;
   }
 
@@ -4053,8 +4064,7 @@
   let todayTopics = [];
   function renderTodayCard() {
     if (!PATH.length || !selectedLanguage) { todayCardEl.style.display = "none"; return; }
-    const completed = getCompletedLessons(selectedLanguage);
-    todayNextLesson = PATH.find(l => !completed.includes(l.id)) || null;
+    todayNextLesson = findNextLesson(selectedLanguage);
     const goal = GOALS[loadOnboarding().goal] || null;
     document.getElementById("todayEyebrow").textContent = goal
       ? `Today's ${selectedLanguage} conversation · ${goal.eyebrow}`
@@ -4869,7 +4879,11 @@
     // A learner-typed topic isn't part of the lesson path, so nothing
     // gets unlocked by finishing one.
     const isCustom = currentScenario && currentScenario.id === CUSTOM_SCENARIO_ID;
-    const base = isCustom ? "🎉 Conversation complete!" : "🎉 Lesson complete — next one unlocked!";
+    const isMilestone = currentScenario && currentScenario.milestone;
+    const base = isMilestone
+      ? `🏆 You just had your first real conversation in ${selectedLanguage}!`
+      : (isCustom ? "🎉 Conversation complete!" : "🎉 Lesson complete — next one unlocked!");
+    if (isMilestone) trackEvent("first_conversation_completed", { language: selectedLanguage });
     div.textContent = streakIncreased ? `${base} 🔥 ${streakCount} day streak!` : base;
     chatLogEl.appendChild(div);
     scrollToBottom();
@@ -4887,6 +4901,9 @@
     return `${base}?${params.toString()}`;
   }
   function shareWinText() {
+    if (currentScenario && currentScenario.milestone) {
+      return `I just had my first real conversation in ${selectedLanguage} on Echoly! Try it free:`;
+    }
     const what = currentScenario && currentScenario.id !== CUSTOM_SCENARIO_ID
       ? `"${currentScenario.title}"`
       : "a real conversation";
