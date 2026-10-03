@@ -155,6 +155,11 @@
   .onb-skip { background: none; border: none; color: var(--ink-soft); font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
   .onb-skip:hover { color: var(--ink); text-decoration: underline; }
   .onb-dots { display: flex; gap: 6px; margin-bottom: 14px; }
+  .onb-mascot { display: block; width: 120px; height: auto; margin: -14px 0 10px; }
+  @media (max-width: 520px) { .onb-mascot { width: 92px; } }
+  .completion-mascot { align-self: center; width: 84px; height: auto; margin: 8px auto -6px; animation: mascotHop 0.5s ease; }
+  @keyframes mascotHop { 0% { transform: translateY(10px) scale(0.9); opacity: 0; } 70% { transform: translateY(-4px); opacity: 1; } 100% { transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .completion-mascot { animation: none; } }
   .onb-dot { width: 26px; height: 5px; border-radius: 99px; background: var(--border); }
   .onb-dot.on { background: var(--accent); }
   .onb-step { display: none; }
@@ -1067,6 +1072,7 @@
       </span>
       <button type="button" class="onb-skip" id="onbSkipBtn">Skip</button>
     </div>
+    <img class="onb-mascot" src="/mascot/mascot-wave.webp" width="560" height="670" alt="Echoly's monkey mascot waving hello">
     <div class="onb-dots"><span class="onb-dot" data-dot="1"></span><span class="onb-dot" data-dot="2"></span><span class="onb-dot" data-dot="3"></span></div>
 
     <div class="onb-step" id="onbStep1">
@@ -4814,6 +4820,12 @@
   }
 
   function addCompletionBanner(streakIncreased, streakCount) {
+    const mascot = document.createElement("img");
+    mascot.className = "completion-mascot";
+    mascot.src = "/mascot/mascot-wave.webp";
+    mascot.alt = "";
+    mascot.width = 84;
+    chatLogEl.appendChild(mascot);
     const div = document.createElement("div");
     div.className = "completion-banner";
     // A learner-typed topic isn't part of the lesson path, so nothing

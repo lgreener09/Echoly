@@ -172,7 +172,7 @@ function buildEmail({ plan, decision, uid }) {
     const html = `<!doctype html><html><body style="margin:0;background:#fbf7f2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Arial,sans-serif;color:#221825;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fbf7f2;padding:28px 12px;"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
-  <tr><td style="font-size:20px;font-weight:800;padding-bottom:18px;"><span style="color:#e85d4c;">●</span> Echoly</td></tr>
+  <tr><td style="padding-bottom:14px;"><img src="${appUrl()}/mascot/mascot-wave-email.png" width="84" alt="Echoly" style="display:block;width:84px;height:auto;border:0;"></td></tr>
   <tr><td style="font-size:22px;font-weight:800;line-height:1.25;padding-bottom:16px;">${escapeHtml(headline)}</td></tr>
   ${nextHtml}
   <tr><td style="padding:22px 0 8px;">
