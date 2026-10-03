@@ -155,8 +155,23 @@
   .onb-skip { background: none; border: none; color: var(--ink-soft); font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
   .onb-skip:hover { color: var(--ink); text-decoration: underline; }
   .onb-dots { display: flex; gap: 6px; margin-bottom: 14px; }
-  .onb-mascot { display: block; width: 120px; height: auto; margin: -14px 0 10px; }
+  .onb-hello { display: flex; align-items: center; gap: 12px; margin: -14px 0 10px; }
+  .onb-mascot { display: block; width: 120px; height: auto; flex-shrink: 0; }
+  .onb-bubble {
+    position: relative; background: var(--surface); border: 1.5px solid var(--border); border-radius: 16px;
+    padding: 10px 14px; font-size: 14px; font-weight: 600; line-height: 1.35; max-width: 260px;
+  }
+  .onb-bubble::before {
+    content: ""; position: absolute; left: -8px; top: 50%; width: 12px; height: 12px; background: var(--surface);
+    border-left: 1.5px solid var(--border); border-bottom: 1.5px solid var(--border); transform: translateY(-50%) rotate(45deg);
+  }
   @media (max-width: 520px) { .onb-mascot { width: 92px; } }
+  .completion-cheer { align-self: center; display: flex; align-items: center; gap: 8px; margin: 8px auto -6px; }
+  .completion-cheer .completion-mascot { margin: 0; }
+  .completion-cheer-bubble {
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px; padding: 7px 12px;
+    font-size: 13.5px; font-weight: 700;
+  }
   .completion-mascot { align-self: center; width: 84px; height: auto; margin: 8px auto -6px; animation: mascotHop 0.5s ease; }
   @keyframes mascotHop { 0% { transform: translateY(10px) scale(0.9); opacity: 0; } 70% { transform: translateY(-4px); opacity: 1; } 100% { transform: none; } }
   @media (prefers-reduced-motion: reduce) { .completion-mascot { animation: none; } }
@@ -600,14 +615,15 @@
     background: var(--surface); flex-shrink: 0; max-width: 640px; margin: 0 auto; width: 100%;
   }
   .composer input {
-    flex: 1; border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 14px;
+    flex: 1; min-width: 0; border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 14px;
     font-size: 15px; font-family: inherit; outline: none;
   }
   .composer input:focus { border-color: var(--accent); }
   .send-btn {
     background: var(--accent); color: var(--accent-ink); border: none; border-radius: 12px; padding: 0 18px;
-    font-weight: 700; font-size: 14px; cursor: pointer;
+    font-weight: 700; font-size: 14px; cursor: pointer; flex-shrink: 0;
   }
+  @media (max-width: 420px) { .composer { gap: 8px; padding: 12px 14px; } }
   .send-btn:disabled { opacity: 0.5; cursor: default; }
 
   /* Mic button — speak your reply instead of typing it. Hidden by default;
@@ -1072,7 +1088,10 @@
       </span>
       <button type="button" class="onb-skip" id="onbSkipBtn">Skip</button>
     </div>
-    <img class="onb-mascot" src="/mascot/mascot-wave.webp" width="560" height="670" alt="Echoly's monkey mascot waving hello">
+    <div class="onb-hello">
+      <img class="onb-mascot" src="/mascot/mascot-wave.webp" width="560" height="670" alt="Miko, Echoly's monkey mascot, waving hello">
+      <span class="onb-bubble">Hi, I'm Miko! Two quick questions and you'll be talking.</span>
+    </div>
     <div class="onb-dots"><span class="onb-dot" data-dot="1"></span><span class="onb-dot" data-dot="2"></span><span class="onb-dot" data-dot="3"></span></div>
 
     <div class="onb-step" id="onbStep1">
@@ -1902,6 +1921,14 @@
       ["🎬", "Talk movies", "chatting about favourite movies with a new friend"],
       ["🛍️", "Market shopping", "shopping for fruit and vegetables at a local market"],
       ["🌤️", "Weekend plans", "talking about weekend plans with a friend"] ] }
+  };
+  // What Miko says when a conversation is finished, in the language being learned.
+  const LANGUAGE_WELL_DONE = {
+    "Spanish": "¡Bien hecho!", "French": "Bien joué !", "Italian": "Ben fatto!", "German": "Gut gemacht!",
+    "Portuguese": "Muito bem!", "Japanese": "よくできました！", "Mandarin Chinese": "做得好！", "Korean": "잘했어요!",
+    "Arabic": "أحسنت!", "Russian": "Молодец!", "Hindi": "शाबाश!", "Dutch": "Goed gedaan!", "Greek": "Μπράβο!",
+    "Turkish": "Aferin!", "Polish": "Brawo!", "Swedish": "Bra jobbat!", "Vietnamese": "Làm tốt lắm!",
+    "Thai": "เก่งมาก!", "Indonesian": "Kerja bagus!", "Hebrew": "כל הכבוד!"
   };
   // Shown under each language in onboarding (text, not flag emoji — flag
   // emoji render as plain letters on Windows).
@@ -4820,12 +4847,20 @@
   }
 
   function addCompletionBanner(streakIncreased, streakCount) {
+    // Miko cheers the learner on in the language they're learning.
+    const cheer = document.createElement("div");
+    cheer.className = "completion-cheer";
     const mascot = document.createElement("img");
     mascot.className = "completion-mascot";
     mascot.src = "/mascot/mascot-wave.webp";
-    mascot.alt = "";
+    mascot.alt = "Miko";
     mascot.width = 84;
-    chatLogEl.appendChild(mascot);
+    const bubble = document.createElement("span");
+    bubble.className = "completion-cheer-bubble";
+    bubble.textContent = LANGUAGE_WELL_DONE[selectedLanguage] || "Well done!";
+    cheer.appendChild(mascot);
+    cheer.appendChild(bubble);
+    chatLogEl.appendChild(cheer);
     const div = document.createElement("div");
     div.className = "completion-banner";
     // A learner-typed topic isn't part of the lesson path, so nothing

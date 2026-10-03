@@ -158,7 +158,7 @@ function guidePage(lang, sit) {
   <p class="tip">💡 ${esc(sit.tips[lang.key])}</p>
 
   <section class="cta-card cta-card--mascot">
-    <img class="cta-mascot" src="/mascot/mascot-reading.webp" width="560" height="592" alt="" loading="lazy">
+    <img class="cta-mascot" src="/mascot/mascot-reading.webp" width="560" height="592" alt="Miko, Echoly's mascot, reading" loading="lazy">
     <h2>Reading phrases isn't the same as saying them.</h2>
     <p>Have this conversation with an AI partner who plays the other person, answers back, gives you a tip when something sounds off, and lets you speak your replies out loud. Free, no signup needed.</p>
     <a class="btn btn-primary" data-cta="card" href="${practiceUrl(lang, sit, "card")}">Practice "${esc(sit.topicTitle)}" in ${esc(lang.name)} →</a>

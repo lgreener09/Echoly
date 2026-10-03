@@ -172,12 +172,13 @@ function buildEmail({ plan, decision, uid }) {
     const html = `<!doctype html><html><body style="margin:0;background:#fbf7f2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Arial,sans-serif;color:#221825;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fbf7f2;padding:28px 12px;"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
-  <tr><td style="padding-bottom:14px;"><img src="${appUrl()}/mascot/mascot-wave-email.png" width="84" alt="Echoly" style="display:block;width:84px;height:auto;border:0;"></td></tr>
+  <tr><td style="padding-bottom:14px;"><img src="${appUrl()}/mascot/mascot-wave-email.png" width="84" alt="Miko from Echoly" style="display:block;width:84px;height:auto;border:0;"></td></tr>
   <tr><td style="font-size:22px;font-weight:800;line-height:1.25;padding-bottom:16px;">${escapeHtml(headline)}</td></tr>
   ${nextHtml}
   <tr><td style="padding:22px 0 8px;">
     <a href="${link}" style="display:inline-block;background:#e85d4c;color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 22px;border-radius:11px;">Start talking →</a>
   </td></tr>
+  <tr><td style="padding:2px 0 6px;font-size:14px;color:#6b5f6e;">Miko's ready when you are.</td></tr>
   <tr><td style="padding:16px 0 6px;font-size:14px;color:#6b5f6e;">Or practice a real situation:</td></tr>
   <tr><td>${topicsHtml}</td></tr>
   <tr><td style="padding-top:28px;font-size:12px;color:#8a7f8c;line-height:1.5;border-top:1px solid #eae1e6;">
