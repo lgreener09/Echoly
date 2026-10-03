@@ -247,6 +247,13 @@
   .reminder-yes { background: var(--accent); color: #fff; border: none; }
   .reminder-no { background: var(--bg); color: var(--ink-soft); border: 1.5px solid var(--border); }
 
+  .share-win-row { align-self: center; margin: 0 auto 4px; }
+  .share-win-btn {
+    background: var(--surface); border: 1.5px solid var(--border); color: var(--ink); border-radius: 999px;
+    padding: 7px 15px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .share-win-btn:hover { border-color: var(--accent); color: var(--accent); }
+
   /* Guest "save your progress" nudge, shown in the chat after a guest's
      first finished conversation. */
   .guest-save-card {
@@ -1816,6 +1823,11 @@
   const urlParams = new URLSearchParams(location.search);
   const requestedAuthMode = urlParams.has("signup") ? "signup" : (urlParams.has("signin") ? "signin" : null);
   const requestedLanguage = urlParams.get("lang");
+  // ?topic=… (with ?lang=…) comes from the phrase-guide pages' "practice
+  // this conversation" buttons: skip onboarding and start that conversation.
+  const requestedTopic = (urlParams.get("topic") || "").slice(0, 200);
+  const requestedTopicTitle = (urlParams.get("title") || "").slice(0, 60);
+  let requestedTopicConsumed = false;
 
   // ---------- Onboarding + learner goal (first visit only) ----------
   // { done, language, goal } — also remembers the learner's target language
@@ -3893,10 +3905,29 @@
   }
   // Called whenever the home screen becomes reachable (app entered, lesson
   // path loaded, auth modal dismissed). Only ever shows once per learner.
+  function maybeStartRequestedTopic() {
+    if (requestedTopicConsumed || !requestedTopic) return false;
+    if (!LANGUAGES.includes(requestedLanguage)) return false;
+    requestedTopicConsumed = true;
+    window.history.replaceState({}, "", location.pathname);
+    if (requestedLanguage !== selectedLanguage) {
+      selectedLanguage = requestedLanguage;
+      selectedTier = pickDefaultTier(selectedLanguage);
+      populateLangSelect();
+      renderHome();
+    }
+    const ob = loadOnboarding();
+    saveOnboarding({ ...ob, done: true, language: selectedLanguage });
+    trackEvent("guide_topic_started", { language: selectedLanguage, topic: requestedTopicTitle || requestedTopic });
+    startCustomConversation(requestedTopic, { icon: "💬", title: requestedTopicTitle || requestedTopic });
+    return true;
+  }
+
   function maybeShowOnboarding() {
     if (onboardingShowing) return;
     if (!PATH.length || !LANGUAGES.length) return;
     if (!homeScreen.classList.contains("active") || isAuthModalOpen()) return;
+    if (maybeStartRequestedTopic()) return;
     const ob = loadOnboarding();
     if (ob.done) return;
     if (hasAnyProgress()) {
@@ -4785,10 +4816,58 @@
   function addCompletionBanner(streakIncreased, streakCount) {
     const div = document.createElement("div");
     div.className = "completion-banner";
-    div.textContent = streakIncreased
-      ? `🎉 Lesson complete — next one unlocked! 🔥 ${streakCount} day streak!`
-      : "🎉 Lesson complete — next one unlocked!";
+    // A learner-typed topic isn't part of the lesson path, so nothing
+    // gets unlocked by finishing one.
+    const isCustom = currentScenario && currentScenario.id === CUSTOM_SCENARIO_ID;
+    const base = isCustom ? "🎉 Conversation complete!" : "🎉 Lesson complete — next one unlocked!";
+    div.textContent = streakIncreased ? `${base} 🔥 ${streakCount} day streak!` : base;
     chatLogEl.appendChild(div);
+    scrollToBottom();
+  }
+
+  // "Share your win" — right after a finished conversation, the moment a
+  // learner is most likely to tell someone. Uses the phone's share sheet
+  // where there is one, otherwise copies the message to the clipboard.
+  // Signed-in learners' links carry their referral code, so a friend who
+  // signs up earns them both bonus conversations.
+  function shareWinUrl() {
+    const base = `${location.origin}/`;
+    const params = new URLSearchParams({ utm_source: "share" });
+    if (currentUser) params.set("ref", currentUser.uid);
+    return `${base}?${params.toString()}`;
+  }
+  function shareWinText() {
+    const what = currentScenario && currentScenario.id !== CUSTOM_SCENARIO_ID
+      ? `"${currentScenario.title}"`
+      : "a real conversation";
+    return `I just had ${what} in ${selectedLanguage} on Echoly. Practice real conversations free:`;
+  }
+  function addShareRow() {
+    const row = document.createElement("div");
+    row.className = "share-win-row";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "share-win-btn";
+    btn.textContent = "📣 Share your win";
+    btn.addEventListener("click", async () => {
+      const url = shareWinUrl();
+      const text = shareWinText();
+      trackEvent("share_win_clicked", { language: selectedLanguage });
+      if (navigator.share) {
+        try { await navigator.share({ title: "Echoly", text, url }); trackEvent("share_win_sent", { method: "native" }); } catch (e) { /* cancelled */ }
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(`${text} ${url}`);
+        btn.textContent = "✓ Copied! Paste it anywhere";
+        trackEvent("share_win_sent", { method: "copy" });
+      } catch (e) {
+        btn.textContent = url;
+      }
+      setTimeout(() => { btn.textContent = "📣 Share your win"; }, 3000);
+    });
+    row.appendChild(btn);
+    chatLogEl.appendChild(row);
     scrollToBottom();
   }
 
@@ -4947,6 +5026,7 @@
       history.push({ role: "assistant", content: data.reply });
       addAiTurn(data.reply, data.replyTranslation, data.tip, data.replyRomanization);
       if (justCompleted) addCompletionBanner(streakIncreased, streakAfter);
+      if (justCompleted) addShareRow();
       if (justCompleted && isGuest()) addGuestSaveCard();
 
     } catch (err) {
