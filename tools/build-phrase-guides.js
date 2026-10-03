@@ -47,7 +47,8 @@ function shell({ title, description, canonical, body, jsonLd, lang }) {
 <meta property="og:type" content="article">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">
-<meta property="og:image" content="${SITE}/og-image.png">
+<meta property="og:image" content="${SITE}/og-image.png?v=2">
+<meta name="twitter:image" content="${SITE}/og-image.png?v=2">
 <meta property="og:url" content="${canonical}">
 <meta name="twitter:card" content="summary_large_image">
 ${GA}
