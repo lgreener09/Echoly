@@ -1227,6 +1227,13 @@ function normalizeNativeLanguage(value) {
 const NON_LATIN_SCRIPT_LANGUAGES = new Set([
     "Japanese", "Mandarin Chinese", "Korean", "Arabic", "Russian", "Hindi", "Greek", "Thai", "Hebrew"
 ]);
+// A sound-it-out respelling shown in brackets next to each key phrase, e.g.
+// Dutch "Hallo" (HAH-loh). Written for the learner's own language, since
+// "how it sounds" depends on which spelling rules the reader already knows.
+function pronunciationNote(language, nativeLanguage) {
+    return `Each "keyPhrases" entry also needs a "pronunciation" field: a simple sound-it-out respelling of the ${language} phrase for a ${nativeLanguage} speaker, using ordinary ${nativeLanguage} spelling (never IPA symbols), syllables separated by hyphens and the stressed syllable in CAPITALS, words separated by spaces. Examples for an English speaker: Dutch "Hallo" → "HAH-loh", French "Bonjour" → "bohn-ZHOOR", Spanish "Gracias" → "GRAH-syahs", Japanese "Arigatou" → "ah-ree-GAH-toh".`;
+}
+
 function romanizationNote(language) {
     return NON_LATIN_SCRIPT_LANGUAGES.has(language)
         ? ` ${language} isn't usually written in the Latin alphabet, so also give its standard romanization (e.g. Hanyu Pinyin for Mandarin, Hepburn romaji for Japanese, Revised Romanization for Korean) in the matching "...Romanization" field.`
@@ -1271,7 +1278,7 @@ function buildSystemPrompt(language, scenario, objectives, keyPhrases, vocabHist
 
     let levelGuidance = "";
     if (isIntro) {
-        levelGuidance = `\n\nThis is a BASICS lesson — assume the learner may not know any ${language} yet. This overrides the usual "reply" and "tip" rules above.${hasKnownPhrases ? `\n\nThe learner has been shown this exact, complete list of ${language} phrases so far — this lesson's phrases plus every earlier basics lesson they've already completed — and nothing else:\n${knownPhrasesList}\n\nHard rules for "reply" in this lesson:\n- Use ONLY the phrases above (plus a name the learner gives you) — never introduce a new word, verb form, or sentence structure that isn't on that list.\n- "reply" must be just ONE short phrase from that list, standing alone — a greeting or exclamation, not a full sentence explaining what to say or how to say it (no "you can say...", no connecting clauses). Someone meeting this word for the very first time needs to see it used plainly, not embedded in a bigger sentence.` : `\n\nKeep "reply" itself to one very short, simple phrase — no subordinate clauses or explaining what to say, just a plain in-character reaction.`}\n- Every turn in this lesson, including the very first ("__START__") turn, use "tip" to explicitly hand them the next phrase to try — the exact ${language} phrase plus its ${nativeLanguage} meaning, e.g. "Try saying: ¡Hola! — it means Hello." Never leave "tip" empty in this lesson, not even on a good attempt or the first turn — there should always be a next phrase to try. That's the only field where any teaching or explaining happens — never inside "reply".\n- If the phrase doesn't obviously follow from what's just been said — teaching a standalone word like "yes" or "mother" right after a greeting can otherwise feel like a random vocabulary drop — ground "tip" with one short, natural reason it's useful instead of just a bare translation, e.g. "Try saying: sí — it means yes. You'll use it constantly to answer simple questions." Keep "tip" to at most 2 short sentences either way.\n- Keep the language in "tip" itself dead simple — short sentences, everyday words, no grammar jargon (never terms like "conjugation", "accusative", "infinitive", etc.) — write it the way you'd patiently explain something to someone on their very first day of ever learning a language.\n- Be warm, patient, and encouraging about any attempt, even an imperfect one — talk to them like a supportive first-day teacher, not a native speaker in a hurry. The vocabulary being minimal doesn't mean the tone should be flat.`;
+        levelGuidance = `\n\nThis is a BASICS lesson — assume the learner may not know any ${language} yet. This overrides the usual "reply" and "tip" rules above.${hasKnownPhrases ? `\n\nThe learner has been shown this exact, complete list of ${language} phrases so far — this lesson's phrases plus every earlier basics lesson they've already completed — and nothing else:\n${knownPhrasesList}\n\nHard rules for "reply" in this lesson:\n- Use ONLY the phrases above (plus a name the learner gives you) — never introduce a new word, verb form, or sentence structure that isn't on that list.\n- "reply" must be just ONE short phrase from that list, standing alone — a greeting or exclamation, not a full sentence explaining what to say or how to say it (no "you can say...", no connecting clauses). Someone meeting this word for the very first time needs to see it used plainly, not embedded in a bigger sentence.` : `\n\nKeep "reply" itself to one very short, simple phrase — no subordinate clauses or explaining what to say, just a plain in-character reaction.`}\n- Every turn in this lesson, including the very first ("__START__") turn, use "tip" to explicitly hand them the next phrase to try — the exact ${language} phrase, then in brackets a simple sound-it-out pronunciation for a ${nativeLanguage} speaker (syllables separated by hyphens, stressed syllable in CAPITALS, no IPA symbols), then its ${nativeLanguage} meaning, e.g. "Try saying: ¡Hola! (OH-lah) — it means Hello." Never leave "tip" empty in this lesson, not even on a good attempt or the first turn — there should always be a next phrase to try. That's the only field where any teaching or explaining happens — never inside "reply".\n- If the phrase doesn't obviously follow from what's just been said — teaching a standalone word like "yes" or "mother" right after a greeting can otherwise feel like a random vocabulary drop — ground "tip" with one short, natural reason it's useful instead of just a bare translation, e.g. "Try saying: sí — it means yes. You'll use it constantly to answer simple questions." Keep "tip" to at most 2 short sentences either way.\n- Keep the language in "tip" itself dead simple — short sentences, everyday words, no grammar jargon (never terms like "conjugation", "accusative", "infinitive", etc.) — write it the way you'd patiently explain something to someone on their very first day of ever learning a language.\n- Be warm, patient, and encouraging about any attempt, even an imperfect one — talk to them like a supportive first-day teacher, not a native speaker in a hurry. The vocabulary being minimal doesn't mean the tone should be flat.`;
     } else if (hasKnownPhrases) {
         // Beyond the intro track, a hard allowlist gets unworkable fast (by
         // lesson 20+ it's a huge fixed phrase list and every reply starts
@@ -1324,7 +1331,7 @@ const CONVERSATION_JSON_SCHEMA = {
 // buildSystemPrompt generates dialogue dynamically: no per-scenario,
 // per-language content to hand-author and keep in sync across 90 lessons.
 function buildLessonIntroPrompt(language, scenario, nativeLanguage) {
-    const romanizationLine = `Each "keyPhrases" entry also needs a "romanization" field.${romanizationNote(language)}`;
+    const romanizationLine = `Each "keyPhrases" entry also needs a "romanization" field.${romanizationNote(language)} ${pronunciationNote(language, nativeLanguage)}`;
     if (scenario.tier === "Intro") {
         return `The learner is an absolute beginner about to learn some of their very first words of ${language}, on this topic: ${scenario.blurb}
 
@@ -1352,9 +1359,10 @@ const LESSON_INTRO_JSON_SCHEMA = {
                     properties: {
                         phrase: { type: "string" },
                         translation: { type: "string" },
-                        romanization: { type: "string" }
+                        romanization: { type: "string" },
+                        pronunciation: { type: "string" }
                     },
-                    required: ["phrase", "translation", "romanization"],
+                    required: ["phrase", "translation", "romanization", "pronunciation"],
                     additionalProperties: false
                 }
             }
