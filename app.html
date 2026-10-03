@@ -4908,9 +4908,10 @@
   }
   // Same banner as showError, but for the one case that has its own fix
   // available right there — hitting the free daily conversation cap.
-  function showUpgradePrompt() {
+  function showUpgradePrompt(dailyLimit) {
     errorBanner.innerHTML = "";
-    errorBanner.appendChild(document.createTextNode("You've used today's free conversations."));
+    const done = typeof dailyLimit === "number" ? `You've done your ${dailyLimit} free conversations today. ` : "You've used today's free conversations. ";
+    errorBanner.appendChild(document.createTextNode(`${done}Upgrade for unlimited, or come back tomorrow.`));
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "error-banner-upgrade-btn";
@@ -4958,7 +4959,7 @@
 
       if (!res.ok || !data.success) {
         if (data.upgradeRequired) {
-          showUpgradePrompt();
+          showUpgradePrompt(data.dailyLimit);
         } else {
           showError(data.error || "Something went wrong. Please try again.");
         }

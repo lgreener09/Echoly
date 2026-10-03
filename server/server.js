@@ -159,8 +159,8 @@ const dailyConvoCountByUid = new Map(); // "uid::YYYY-MM-DD" -> count
 const referralBonusByUid = new Map();   // uid -> extra conversations/day earned from referrals (added to FREE_DAILY_CONVERSATIONS, not consumed — same reset tradeoff as the maps above)
 const referredByUid = new Map();        // uid -> the uid of whoever referred them, set once the first time a referral is claimed
 
-const FREE_DAILY_CONVERSATIONS = 20;
-const REFERRAL_BONUS_CONVERSATIONS = 10; // added to both sides' daily limit when a referral is claimed
+const FREE_DAILY_CONVERSATIONS = 5;
+const REFERRAL_BONUS_CONVERSATIONS = 3; // added to both sides' daily limit when a referral is claimed
 
 function todayKeyFor(uid) {
     return `${uid}::${new Date().toISOString().slice(0, 10)}`;
