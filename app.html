@@ -22,7 +22,7 @@
 <meta property="og:image" content="https://echoly-enjr.onrender.com/og-image.png?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Echoly: stop memorizing words, start talking. Miko the monkey reading, talking and listening.">
+<meta property="og:image:alt" content="Echoly: stop memorizing words, start talking. Chatto the monkey reading, talking and listening.">
 <meta property="og:url" content="https://echoly-enjr.onrender.com">
 
 <!-- Twitter/X card -->
@@ -1124,8 +1124,8 @@
       <button type="button" class="onb-skip" id="onbSkipBtn">Skip</button>
     </div>
     <div class="onb-hello">
-      <img class="onb-mascot" src="/mascot/mascot-wave.webp" width="560" height="670" alt="Miko, Echoly's monkey mascot, waving hello">
-      <span class="onb-bubble">Hi, I'm Miko! Two quick questions and you'll be talking.</span>
+      <img class="onb-mascot" src="/mascot/mascot-wave.webp" width="560" height="670" alt="Chatto, Echoly's monkey mascot, waving hello">
+      <span class="onb-bubble">Hi, I'm Chatto! Two quick questions and you'll be talking.</span>
     </div>
     <div class="onb-dots"><span class="onb-dot" data-dot="1"></span><span class="onb-dot" data-dot="2"></span><span class="onb-dot" data-dot="3"></span></div>
 
@@ -1957,7 +1957,7 @@
       ["🛍️", "Market shopping", "shopping for fruit and vegetables at a local market"],
       ["🌤️", "Weekend plans", "talking about weekend plans with a friend"] ] }
   };
-  // What Miko says when a conversation is finished, in the language being learned.
+  // What Chatto says when a conversation is finished, in the language being learned.
   const LANGUAGE_WELL_DONE = {
     "Spanish": "¡Bien hecho!", "French": "Bien joué !", "Italian": "Ben fatto!", "German": "Gut gemacht!",
     "Portuguese": "Muito bem!", "Japanese": "よくできました！", "Mandarin Chinese": "做得好！", "Korean": "잘했어요!",
@@ -4899,13 +4899,13 @@
   }
 
   function addCompletionBanner(streakIncreased, streakCount) {
-    // Miko cheers the learner on in the language they're learning.
+    // Chatto cheers the learner on in the language they're learning.
     const cheer = document.createElement("div");
     cheer.className = "completion-cheer";
     const mascot = document.createElement("img");
     mascot.className = "completion-mascot";
     mascot.src = "/mascot/mascot-wave.webp";
-    mascot.alt = "Miko";
+    mascot.alt = "Chatto";
     mascot.width = 84;
     const bubble = document.createElement("span");
     bubble.className = "completion-cheer-bubble";
@@ -5080,9 +5080,9 @@
       card.innerHTML = "";
       const box = document.createElement("div");
       box.className = "recap-score";
-      box.innerHTML = `<img src="/mascot/mascot-wave.webp" alt="Miko"><b>${score} / ${questions.length}</b><span></span>`;
+      box.innerHTML = `<img src="/mascot/mascot-wave.webp" alt="Chatto"><b>${score} / ${questions.length}</b><span></span>`;
       box.querySelector("span").textContent = perfect
-        ? "Perfect! Miko's impressed."
+        ? "Perfect! Chatto's impressed."
         : "Good effort! These phrases will come back in your review deck.";
       card.appendChild(box);
       const next = findNextLesson(lang);
