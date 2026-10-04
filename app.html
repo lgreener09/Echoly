@@ -105,8 +105,16 @@
       --ink-soft: #b2a3b7;
       --border: #3a3041;
       --accent-soft: #3d2420;
-      --tip-bg: #30270f;
-      --tip-border: #5c4a1e;
+      /* The Intro tier's warm "tip" identity used a saturated khaki/olive
+         fill (#30270f) that read fine as a small highlight in light mode
+         but, tiled down a whole list of lesson rows in dark mode, turned
+         into a wall of muddy green-brown cards that clashed with the
+         purple-toned dark palette everywhere else. These are toned down to
+         a subtle warm-dark neutral close to --surface's own lightness, so
+         the Intro identity still reads via the border/icon/text accents
+         without dominating the page as a solid fill. */
+      --tip-bg: #2d241b;
+      --tip-border: #5a432c;
       --plum-soft: #3c2c44;
       --ok-fg: #86e7b3;
       --ok-bg: #163429;
@@ -124,8 +132,8 @@
     --ink-soft: #b2a3b7;
     --border: #3a3041;
     --accent-soft: #3d2420;
-    --tip-bg: #30270f;
-    --tip-border: #5c4a1e;
+    --tip-bg: #2d241b;
+    --tip-border: #5a432c;
     --plum-soft: #3c2c44;
     --ok-fg: #86e7b3;
     --ok-bg: #163429;
