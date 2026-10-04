@@ -6,6 +6,18 @@
 <title>Echoly — Practice Real Conversations</title>
 <meta name="description" content="Practice real conversations in Spanish, French, and more with an AI conversation partner — not vocab drills, real dialogue for real-life situations.">
 <meta name="theme-color" content="#e85d4c">
+<script>
+  // Applied before anything renders so an explicit dark/light choice from a
+  // past visit never flashes the wrong theme for a frame. No stored choice
+  // just leaves this alone — the CSS's prefers-color-scheme query handles
+  // the system-default case on its own, synchronously, with no JS needed.
+  (function() {
+    try {
+      var t = localStorage.getItem("echoly_theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) { /* localStorage unavailable (private mode, etc.) — fall back to system theme */ }
+  })();
+</script>
 
 <!-- Favicon -->
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -73,6 +85,55 @@
     --tip-border: #f5dfa6;
     --plum: #322234;
     --plum-soft: #4a3550;
+    --ok-fg: #14733f;
+    --ok-bg: #eafbf2;
+    --ok-border: #1a9c5b;
+    --err-fg: #a5312c;
+    --err-bg: #fdeceb;
+    --err-border: #d0403a;
+    --error-text: #b91c1c;
+  }
+  /* Dark mode: a stored explicit choice (data-theme) always wins; with no
+     stored choice, the OS-level prefers-color-scheme decides. Only the
+     tokens change here — every rule below reads colors through var(), so
+     retheming never needs touching the components themselves. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1a1420;
+      --surface: #241d2b;
+      --ink: #f3eef0;
+      --ink-soft: #b2a3b7;
+      --border: #3a3041;
+      --accent-soft: #3d2420;
+      --tip-bg: #30270f;
+      --tip-border: #5c4a1e;
+      --plum-soft: #3c2c44;
+      --ok-fg: #86e7b3;
+      --ok-bg: #163429;
+      --ok-border: #2f9d6c;
+      --err-fg: #ffb0a8;
+      --err-bg: #3a1f1d;
+      --err-border: #d6564c;
+      --error-text: #ff8a80;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1a1420;
+    --surface: #241d2b;
+    --ink: #f3eef0;
+    --ink-soft: #b2a3b7;
+    --border: #3a3041;
+    --accent-soft: #3d2420;
+    --tip-bg: #30270f;
+    --tip-border: #5c4a1e;
+    --plum-soft: #3c2c44;
+    --ok-fg: #86e7b3;
+    --ok-bg: #163429;
+    --ok-border: #2f9d6c;
+    --err-fg: #ffb0a8;
+    --err-bg: #3a1f1d;
+    --err-border: #d6564c;
+    --error-text: #ff8a80;
   }
   * { box-sizing: border-box; }
   body {
@@ -297,7 +358,7 @@
   }
   .recap-opt:hover:not(:disabled) { border-color: var(--accent); }
   .recap-opt:disabled { cursor: default; }
-  .recap-opt.right { background: #e4f5ea; border-color: #2e9d5b; color: #14733f; font-weight: 700; }
+  .recap-opt.right { background: var(--ok-bg); border-color: var(--ok-border); color: var(--ok-fg); font-weight: 700; }
   .recap-opt.wrong { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark, #c9473a); }
   .recap-feedback { font-size: 13.5px; font-weight: 700; margin: 10px 0 0; min-height: 18px; }
   .recap-next {
@@ -353,12 +414,19 @@
     width: 248px; flex-shrink: 0; background: var(--plum); color: #f2ece6;
     display: flex; flex-direction: column; padding: 22px 18px; overflow-y: auto;
   }
+  .sidebar-top-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .sidebar-brand {
     display: flex; align-items: center; gap: 8px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 18px;
     font-weight: 800; letter-spacing: -0.01em; background: none; border: none; padding: 0; margin: 0;
     color: inherit; cursor: pointer; text-align: left;
   }
   .sidebar-brand:hover { opacity: 0.85; }
+  .theme-toggle-btn {
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    width: 30px; height: 30px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 50%; color: #f2ece6; font-size: 14px; cursor: pointer; transition: background 0.15s ease;
+  }
+  .theme-toggle-btn:hover { background: rgba(255,255,255,0.15); }
   .sidebar-tagline { font-size: 12.5px; color: rgba(242,236,230,0.65); margin: 8px 0 22px; line-height: 1.4; }
 
   /* Account card — hidden entirely (via inline style) until FIREBASE_CONFIG
@@ -382,6 +450,21 @@
   .account-referral-msg {
     font-size: 12px; font-weight: 600; color: var(--accent-ink); background: var(--accent);
     border-radius: 9px; padding: 8px 10px; margin: 0 0 10px; line-height: 1.4;
+  }
+  .account-badges-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: rgba(242,236,230,0.5); margin: 2px 0 8px;
+  }
+  .account-badges-row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 4px; }
+  .account-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%; font-size: 14px;
+    background: rgba(255,255,255,0.06); opacity: 0.35; filter: grayscale(1);
+    transition: opacity 0.2s ease, filter 0.2s ease, background 0.2s ease;
+    cursor: default;
+  }
+  .account-badge--earned {
+    opacity: 1; filter: none; background: rgba(240,131,111,0.18);
   }
 
   .streak-card { background: var(--plum-soft); border-radius: 14px; padding: 14px; margin-bottom: 22px; }
@@ -474,7 +557,7 @@
 
   .home-main { flex: 1; overflow-y: auto; padding: 26px 28px 40px; min-width: 0; }
   .home-main .error-banner { max-width: none; margin: 0 0 16px; padding: 0; }
-  .main-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .main-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; max-width: 640px; }
   .main-tier-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 24px; font-weight: 800; margin: 0; letter-spacing: -0.01em; }
   .main-tier-frac { font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .main-tier-subtitle { color: var(--tip); font-size: 13.5px; font-weight: 600; margin: -10px 0 18px; }
@@ -596,7 +679,7 @@
     background: var(--tip); color: #fff; border: none; border-radius: 999px; padding: 6px 12px;
     font-size: 12.5px; font-weight: 700; cursor: pointer; flex-shrink: 0; font-family: inherit;
   }
-  .lookup-error { color: #b91c1c; font-size: 13px; margin: 0; }
+  .lookup-error { color: var(--error-text); font-size: 13px; margin: 0; }
   .lookup-loading { color: var(--ink-soft); font-size: 13px; margin: 0; }
 
   .chat-log { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; max-width: 640px; margin: 0 auto; width: 100%; }
@@ -637,6 +720,49 @@
     align-self: center; background: var(--accent-soft); color: var(--accent); font-weight: 700;
     font-size: 13px; padding: 8px 18px; border-radius: 999px; margin: 4px auto;
   }
+  .badge-earned-banner {
+    align-self: center; display: flex; align-items: center; gap: 7px;
+    background: var(--tip-bg); border: 1.5px solid var(--tip-border); color: var(--tip); font-weight: 600;
+    font-size: 13px; padding: 7px 16px; border-radius: 999px; margin: 4px auto;
+  }
+  .badge-earned-icon { font-size: 15px; }
+  .badge-earned-banner strong { color: var(--ink); }
+
+  .section-complete-overlay {
+    position: fixed; inset: 0; background: rgba(34,24,37,0.55); z-index: 2000;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .section-complete-card {
+    position: relative; background: var(--surface); border-radius: 20px; padding: 36px 28px 28px;
+    max-width: 320px; width: 100%; text-align: center; box-shadow: 0 20px 60px rgba(34,24,37,0.35);
+    animation: sectionPopIn 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  }
+  @media (prefers-reduced-motion: reduce) { .section-complete-card { animation: none; } }
+  @keyframes sectionPopIn {
+    from { opacity: 0; transform: scale(0.88) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .section-complete-confetti {
+    position: absolute; top: -14px; left: 0; right: 0; display: flex; justify-content: center;
+    gap: 14px; font-size: 18px; pointer-events: none;
+  }
+  .section-complete-confetti span:nth-child(odd) { transform: translateY(-4px) rotate(-8deg); }
+  .section-complete-confetti span:nth-child(even) { transform: translateY(3px) rotate(8deg); }
+  .section-complete-icon {
+    width: 64px; height: 64px; border-radius: 50%; background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center; font-size: 32px;
+    margin: 6px auto 14px;
+  }
+  .section-complete-eyebrow {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--accent); margin: 0 0 6px;
+  }
+  .section-complete-title {
+    font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px;
+    margin: 0 0 8px; color: var(--ink);
+  }
+  .section-complete-desc { font-size: 13.5px; color: var(--ink-soft); line-height: 1.5; margin: 0 0 20px; }
+  .section-complete-close { width: auto; padding: 9px 28px; }
 
   .typing { align-self: flex-start; display: flex; gap: 4px; padding: 14px 15px; }
   .typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-soft); opacity: 0.4; animation: bounce 1.2s infinite; }
@@ -669,7 +795,7 @@
   }
   .mic-btn.supported { display: flex; }
   .mic-btn:hover { border-color: var(--accent); }
-  .mic-btn.listening { background: #fdeceb; border-color: #d0403a; animation: micPulse 1.2s infinite; }
+  .mic-btn.listening { background: var(--err-bg); border-color: var(--err-border); animation: micPulse 1.2s infinite; }
   @keyframes micPulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(208,64,58,0.35); }
     50% { box-shadow: 0 0 0 6px rgba(208,64,58,0); }
@@ -677,7 +803,7 @@
 
   .error-banner {
     max-width: 640px; margin: 0 auto; width: 100%; padding: 10px 20px;
-    color: #b91c1c; font-size: 13.5px; display: none;
+    color: var(--error-text); font-size: 13.5px; display: none;
   }
   .error-banner.shown { display: block; }
   .error-banner-upgrade-btn {
@@ -739,9 +865,10 @@
 
   .intro-phrases { display: flex; flex-direction: column; gap: 7px; }
   .intro-phrase-item {
-    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    display: flex; flex-direction: column; align-items: stretch; gap: 5px;
     background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; font-size: 13.5px;
   }
+  .phrase-item-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
   .intro-phrase-item .phrase-emoji { flex-shrink: 0; font-size: 13px; opacity: 0.8; }
   .intro-phrase-item .phrase-native { font-weight: 600; flex: 1; }
   .intro-phrase-item .phrase-en { color: var(--ink-soft); font-size: 12.5px; flex-shrink: 0; text-align: right; }
@@ -753,6 +880,12 @@
   .phrase-native-col .phrase-native { flex: none; }
   .phrase-say { font-weight: 500; color: var(--tip); font-size: 0.86em; white-space: nowrap; }
   .phrase-romanization { font-size: 11px; color: var(--ink-soft); font-style: italic; opacity: 0.85; }
+  /* The "usage" teaching note under a key phrase — when/how it's actually
+     used, not just its translation. Only rendered when the AI returned one. */
+  .phrase-usage {
+    font-size: 11.5px; color: var(--ink-soft); line-height: 1.4; margin: 0;
+    padding-top: 5px; border-top: 1px dashed var(--border);
+  }
 
   .intro-footer { padding: 16px 20px; border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; max-width: 640px; margin: 0 auto; width: 100%; }
   .start-btn {
@@ -761,6 +894,11 @@
   }
   .intro-footer.intro-warm .start-btn { background: var(--tip); }
   .start-btn:disabled { opacity: 0.5; cursor: default; }
+  .intro-skip-link {
+    display: block; width: 100%; background: none; border: none; cursor: pointer; font-family: inherit;
+    color: var(--ink-soft); font-size: 12.5px; text-decoration: underline; padding: 10px 4px 0; text-align: center;
+  }
+  .intro-skip-link:hover { color: var(--ink); }
 
   /* -------- Objectives checklist (inside the chat) -------- */
   .objectives-card { border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
@@ -789,6 +927,40 @@
   .objectives-card--intro { border-bottom-color: var(--tip-border); }
   .objectives-card--intro .objectives-card-frac { color: var(--tip); }
   .objectives-card--intro .objective-item.done .objective-check { background: var(--tip); border-color: var(--tip); }
+
+  /* -------- Cultural note card (inside the chat, below lesson goals) --------
+     One short, concrete etiquette/norm tip for the scenario, generated
+     alongside the lesson's objectives. Flush full-width like the objectives
+     card above it rather than a floating banner, since the two sit stacked
+     together at the top of the chat screen. Dismissible, same pattern as
+     the streak nudge banner — not persisted, just gets it out of the way
+     for this conversation. */
+  .cultural-note-card {
+    display: flex; align-items: flex-start; gap: 10px; border-bottom: 1px solid var(--border);
+    background: var(--tip-bg); max-width: 640px; margin: 0 auto; padding: 12px 20px;
+  }
+  .cultural-note-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+  .cultural-note-text { flex: 1; font-size: 13px; color: var(--ink); line-height: 1.45; margin: 0; }
+  .cultural-note-dismiss {
+    background: none; border: none; cursor: pointer; color: var(--ink-soft); font-size: 13px;
+    padding: 2px 4px; line-height: 1; flex-shrink: 0;
+  }
+  .cultural-note-dismiss:hover { color: var(--ink); }
+
+  /* Grammar note card — same pattern as the cultural note card right above
+     it, just a distinct tint (accent-soft, not tip-bg) so the two don't
+     blend together when both show up stacked for the same lesson. */
+  .grammar-note-card {
+    display: flex; align-items: flex-start; gap: 10px; border-bottom: 1px solid var(--border);
+    background: var(--accent-soft); max-width: 640px; margin: 0 auto; padding: 12px 20px;
+  }
+  .grammar-note-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+  .grammar-note-text { flex: 1; font-size: 13px; color: var(--ink); line-height: 1.45; margin: 0; }
+  .grammar-note-dismiss {
+    background: none; border: none; cursor: pointer; color: var(--ink-soft); font-size: 13px;
+    padding: 2px 4px; line-height: 1; flex-shrink: 0;
+  }
+  .grammar-note-dismiss:hover { color: var(--ink); }
 
   .objectives-phrases {
     margin: 0 auto; padding: 0 20px 14px; max-width: 640px;
@@ -850,8 +1022,8 @@
   .practice-body.intro-warm .practice-option:hover:not(:disabled) { border-color: var(--tip); }
   .practice-option.selected { border-color: var(--accent); background: var(--accent-soft); }
   .practice-body.intro-warm .practice-option.selected { border-color: var(--tip); background: var(--tip-bg); }
-  .practice-option.correct { border-color: #1a9c5b; background: #eafbf2; color: #14733f; }
-  .practice-option.incorrect { border-color: #d0403a; background: #fdeceb; color: #a5312c; }
+  .practice-option.correct { border-color: var(--ok-border); background: var(--ok-bg); color: var(--ok-fg); }
+  .practice-option.incorrect { border-color: var(--err-border); background: var(--err-bg); color: var(--err-fg); }
   .practice-option:disabled { cursor: default; }
 
   .practice-fill-sentence { font-size: 18px; text-align: center; line-height: 1.7; margin: 0 0 8px; }
@@ -890,8 +1062,8 @@
   .practice-body.intro-warm .practice-tf-btn:hover:not(:disabled) { border-color: var(--tip); }
   .practice-tf-btn.selected { border-color: var(--accent); background: var(--accent-soft); }
   .practice-body.intro-warm .practice-tf-btn.selected { border-color: var(--tip); background: var(--tip-bg); }
-  .practice-tf-btn.correct { border-color: #1a9c5b; background: #eafbf2; color: #14733f; }
-  .practice-tf-btn.incorrect { border-color: #d0403a; background: #fdeceb; color: #a5312c; }
+  .practice-tf-btn.correct { border-color: var(--ok-border); background: var(--ok-bg); color: var(--ok-fg); }
+  .practice-tf-btn.incorrect { border-color: var(--err-border); background: var(--err-bg); color: var(--err-fg); }
   .practice-tf-btn:disabled { cursor: default; }
 
   .practice-matching { display: flex; gap: 20px; }
@@ -904,14 +1076,38 @@
   .practice-body.intro-warm .practice-match-item:hover:not(:disabled) { border-color: var(--tip); }
   .practice-match-item.selected { border-color: var(--accent); background: var(--accent-soft); }
   .practice-body.intro-warm .practice-match-item.selected { border-color: var(--tip); background: var(--tip-bg); }
-  .practice-match-item.matched { border-color: #1a9c5b; background: #eafbf2; color: #14733f; cursor: default; }
-  .practice-match-item.mismatch { border-color: #d0403a; background: #fdeceb; }
+  .practice-match-item.matched { border-color: var(--ok-border); background: var(--ok-bg); color: var(--ok-fg); cursor: default; }
+  .practice-match-item.mismatch { border-color: var(--err-border); background: var(--err-bg); }
   .practice-match-term-text { display: block; }
   .practice-match-term-rz { display: block; font-size: 11px; font-weight: 500; font-style: italic; opacity: 0.75; margin-top: 2px; }
 
   .practice-feedback { margin-top: 16px; padding: 12px 15px; border-radius: 12px; font-size: 13.5px; display: flex; gap: 8px; align-items: flex-start; }
-  .practice-feedback.correct { background: #eafbf2; color: #14733f; }
-  .practice-feedback.incorrect { background: #fdeceb; color: #a5312c; }
+  .practice-feedback.correct { background: var(--ok-bg); color: var(--ok-fg); }
+  .practice-feedback.incorrect { background: var(--err-bg); color: var(--err-fg); }
+  .practice-feedback-note { display: inline-block; margin-top: 3px; opacity: 0.8; font-weight: 500; }
+
+  /* -------- Listening/dictation exercise (lesson practice round) -------- */
+  .practice-listen-stage { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .practice-listen-btn {
+    width: 64px; height: 64px; border-radius: 50%; border: none; background: var(--accent); color: var(--accent-ink);
+    font-size: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .practice-listen-btn:hover { filter: brightness(1.08); }
+  .practice-body.intro-warm .practice-listen-btn { background: var(--tip); }
+  .practice-listen-hint { font-size: 12.5px; color: var(--ink-soft); margin: 0; }
+  .practice-listen-fallback { font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; font-weight: 800; text-align: center; margin: 0; }
+
+  /* -------- Speaking/pronunciation exercise (lesson practice round) -------- */
+  .practice-speak-target { font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 800; text-align: center; margin: 0 0 2px; }
+  .practice-mic-btn {
+    width: 64px; height: 64px; border-radius: 50%; border: none; background: var(--accent); color: var(--accent-ink);
+    font-size: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-top: 8px;
+  }
+  .practice-mic-btn:hover { filter: brightness(1.08); }
+  .practice-mic-btn:disabled { opacity: 0.6; cursor: default; }
+  .practice-body.intro-warm .practice-mic-btn { background: var(--tip); }
+  .practice-mic-btn.listening { animation: micPulse 1.2s infinite; }
+  .practice-speak-heard { font-size: 13.5px; color: var(--ink-soft); margin: 6px 0 0; font-style: italic; }
 
   .practice-footer { padding: 16px 20px; border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; max-width: 640px; margin: 0 auto; width: 100%; }
   .practice-footer.intro-warm .start-btn { background: var(--tip); }
@@ -942,10 +1138,10 @@
     flex: 1; border: 1.5px solid var(--border); background: var(--surface); border-radius: 12px;
     padding: 13px; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit;
   }
-  .review-grade-btn--again { color: #a5312c; }
-  .review-grade-btn--again:hover { border-color: #d0403a; background: #fdeceb; }
-  .review-grade-btn--good { color: #14733f; }
-  .review-grade-btn--good:hover { border-color: #1a9c5b; background: #eafbf2; }
+  .review-grade-btn--again { color: var(--err-fg); }
+  .review-grade-btn--again:hover { border-color: var(--err-border); background: var(--err-bg); }
+  .review-grade-btn--good { color: var(--ok-fg); }
+  .review-grade-btn--good:hover { border-color: var(--ok-border); background: var(--ok-bg); }
 
   /* -------- Word Puzzle game (Wordle-style, built from the learner's own vocab deck) -------- */
   .wp-body { flex: 1; overflow-y: auto; padding: 20px 20px 24px; max-width: 480px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 20px; }
@@ -990,8 +1186,8 @@
   .mg-tile--hidden { background: var(--plum-soft); color: transparent; }
   .mg-tile--hidden::after { content: "?"; color: rgba(242,236,230,0.4); font-size: 18px; }
   .mg-tile--flipped { border-color: var(--accent); background: var(--accent-soft); }
-  .mg-tile--matched { border-color: #1a9c5b; background: #eafbf2; color: #14733f; cursor: default; opacity: 0.75; }
-  .mg-tile--mismatch { border-color: #d0403a; background: #fdeceb; }
+  .mg-tile--matched { border-color: var(--ok-border); background: var(--ok-bg); color: var(--ok-fg); cursor: default; opacity: 0.75; }
+  .mg-tile--mismatch { border-color: var(--err-border); background: var(--err-bg); }
   .mg-done { text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 20px 0; }
 
   /* -------- Quick Quiz + Listening Challenge (both a phrase-then-4-options
@@ -1010,8 +1206,8 @@
   }
   .qz-option:hover:not(:disabled) { border-color: var(--accent); }
   .qz-option:disabled { cursor: default; }
-  .qz-option.correct { border-color: #1a9c5b; background: #eafbf2; color: #14733f; }
-  .qz-option.incorrect { border-color: #d0403a; background: #fdeceb; color: #a5312c; }
+  .qz-option.correct { border-color: var(--ok-border); background: var(--ok-bg); color: var(--ok-fg); }
+  .qz-option.incorrect { border-color: var(--err-border); background: var(--err-bg); color: var(--err-fg); }
   .qz-result, .ss-result { text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center; }
 
   .lc-play-btn {
@@ -1163,15 +1359,18 @@
 <div id="homeScreen" class="screen">
   <div class="home-shell">
     <aside class="sidebar">
-      <button type="button" class="sidebar-brand" id="sidebarBrandBtn" aria-label="Go to home">
-        <svg class="brand-mark" width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/>
-          <circle cx="8.2" cy="10" r="1.3" fill="#fff"/>
-          <circle cx="12" cy="10" r="1.3" fill="#fff"/>
-          <circle cx="15.8" cy="10" r="1.3" fill="#fff"/>
-        </svg>
-        Echoly
-      </button>
+      <div class="sidebar-top-row">
+        <button type="button" class="sidebar-brand" id="sidebarBrandBtn" aria-label="Go to home">
+          <svg class="brand-mark" width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/>
+            <circle cx="8.2" cy="10" r="1.3" fill="#fff"/>
+            <circle cx="12" cy="10" r="1.3" fill="#fff"/>
+            <circle cx="15.8" cy="10" r="1.3" fill="#fff"/>
+          </svg>
+          Echoly
+        </button>
+        <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle dark mode">🌙</button>
+      </div>
       <p class="sidebar-tagline">Learn the phrases you'll actually use.</p>
 
       <div class="account-card" id="accountCard" style="display:none"></div>
@@ -1339,6 +1538,7 @@
   </div>
   <div class="intro-footer" id="introFooter">
     <button class="start-btn" id="startLessonBtn" disabled>Start lesson</button>
+    <button class="intro-skip-link" id="introSkipPracticeBtn" type="button" style="display:none">Short on time? Skip warm-up and jump into the conversation</button>
   </div>
 </div>
 
@@ -1628,6 +1828,16 @@
     <ul class="objectives-list" id="objectivesList"></ul>
     <div class="objectives-phrases" id="objectivesPhrases"></div>
   </div>
+  <div class="cultural-note-card" id="culturalNoteCard" style="display:none">
+    <span class="cultural-note-icon">🌍</span>
+    <p class="cultural-note-text" id="culturalNoteText"></p>
+    <button class="cultural-note-dismiss" id="culturalNoteDismissBtn" aria-label="Dismiss">✕</button>
+  </div>
+  <div class="grammar-note-card" id="grammarNoteCard" style="display:none">
+    <span class="grammar-note-icon">✏️</span>
+    <p class="grammar-note-text" id="grammarNoteText"></p>
+    <button class="grammar-note-dismiss" id="grammarNoteDismissBtn" aria-label="Dismiss">✕</button>
+  </div>
   <div class="error-banner" id="errorBanner"></div>
   <div class="chat-log" id="chatLog"></div>
   <div class="composer">
@@ -1643,6 +1853,39 @@
   // service on Render) — set window.APP_API_BASE before this script runs to
   // point at a different host during local testing if needed.
   const API_BASE = window.APP_API_BASE || "";
+
+  // ---------- Dark mode ----------
+  // A stored explicit choice ("light"/"dark") always wins; with nothing
+  // stored, the CSS alone follows the OS's prefers-color-scheme (see the
+  // :root media query above), so this code's only job is the toggle button
+  // and remembering an explicit override once someone uses it.
+  const THEME_KEY = "echoly_theme";
+  const themeToggleBtn = document.getElementById("themeToggleBtn");
+  function effectiveTheme() {
+    const stored = localStorage.getItem(THEME_KEY);
+    if (stored === "light" || stored === "dark") return stored;
+    return (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+  }
+  function applyTheme() {
+    const stored = localStorage.getItem(THEME_KEY);
+    if (stored === "light" || stored === "dark") {
+      document.documentElement.setAttribute("data-theme", stored);
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+    if (themeToggleBtn) {
+      const isDark = effectiveTheme() === "dark";
+      themeToggleBtn.textContent = isDark ? "☀️" : "🌙";
+      themeToggleBtn.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+    }
+  }
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener("click", () => {
+      localStorage.setItem(THEME_KEY, effectiveTheme() === "dark" ? "light" : "dark");
+      applyTheme();
+    });
+  }
+  applyTheme();
 
   // ---------- Accounts (optional — sign in to sync progress across devices) ----------
   // Firebase is a client-only integration: Auth + Firestore, no server.js
@@ -1834,6 +2077,40 @@
     }
   }
 
+  // One-shot speech capture for the speaking/pronunciation practice exercise
+  // — deliberately separate from toggleListening/activeRecognition above
+  // (which drive the chat composer's mic button) so the two never fight
+  // over the same SpeechRecognition instance. Resolves with the transcript,
+  // or null if nothing was heard/supported/permitted.
+  function recognizeSpeech(language) {
+    return new Promise(resolve => {
+      if (!sttSupported) { resolve(null); return; }
+      let recognition;
+      try {
+        recognition = new SpeechRecognitionCtor();
+      } catch (e) {
+        resolve(null);
+        return;
+      }
+      recognition.lang = getLocaleForLanguage(language);
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      let settled = false;
+      recognition.onresult = event => {
+        settled = true;
+        resolve(event.results[0][0].transcript);
+      };
+      recognition.onerror = () => { if (!settled) { settled = true; resolve(null); } };
+      recognition.onend = () => { if (!settled) { settled = true; resolve(null); } };
+      try {
+        recognition.start();
+      } catch (e) {
+        resolve(null);
+      }
+    });
+  }
+
   let selectedLanguage = null;
   let selectedTier = null;
   // The language the learner already speaks — every AI-generated translation,
@@ -1984,6 +2261,12 @@
   let introObjectives = []; // objectives fetched for introLesson, passed to startConversation on "Start"
   let introKeyPhrases = []; // key phrases fetched for introLesson, passed to startConversation on "Start"
   let introExercises = []; // practice exercises fetched for introLesson, passed to openPractice on "Start"
+  let introCulturalNote = ""; // cultural note fetched for introLesson, passed to startConversation on "Start"
+  let introGrammarNote = ""; // grammar note fetched for introLesson, passed to startConversation on "Start"
+  let currentCulturalNote = ""; // cultural note for the ACTIVE lesson, shown once in its own dismissible card
+  let currentGrammarNote = ""; // grammar note for the ACTIVE lesson, shown once in its own dismissible card
+  let practiceCulturalNoteRef = ""; // carried through to startConversation once practice finishes
+  let practiceGrammarNoteRef = ""; // carried through to startConversation once practice finishes
   let currentObjectives = []; // objectives for the ACTIVE lesson (empty once the objectives card is dismissed/not applicable)
   let currentKeyPhrases = []; // key phrases for the ACTIVE lesson — kept visible during the chat, not just on the intro screen
   let completedObjectiveIndices = []; // cumulative, as reported by the server each /converse turn
@@ -2010,6 +2293,7 @@
   let matchSelectedTermIndex = null; // matching — term currently awaiting a meaning tap
   let matchPairsState = []; // matching — matchPairsState[termIndex] = matched meaning's original index, or null
   let matchShuffledMeanings = []; // matching — [{meaning, originalIndex}], shuffled once per exercise
+  let speakingTranscript = null; // speaking — the learner's last recognized attempt, or null until the mic catches something
 
   // Vocab review round (flashcards over phrases pulled from finished lessons)
   let reviewCards = []; // the cards due for review, drawn for the current session
@@ -2077,6 +2361,7 @@
   const introObjectivesEl = document.getElementById("introObjectives");
   const introPhrasesEl = document.getElementById("introPhrases");
   const startLessonBtn = document.getElementById("startLessonBtn");
+  const introSkipPracticeBtn = document.getElementById("introSkipPracticeBtn");
   const practiceScreen = document.getElementById("practiceScreen");
   const practiceBackBtn = document.getElementById("practiceBackBtn");
   const practiceScenarioTitleEl = document.getElementById("practiceScenarioTitle");
@@ -2182,6 +2467,12 @@
   const objectivesFracEl = document.getElementById("objectivesFrac");
   const objectivesListEl = document.getElementById("objectivesList");
   const objectivesPhrasesEl = document.getElementById("objectivesPhrases");
+  const culturalNoteCardEl = document.getElementById("culturalNoteCard");
+  const culturalNoteTextEl = document.getElementById("culturalNoteText");
+  const culturalNoteDismissBtn = document.getElementById("culturalNoteDismissBtn");
+  const grammarNoteCardEl = document.getElementById("grammarNoteCard");
+  const grammarNoteTextEl = document.getElementById("grammarNoteText");
+  const grammarNoteDismissBtn = document.getElementById("grammarNoteDismissBtn");
   const chatLogEl = document.getElementById("chatLog");
   const lookupToggleBtn = document.getElementById("lookupToggleBtn");
   const lookupPanel = document.getElementById("lookupPanel");
@@ -2371,6 +2662,105 @@
     streakNudgeBannerEl.style.display = "none";
   });
 
+  // ---------- Achievement badges (derived from progress/streak data already
+  // stored above — no separate source of truth, just milestones computed
+  // from it) ----------
+  const BADGES = [
+    { id: "first_steps", icon: "🎉", title: "First Conversation", desc: "Complete your first lesson" },
+    { id: "week_streak", icon: "🔥", title: "One Week Strong", desc: "Reach a 7-day streak" },
+    { id: "month_streak", icon: "🏆", title: "Dedicated", desc: "Reach a 30-day streak" },
+    { id: "polyglot", icon: "🌐", title: "Multilingual", desc: "Complete a lesson in 2 different languages" },
+    { id: "intro_graduate", icon: "👋", title: "Fresh Start", desc: "Finish every Intro lesson in one language", tier: "Intro" },
+    { id: "beginner_graduate", icon: "🌱", title: "Getting Comfortable", desc: "Finish every Beginner scenario in one language", tier: "Beginner" },
+    { id: "intermediate_graduate", icon: "🧩", title: "Leveling Up", desc: "Finish every Intermediate scenario in one language", tier: "Intermediate" },
+    { id: "advanced_graduate", icon: "🚀", title: "Conversation Pro", desc: "Finish every Advanced scenario in one language", tier: "Advanced" }
+  ];
+  const ACHIEVEMENTS_KEY = "echoly_achievements_v1";
+  function loadAchievements() {
+    try {
+      const raw = localStorage.getItem(ACHIEVEMENTS_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {}; // storage unavailable — badges just won't persist this session
+    }
+  }
+  function saveAchievements(earned) {
+    try { localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(earned)); } catch (e) { /* non-fatal */ }
+  }
+  // Recomputes every badge from current progress/streak state and awards
+  // any that are newly met. Cheap enough to call after any activity that
+  // could plausibly complete one (a finished lesson, a streak update) —
+  // there's no per-badge incremental tracking to keep in sync, so this
+  // single function is the only place badge logic lives.
+  function checkAchievements() {
+    const earned = loadAchievements();
+    const newlyEarned = [];
+    function award(id) {
+      if (earned[id]) return;
+      earned[id] = new Date().toISOString();
+      const badge = BADGES.find(b => b.id === id);
+      if (badge) newlyEarned.push(badge);
+    }
+
+    const allProgress = loadAllProgress();
+    const languagesWithProgress = Object.keys(allProgress).filter(l => (allProgress[l].completed || []).length > 0);
+    if (languagesWithProgress.length >= 1) award("first_steps");
+    if (languagesWithProgress.length >= 2) award("polyglot");
+
+    const streak = loadStreakData();
+    if (streak.longestStreak >= 7) award("week_streak");
+    if (streak.longestStreak >= 30) award("month_streak");
+
+    // Tier-completion badges — PATH (from /scenarios) carries each
+    // scenario's tier, so "every scenario in a tier" is just a set
+    // comparison against a language's completed list. Awarded the moment
+    // ANY language finishes a tier, not tied to the currently selected one.
+    const tierBadgeMap = { Intro: "intro_graduate", Beginner: "beginner_graduate", Intermediate: "intermediate_graduate", Advanced: "advanced_graduate" };
+    const idsByTier = {};
+    PATH.forEach(s => {
+      if (!tierBadgeMap[s.tier]) return; // skip "Custom"
+      (idsByTier[s.tier] = idsByTier[s.tier] || []).push(s.id);
+    });
+    languagesWithProgress.forEach(lang => {
+      const completed = new Set(allProgress[lang].completed || []);
+      Object.keys(idsByTier).forEach(tier => {
+        if (idsByTier[tier].every(id => completed.has(id))) award(tierBadgeMap[tier]);
+      });
+    });
+
+    if (newlyEarned.length) saveAchievements(earned);
+    return newlyEarned;
+  }
+  function addBadgeEarnedBanner(badge) {
+    const div = document.createElement("div");
+    div.className = "badge-earned-banner";
+    div.innerHTML = `<span class="badge-earned-icon">${badge.icon}</span><span>New badge: <strong>${badge.title}</strong></span>`;
+    chatLogEl.appendChild(div);
+    scrollToBottom();
+  }
+  // Tier-completion badges (badge.tier is set) are a bigger deal than a
+  // single-lesson badge — finishing every scenario in a tier — so instead of
+  // the small inline pill, they get a brief full-screen celebration overlay.
+  function showSectionCompleteModal(badge) {
+    const overlay = document.createElement("div");
+    overlay.className = "section-complete-overlay";
+    overlay.innerHTML = `
+      <div class="section-complete-card" role="dialog" aria-modal="true" aria-label="Section complete">
+        <div class="section-complete-confetti">
+          <span>🎉</span><span>✨</span><span>🎊</span><span>⭐</span><span>✨</span>
+        </div>
+        <div class="section-complete-icon">${badge.icon}</div>
+        <p class="section-complete-eyebrow">${badge.tier} complete</p>
+        <h3 class="section-complete-title">${badge.title}</h3>
+        <p class="section-complete-desc">You've finished every ${badge.tier} scenario${selectedLanguage ? ` in ${selectedLanguage}` : ""} — on to the next level.</p>
+        <button class="account-btn section-complete-close">Nice!</button>
+      </div>`;
+    const close = () => overlay.remove();
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    overlay.querySelector(".section-complete-close").addEventListener("click", close);
+    document.body.appendChild(overlay);
+  }
+
   // ---------- Vocab review (spaced repetition, per-language, stored in this browser only) ----------
   const VOCAB_KEY = "echoly_vocab_v1";
   // Leitner-style boxes: a remembered card is promoted to the next box (a
@@ -2421,12 +2811,40 @@
     const card = cards.find(c => c.phrase === phrase);
     if (!card) return;
     card.box = remembered ? Math.min(card.box + 1, REVIEW_INTERVAL_DAYS.length - 1) : 0;
+    // A mistake-flagged card that's just been successfully recalled has done
+    // its job — stop jumping the queue. One still being missed stays flagged
+    // so it keeps surfacing first instead of blending back into the deck.
+    if (remembered) card.fromMistake = false;
     const next = new Date();
     next.setDate(next.getDate() + REVIEW_INTERVAL_DAYS[card.box]);
     const y = next.getFullYear();
     const m = String(next.getMonth() + 1).padStart(2, "0");
     const d = String(next.getDate()).padStart(2, "0");
     card.nextReviewDate = `${y}-${m}-${d}`;
+    saveVocabBank(bank);
+  }
+  // Called on a wrong practice answer — resets the card to box 0 so it
+  // resurfaces soon, flags it so the review deck can surface it first, and
+  // tracks how many times it's been missed. Adds the card if it isn't in
+  // the deck yet (the lesson that taught it may not have finished).
+  function markMistake(language, phrase, translation, romanization) {
+    if (!phrase || !phrase.trim()) return;
+    const bank = loadVocabBank();
+    if (!bank[language]) bank[language] = [];
+    const cards = bank[language];
+    const today = todayDateStr();
+    const existing = cards.find(c => c.phrase === phrase);
+    if (existing) {
+      existing.box = 0;
+      existing.nextReviewDate = today;
+      existing.missCount = (existing.missCount || 0) + 1;
+      existing.fromMistake = true;
+    } else {
+      cards.push({
+        phrase, translation: translation || "", romanization: romanization || "",
+        box: 0, nextReviewDate: today, missCount: 1, fromMistake: true
+      });
+    }
     saveVocabBank(bank);
   }
   // Fisher–Yates — so review order isn't the same every session.
@@ -2541,7 +2959,12 @@
   });
 
   function openReview(dueCards) {
-    reviewCards = shuffle(dueCards);
+    // Mistake-flagged cards surface first — a learner opening review right
+    // after a rough practice round should see what they just missed before
+    // anything else, not wherever it happens to land in the shuffle.
+    const mistakeCards = dueCards.filter(c => c.fromMistake);
+    const scheduledCards = dueCards.filter(c => !c.fromMistake);
+    reviewCards = [...shuffle(mistakeCards), ...shuffle(scheduledCards)];
     reviewIndex = 0;
     reviewCorrectCount = 0;
     reviewLanguageLabelEl.textContent = `Reviewing ${selectedLanguage}`;
@@ -2555,7 +2978,9 @@
     reviewRevealed = false;
     reviewProgressLabelEl.textContent = `Card ${reviewIndex + 1} of ${reviewCards.length}`;
     reviewProgressFillEl.style.width = `${Math.round((reviewIndex / reviewCards.length) * 100)}%`;
-    reviewFlashcardLabelEl.textContent = "Try to recall it, then reveal the answer";
+    reviewFlashcardLabelEl.textContent = card.fromMistake
+      ? "📌 From a recent mistake — try to recall it, then reveal the answer"
+      : "Try to recall it, then reveal the answer";
     reviewFlashcardPhraseEl.textContent = card.phrase;
     // Shown right away, unlike the translation below — a pronunciation aid
     // isn't a spoiler the way the meaning is, so it doesn't need "recall
@@ -3451,6 +3876,14 @@
       const referralBonusHtml = !isPremium && referralBonus > 0
         ? `<p class="account-referral-bonus">+${referralBonus} convo${referralBonus === 1 ? "" : "s"}/day from referrals</p>`
         : "";
+      const earnedBadgeIds = loadAchievements();
+      const badgesHtml = `
+        <p class="account-badges-label">Badges</p>
+        <div class="account-badges-row">
+          ${BADGES.map(b => `
+            <span class="account-badge${earnedBadgeIds[b.id] ? " account-badge--earned" : ""}" title="${b.title} — ${b.desc}">${b.icon}</span>
+          `).join("")}
+        </div>`;
       accountCardEl.innerHTML = `
         <p class="account-status" id="accountStatusText"></p>
         ${planBadge}<br>
@@ -3458,6 +3891,7 @@
         ${claimBannerHtml}
         <label class="account-reminder"><input type="checkbox" id="accountReminderToggle"${loadReminderPrefs().enabled ? " checked" : ""}> 📬 Daily practice reminder email</label>
         ${planBtn}
+        ${badgesHtml}
         <button class="account-btn account-btn--ghost" id="accountInviteBtn">Invite a friend</button>
         <button class="account-btn account-btn--ghost" id="accountSignOutBtn">Sign out</button>`;
       const statusEl = document.getElementById("accountStatusText");
@@ -3766,7 +4200,7 @@
     if (!email) { showAuthError('Enter your email above first, then tap "Forgot password?"'); return; }
     try {
       await fbSendPasswordReset(firebaseAuth, email);
-      authErrorBanner.style.color = "#14733f"; // reuse the error banner as a success line here
+      authErrorBanner.style.color = getComputedStyle(document.documentElement).getPropertyValue("--ok-fg").trim() || "#14733f"; // reuse the error banner as a success line here
       showAuthError("Password reset email sent — check your inbox.");
     } catch (err) {
       const msg = friendlyAuthError(err);
@@ -4274,14 +4708,17 @@
       <li><span class="obj-num">${i + 1}</span><span>${o}</span></li>`).join("");
     introPhrasesEl.innerHTML = keyPhrases.map((item, i) => `
       <div class="intro-phrase-item">
-        ${ttsSupported
-          ? `<button class="speak-btn" type="button" data-index="${i}" aria-label="Listen">🔊</button>`
-          : `<span class="phrase-emoji">💬</span>`}
-        <span class="phrase-native-col">
-          <span class="phrase-native">${item.phrase}${pronunciationHtml(item)}</span>
-          ${item.romanization ? `<span class="phrase-romanization">${item.romanization}</span>` : ""}
-        </span>
-        <span class="phrase-en">${item.translation}</span>
+        <div class="phrase-item-row">
+          ${ttsSupported
+            ? `<button class="speak-btn" type="button" data-index="${i}" aria-label="Listen">🔊</button>`
+            : `<span class="phrase-emoji">💬</span>`}
+          <span class="phrase-native-col">
+            <span class="phrase-native">${item.phrase}${pronunciationHtml(item)}</span>
+            ${item.romanization ? `<span class="phrase-romanization">${item.romanization}</span>` : ""}
+          </span>
+          <span class="phrase-en">${item.translation}</span>
+        </div>
+        ${item.usage ? `<p class="phrase-usage">${item.usage}</p>` : ""}
       </div>`).join("");
   }
   // Delegated rather than one listener per phrase — the list is rebuilt via
@@ -4300,7 +4737,11 @@
     introLesson = lesson;
     introObjectives = [];
     introKeyPhrases = [];
+    introCulturalNote = "";
+    introGrammarNote = "";
     introExercises = [];
+    introSkipPracticeBtn.style.display = "none";
+    introSkipPracticeBtn.onclick = null;
     // Intro-tier lessons (the absolute-beginner basics) get the warm amber
     // treatment throughout; every other lesson keeps the usual coral one —
     // still warmer than before, just not the extra-friendly Intro flavor.
@@ -4354,6 +4795,8 @@
 
       introObjectives = Array.isArray(introData.objectives) ? introData.objectives : [];
       introKeyPhrases = Array.isArray(introData.keyPhrases) ? introData.keyPhrases : [];
+      introCulturalNote = typeof introData.culturalNote === "string" ? introData.culturalNote : "";
+      introGrammarNote = typeof introData.grammarNote === "string" ? introData.grammarNote : "";
       introExercises = (practiceData && practiceData.success && Array.isArray(practiceData.exercises))
         ? practiceData.exercises
         : [];
@@ -4364,11 +4807,22 @@
       startLessonBtn.onclick = () => {
         introScreen.classList.remove("active");
         if (introExercises.length) {
-          openPractice(lesson, introObjectives, introKeyPhrases, introExercises);
+          openPractice(lesson, introObjectives, introKeyPhrases, introExercises, introCulturalNote, introGrammarNote);
         } else {
-          startConversation(lesson, introObjectives, introKeyPhrases);
+          startConversation(lesson, introObjectives, introKeyPhrases, introCulturalNote, introGrammarNote);
         }
       };
+      // Warm-up practice is optional — let learners in a hurry skip straight
+      // to the conversation if a practice round was actually prepared.
+      if (introExercises.length) {
+        introSkipPracticeBtn.style.display = "block";
+        introSkipPracticeBtn.onclick = () => {
+          introScreen.classList.remove("active");
+          startConversation(lesson, introObjectives, introKeyPhrases, introCulturalNote, introGrammarNote);
+        };
+      } else {
+        introSkipPracticeBtn.style.display = "none";
+      }
 
     } catch (err) {
       introLoadingEl.style.display = "none";
@@ -4380,7 +4834,7 @@
       startLessonBtn.textContent = "Start without goals";
       startLessonBtn.onclick = () => {
         introScreen.classList.remove("active");
-        startConversation(lesson, [], []);
+        startConversation(lesson, [], [], "", "");
       };
     }
   }
@@ -4392,10 +4846,12 @@
   });
 
   // -------- Lesson practice round (mixed exercise types before the chat) --------
-  function openPractice(lesson, objectives, keyPhrases, exercises) {
+  function openPractice(lesson, objectives, keyPhrases, exercises, culturalNote, grammarNote) {
     practiceLesson = lesson;
     practiceObjectivesRef = objectives;
     practiceKeyPhrasesRef = keyPhrases;
+    practiceCulturalNoteRef = culturalNote || "";
+    practiceGrammarNoteRef = grammarNote || "";
     practiceExercises = exercises;
     practiceIndex = 0;
     practiceCorrectCount = 0;
@@ -4416,6 +4872,7 @@
     wordBankOrder = [];
     tfSelected = null;
     matchSelectedTermIndex = null;
+    speakingTranscript = null;
     practiceFeedbackEl.style.display = "none";
     practiceFeedbackEl.className = "practice-feedback";
     practiceProgressLabelEl.textContent = `Exercise ${practiceIndex + 1} of ${practiceExercises.length}`;
@@ -4430,6 +4887,8 @@
     else if (ex.kind === "word_bank") renderWordBank(ex);
     else if (ex.kind === "true_false") renderTrueFalse(ex);
     else if (ex.kind === "matching") renderMatching(ex);
+    else if (ex.kind === "listening") renderListening(ex);
+    else if (ex.kind === "speaking") renderSpeaking(ex);
     else practiceExerciseAreaEl.innerHTML = ""; // unrecognized kind — nothing to render, Check stays disabled
   }
 
@@ -4479,6 +4938,74 @@
       if (e.key === "Enter" && !practiceActionBtn.disabled) practiceActionBtn.click();
     });
     setTimeout(() => input.focus(), 50);
+  }
+
+  function renderListening(ex) {
+    practiceExerciseAreaEl.innerHTML = `
+      <div class="practice-listen-stage">
+        ${ttsSupported
+          ? `<button type="button" class="practice-listen-btn" id="practiceListenBtn" aria-label="Play the phrase">🔊</button>
+             <p class="practice-listen-hint">Tap to hear it again</p>`
+          : `<p class="practice-listen-fallback">${ex.audioText}</p>
+             <p class="practice-listen-hint">Audio isn't supported in this browser — type the phrase above.</p>`
+        }
+      </div>
+      <input type="text" class="practice-fill-input" id="listeningInput" autocomplete="off" style="display:block; margin:18px auto 0;" placeholder="Type what you hear">
+      <p class="practice-fill-translation" id="listeningTranslation" style="display:none"></p>`;
+    const input = document.getElementById("listeningInput");
+    input.addEventListener("input", () => { practiceActionBtn.disabled = !input.value.trim(); });
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter" && !practiceActionBtn.disabled) practiceActionBtn.click();
+    });
+    const playBtn = document.getElementById("practiceListenBtn");
+    if (playBtn) {
+      playBtn.addEventListener("click", () => speakText(ex.audioText, selectedLanguage));
+      setTimeout(() => speakText(ex.audioText, selectedLanguage), 300); // auto-play once the screen's settled
+    }
+    setTimeout(() => input.focus(), ttsSupported ? 400 : 50);
+  }
+
+  function renderSpeaking(ex) {
+    practiceExerciseAreaEl.innerHTML = `
+      <div class="practice-listen-stage">
+        <p class="practice-speak-target">${ex.targetPhrase}</p>
+        ${ex.targetRomanization ? `<p class="practice-romanization">${ex.targetRomanization}</p>` : ""}
+        ${ttsSupported ? `<button type="button" class="speak-btn" id="practiceSpeakModelBtn" aria-label="Hear it first">🔊</button>` : ""}
+        ${sttSupported
+          ? `<button type="button" class="practice-mic-btn" id="practiceSpeakMicBtn" aria-label="Say it aloud">🎤</button>
+             <p class="practice-listen-hint" id="practiceSpeakHint">Tap the mic and say the phrase aloud</p>
+             <p class="practice-speak-heard" id="practiceSpeakHeard" style="display:none"></p>`
+          : `<p class="practice-listen-hint">Speech recognition isn't supported in this browser — say the phrase aloud, then tap Check to move on.</p>`
+        }
+      </div>`;
+    const modelBtn = document.getElementById("practiceSpeakModelBtn");
+    if (modelBtn) modelBtn.addEventListener("click", () => speakText(ex.targetPhrase, selectedLanguage));
+    if (sttSupported) {
+      const speakMicBtn = document.getElementById("practiceSpeakMicBtn");
+      const hintEl = document.getElementById("practiceSpeakHint");
+      const heardEl = document.getElementById("practiceSpeakHeard");
+      speakMicBtn.addEventListener("click", async () => {
+        if (speakMicBtn.classList.contains("listening")) return;
+        speakMicBtn.classList.add("listening");
+        hintEl.textContent = "Listening…";
+        const transcript = await recognizeSpeech(selectedLanguage);
+        speakMicBtn.classList.remove("listening");
+        if (transcript) {
+          speakingTranscript = transcript;
+          heardEl.textContent = `You said: "${transcript}"`;
+          heardEl.style.display = "block";
+          hintEl.textContent = "Not quite right? Tap the mic to try again.";
+          practiceActionBtn.disabled = false;
+        } else {
+          hintEl.textContent = "Didn't catch that — tap the mic to try again.";
+        }
+      });
+    } else {
+      // No STT support at all — there's no way to verify pronunciation, so
+      // let the learner self-report once they've said it out loud rather
+      // than blocking the exercise on a browser feature they don't have.
+      practiceActionBtn.disabled = false;
+    }
   }
 
   function renderWordBank(ex) {
@@ -4624,6 +5151,12 @@
     const ex = practiceExercises[practiceIndex];
     let isCorrect = false;
     let correctText = "";
+    // When set, a miss on this exercise folds {reviewPhrase: reviewTranslation}
+    // into the vocab review deck (see markMistake above) — left null for
+    // exercise kinds (true_false, matching) with no single phrase worth drilling.
+    let reviewPhrase = null;
+    let reviewTranslation = "";
+    let reviewRomanization = "";
 
     if (ex.kind === "multiple_choice") {
       isCorrect = mcSelectedIndex === ex.correctIndex;
@@ -4634,22 +5167,29 @@
         else if (i === mcSelectedIndex) btn.classList.add("incorrect");
       });
       correctText = ex.options[ex.correctIndex];
+      reviewPhrase = ex.prompt;
+      reviewTranslation = correctText;
+      reviewRomanization = ex.promptRomanization || "";
     } else if (ex.kind === "fill_blank") {
       const input = document.getElementById("fillBlankInput");
       const given = stripDiacritics((input.value || "").trim().toLowerCase());
       isCorrect = given === stripDiacritics(ex.correctAnswer.trim().toLowerCase());
       input.disabled = true;
-      input.style.borderBottomColor = isCorrect ? "#1a9c5b" : "#d0403a";
+      input.style.borderBottomColor = getComputedStyle(document.documentElement).getPropertyValue(isCorrect ? "--ok-border" : "--err-border").trim();
       correctText = ex.correctAnswer; // translation is already shown under the sentence, no need to repeat it here
       if (ex.sentenceRomanization) {
         const rzEl = document.getElementById("fillBlankRomanization");
         if (rzEl) { rzEl.textContent = ex.sentenceRomanization; rzEl.style.display = "block"; }
       }
+      reviewPhrase = ex.correctAnswer;
+      reviewTranslation = ex.translation;
     } else if (ex.kind === "word_bank") {
       isCorrect = wordBankOrder.length === ex.correctOrder.length &&
         wordBankOrder.every((idx, i) => idx === ex.correctOrder[i]);
       practiceExerciseAreaEl.querySelectorAll(".practice-word-chip").forEach(el => { el.disabled = true; });
       correctText = ex.correctOrder.map(i => ex.words[i]).join(" ");
+      reviewPhrase = correctText;
+      reviewTranslation = ex.prompt;
     } else if (ex.kind === "true_false") {
       isCorrect = tfSelected === ex.isTrue;
       practiceExerciseAreaEl.querySelectorAll(".practice-tf-btn").forEach(btn => {
@@ -4663,15 +5203,50 @@
     } else if (ex.kind === "matching") {
       // Only reachable once every pair has already been correctly matched.
       isCorrect = true;
+    } else if (ex.kind === "listening") {
+      const input = document.getElementById("listeningInput");
+      const given = stripDiacritics((input.value || "").trim().toLowerCase());
+      isCorrect = given === stripDiacritics(ex.audioText.trim().toLowerCase());
+      input.disabled = true;
+      input.style.borderBottomColor = getComputedStyle(document.documentElement).getPropertyValue(isCorrect ? "--ok-border" : "--err-border").trim();
+      correctText = ex.audioText;
+      const translationEl = document.getElementById("listeningTranslation");
+      if (translationEl && ex.translation) { translationEl.textContent = ex.translation; translationEl.style.display = "block"; }
+      reviewPhrase = ex.audioText;
+      reviewTranslation = ex.translation;
+    } else if (ex.kind === "speaking") {
+      if (sttSupported && speakingTranscript) {
+        const given = stripDiacritics(speakingTranscript.trim().toLowerCase());
+        const target = stripDiacritics(ex.targetPhrase.trim().toLowerCase());
+        // Loose match — speech recognition often tacks on filler words,
+        // trailing punctuation, or hears the phrase as part of a longer
+        // utterance, so an exact match isn't realistic to require.
+        isCorrect = given === target || given.includes(target) || target.includes(given);
+      } else {
+        // No STT support, or the mic never caught anything — there's no way
+        // to verify pronunciation, so this just self-reports as practiced
+        // rather than penalizing a missing browser feature.
+        isCorrect = true;
+      }
+      const speakMicBtn = document.getElementById("practiceSpeakMicBtn");
+      if (speakMicBtn) speakMicBtn.disabled = true;
+      correctText = ex.targetPhrase;
+      reviewPhrase = ex.targetPhrase;
+      reviewTranslation = ex.translation;
+      reviewRomanization = ex.targetRomanization || "";
     }
 
-    if (isCorrect) practiceCorrectCount++;
+    if (isCorrect) {
+      practiceCorrectCount++;
+    } else if (reviewPhrase) {
+      markMistake(selectedLanguage, reviewPhrase, reviewTranslation, reviewRomanization);
+    }
     practiceAnswered = true;
     practiceFeedbackEl.style.display = "flex";
     practiceFeedbackEl.className = `practice-feedback ${isCorrect ? "correct" : "incorrect"}`;
     practiceFeedbackEl.innerHTML = isCorrect
       ? `<span>✅</span><span>Correct!</span>`
-      : `<span>❌</span><span>Not quite — correct answer: <strong></strong></span>`;
+      : `<span>❌</span><span>Not quite — correct answer: <strong></strong>${reviewPhrase ? '<br><small class="practice-feedback-note">Added to your review deck</small>' : ""}</span>`;
     if (!isCorrect) practiceFeedbackEl.querySelector("strong").textContent = correctText;
 
     practiceActionBtn.disabled = false;
@@ -4701,7 +5276,7 @@
     practiceActionBtn.disabled = false;
     practiceActionBtn.onclick = () => {
       practiceScreen.classList.remove("active");
-      startConversation(practiceLesson, practiceObjectivesRef, practiceKeyPhrasesRef);
+      startConversation(practiceLesson, practiceObjectivesRef, practiceKeyPhrasesRef, practiceCulturalNoteRef, practiceGrammarNoteRef);
     };
   }
 
@@ -4768,12 +5343,23 @@
     objectivesCardEl.classList.toggle("collapsed");
   });
 
-  function startConversation(lesson, objectives, keyPhrases) {
+  // Dismiss just hides the card for the rest of this conversation — not
+  // persisted, same lightweight behavior as the streak nudge banner.
+  culturalNoteDismissBtn.addEventListener("click", () => {
+    culturalNoteCardEl.style.display = "none";
+  });
+  grammarNoteDismissBtn.addEventListener("click", () => {
+    grammarNoteCardEl.style.display = "none";
+  });
+
+  function startConversation(lesson, objectives, keyPhrases, culturalNote, grammarNote) {
     if (guestLimitReached()) return;
     if (isGuest()) { bumpGuestConvoCount(); renderAccountCard(); }
     currentScenario = lesson;
     currentObjectives = objectives || [];
     currentKeyPhrases = keyPhrases || [];
+    currentCulturalNote = culturalNote || "";
+    currentGrammarNote = grammarNote || "";
     completedObjectiveIndices = [];
     introPhrasesSeen = new Set();
     history = [];
@@ -4788,6 +5374,18 @@
     objectivesCardEl.classList.remove("collapsed");
     objectivesCardEl.classList.toggle("objectives-card--intro", lesson.tier === "Intro");
     renderObjectivesCard();
+    if (currentCulturalNote) {
+      culturalNoteTextEl.textContent = currentCulturalNote;
+      culturalNoteCardEl.style.display = "flex";
+    } else {
+      culturalNoteCardEl.style.display = "none";
+    }
+    if (currentGrammarNote) {
+      grammarNoteTextEl.textContent = currentGrammarNote;
+      grammarNoteCardEl.style.display = "flex";
+    } else {
+      grammarNoteCardEl.style.display = "none";
+    }
     chatScenarioTitleEl.textContent = `${lesson.icon} ${lesson.title}`;
     chatLanguageLabelEl.textContent = `Practicing ${selectedLanguage}`;
     homeScreen.classList.remove("active");
@@ -4811,7 +5409,7 @@
       title: (display && display.title) || clean,
       customTopic: clean
     };
-    startConversation(lesson, [], []);
+    startConversation(lesson, [], [], "", "");
   }
 
   function addUserBubble(text) {
@@ -5057,7 +5655,7 @@
           });
           if (!correct) btn.classList.add("wrong");
           feedback.textContent = correct ? "✓ Nice!" : `Not quite. It's "${q.answer}".`;
-          feedback.style.color = correct ? "#14733f" : "var(--accent)";
+          feedback.style.color = correct ? getComputedStyle(document.documentElement).getPropertyValue("--ok-fg").trim() : "var(--accent)";
           if (!q.toNative) speakText(q.answer, lang);
           const next = document.createElement("button");
           next.type = "button";
@@ -5213,6 +5811,7 @@
       let justCompleted = false;
       let streakIncreased = false;
       let streakAfter = 0;
+      let newlyEarnedBadges = [];
       if (!opts.silent) {
         history.push({ role: "user", content: text });
         trackEvent("message_sent", { scenario: currentScenario.id, language: selectedLanguage });
@@ -5241,6 +5840,8 @@
             renderStreakCard();
             streakAfter = streakData.currentStreak;
             streakIncreased = streakAfter > streakBefore;
+            newlyEarnedBadges = checkAchievements();
+            renderAccountCard();
             syncToCloud();
           }
         } else {
@@ -5255,6 +5856,8 @@
             renderStreakCard();
             streakAfter = streakData.currentStreak;
             streakIncreased = streakAfter > streakBefore;
+            newlyEarnedBadges = checkAchievements();
+            renderAccountCard();
             syncToCloud();
           }
         }
@@ -5265,6 +5868,12 @@
       if (justCompleted && !currentScenario.customTopic) addRecapQuiz();
       if (justCompleted) addShareRow();
       if (justCompleted && isGuest()) addGuestSaveCard();
+      // Tier-completion badges get the bigger celebration overlay; everything
+      // else gets the small inline pill. At most one tier badge can realistically
+      // be earned per lesson completion, so showing one modal is enough.
+      const tierBadgeEarned = newlyEarnedBadges.find(b => b.tier);
+      newlyEarnedBadges.filter(b => !b.tier).forEach(addBadgeEarnedBanner);
+      if (tierBadgeEarned) showSectionCompleteModal(tierBadgeEarned);
 
     } catch (err) {
       hideTyping();

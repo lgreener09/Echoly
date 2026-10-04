@@ -435,6 +435,84 @@ const SCENARIOS = {
         character: "a warm, patient language tutor teaching how to talk about what you like and don't like",
         opening: "greet the learner and teach them how to say \"I like…\", then invite them to try it"
     },
+    // Added after launch, inserted before the first_conversation capstone so
+    // it stays the final Intro lesson (same "append within the tier, don't
+    // move anyone's existing progress" approach as how_do_you_say_basics and
+    // friends above). No unlockAfter needed here: by the time a learner can
+    // reach first_conversation they've already completed likes_basics, which
+    // is these new lessons' immediate predecessor in the path.
+    to_be_have_want_basics: {
+        tier: "Intro",
+        title: "To Be, To Have, To Want",
+        blurb: "Learn the three verbs you'll build almost every sentence from.",
+        icon: "🧠",
+        character: "a warm, patient language tutor teaching the verbs that build almost every sentence",
+        opening: "greet the learner and teach them how to say \"I am\", then invite them to try it"
+    },
+    colors_basics: {
+        tier: "Intro",
+        title: "Colors",
+        blurb: "Name colors and describe what you see.",
+        icon: "🌈",
+        character: "a warm, patient language tutor teaching color words",
+        opening: "greet the learner and teach them the word for \"red\", then invite them to try it"
+    },
+    opposites_basics: {
+        tier: "Intro",
+        title: "Opposites",
+        blurb: "Big and small, hot and cold — common opposite pairs.",
+        icon: "⚖️",
+        character: "a warm, patient language tutor teaching common opposite word pairs",
+        opening: "greet the learner and teach them the words for \"big\" and \"small\", then invite them to try it"
+    },
+    body_parts_basics: {
+        tier: "Intro",
+        title: "Parts of the Body",
+        blurb: "Name basic body parts, useful for describing how you feel.",
+        icon: "🧍",
+        character: "a warm, patient language tutor teaching basic body-part vocabulary",
+        opening: "greet the learner and teach them the word for \"head\", then invite them to try it"
+    },
+    common_objects_basics: {
+        tier: "Intro",
+        title: "Everyday Objects",
+        blurb: "Name the everyday things you see around you — phone, bag, keys, and more.",
+        icon: "🔑",
+        character: "a warm, patient language tutor teaching the names of everyday objects",
+        opening: "greet the learner and teach them the word for \"phone\", then invite them to try it"
+    },
+    telling_time_basics: {
+        tier: "Intro",
+        title: "Telling Time",
+        blurb: "Ask and say what time it is.",
+        icon: "🕐",
+        character: "a warm, patient language tutor teaching how to tell time",
+        opening: "greet the learner and teach them how to ask \"What time is it?\", then invite them to try it"
+    },
+    weather_basics: {
+        tier: "Intro",
+        title: "Talking About Weather",
+        blurb: "Say if it's hot, cold, sunny or raining.",
+        icon: "🌤️",
+        character: "a warm, patient language tutor teaching simple weather vocabulary",
+        opening: "greet the learner and teach them how to say \"It's sunny\", then invite them to try it"
+    },
+    directions_words_basics: {
+        tier: "Intro",
+        title: "Direction Words",
+        blurb: "Left, right, straight ahead, near and far.",
+        icon: "🧭",
+        character: "a warm, patient language tutor teaching basic direction words",
+        opening: "greet the learner and teach them the word for \"left\", then invite them to try it"
+    },
+    phone_email_basics: {
+        tier: "Intro",
+        title: "Phone Numbers & Email",
+        blurb: "Share and understand phone numbers, emails, and spelling things out.",
+        icon: "📱",
+        character: "a warm, patient language tutor teaching how to share contact information",
+        opening: "greet the learner and teach them how to ask for someone's phone number, then invite them to try it"
+    },
     first_conversation: {
         tier: "Intro",
         title: "Your First Real Conversation",
@@ -685,6 +763,49 @@ const SCENARIOS = {
         character: "a taxi dispatcher taking phone bookings",
         opening: "answer the phone and ask where the customer needs to be picked up"
     },
+    // Added after launch, appended at the end of the Beginner tier — same
+    // "don't move anyone's existing progress" approach as the rest of this
+    // file's post-launch additions.
+    pharmacy_otc: {
+        tier: "Beginner",
+        title: "Buy medicine at a pharmacy",
+        blurb: "Ask a pharmacist for something for a headache or a cold.",
+        icon: "💊",
+        character: "a pharmacist at the counter of a pharmacy",
+        opening: "greet the customer and ask what they need today"
+    },
+    laundromat_help: {
+        tier: "Beginner",
+        title: "Do laundry at a laundromat",
+        blurb: "Figure out the machines and buy detergent.",
+        icon: "🧺",
+        character: "an attendant working at a laundromat",
+        opening: "greet the customer and ask if they need help getting started"
+    },
+    gas_station_fillup: {
+        tier: "Beginner",
+        title: "Fill up at a gas station",
+        blurb: "Ask for help at the pump or pay inside.",
+        icon: "⛽",
+        character: "an attendant at a gas station",
+        opening: "greet the customer and ask which pump they're at, or how you can help"
+    },
+    rent_bike: {
+        tier: "Beginner",
+        title: "Rent a bike",
+        blurb: "Rent a bike for a day from a rental shop.",
+        icon: "🚲",
+        character: "an employee at a bike rental shop",
+        opening: "greet the customer and ask what kind of bike they're looking for, and for how long"
+    },
+    dog_park_smalltalk: {
+        tier: "Beginner",
+        title: "Small talk at the dog park",
+        blurb: "Chat with another dog owner while your dogs play.",
+        icon: "🐕",
+        character: "another dog owner at the dog park, friendly and chatty",
+        opening: "comment on how well the dogs are getting along and ask about the other person's dog"
+    },
     hotel_checkin: {
         tier: "Intermediate",
         title: "Check into a hotel",
@@ -924,6 +1045,49 @@ const SCENARIOS = {
         icon: "⛅",
         character: "a friend discussing upcoming travel plans",
         opening: "bring up the weather forecast and how it might affect the trip"
+    },
+    // Added after launch, appended at the end of the Intermediate tier —
+    // same "don't move anyone's existing progress" approach as the rest of
+    // this file's post-launch additions.
+    dentist_appointment: {
+        tier: "Intermediate",
+        title: "Book a dentist appointment",
+        blurb: "Call to schedule a dental checkup and describe the issue.",
+        icon: "🦷",
+        character: "a receptionist at a dentist's office answering the phone",
+        opening: "answer the phone as the dental office and ask how you can help"
+    },
+    gym_signup: {
+        tier: "Intermediate",
+        title: "Sign up for a gym membership",
+        blurb: "Ask about plans and sign up at the front desk.",
+        icon: "💪",
+        character: "a staff member at the front desk of a gym",
+        opening: "greet the visitor and ask if they're interested in a membership"
+    },
+    car_rental_counter: {
+        tier: "Intermediate",
+        title: "Rent a car",
+        blurb: "Pick up a rental car and go over the details.",
+        icon: "🚙",
+        character: "an agent at a car rental counter",
+        opening: "greet the customer and ask for their reservation details"
+    },
+    utility_setup_call: {
+        tier: "Intermediate",
+        title: "Set up utilities for a new apartment",
+        blurb: "Call to start electricity or internet service at a new place.",
+        icon: "🔌",
+        character: "a customer service representative at a utility company",
+        opening: "answer the phone and ask how you can help set up service"
+    },
+    noise_complaint_neighbor: {
+        tier: "Intermediate",
+        title: "Talk to a neighbor about noise",
+        blurb: "Politely bring up a noise concern with a neighbor.",
+        icon: "🔇",
+        character: "a neighbor who's been a bit noisy lately, open to hearing you out",
+        opening: "greet the person at the door, a little surprised to see them"
     },
     doctor_visit: {
         tier: "Advanced",
