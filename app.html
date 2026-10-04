@@ -568,7 +568,16 @@
     border-radius: 14px; background: var(--surface); cursor: pointer; text-align: left; width: 100%; font-family: inherit;
   }
   .lesson-row:not([disabled]):hover { border-color: var(--accent); }
-  .lesson-row[disabled] { cursor: default; opacity: 0.55; }
+  /* Locked rows used to be dimmed with a blanket opacity on the whole
+     element — in dark mode that faded the card's background toward the
+     (already dark) page background at the same time as the text, so the
+     card lost its edge and the title became close to unreadable. Keeping
+     the card's background/border at full strength and only muting the
+     title color and the icon circle reads as "locked" in both themes
+     without crushing contrast. */
+  .lesson-row[disabled] { cursor: default; }
+  .lesson-row[disabled] .lesson-row-title { color: var(--ink-soft); }
+  .lesson-row[disabled] .lesson-row-icon { opacity: 0.55; }
   .lesson-row.current { border-color: var(--accent); background: var(--accent-soft); }
   .lesson-row-icon {
     width: 40px; height: 40px; border-radius: 50%; background: var(--bg); border: 1.5px solid var(--border);
@@ -1416,6 +1425,22 @@
         <ul class="tips-card-list" id="tipsCardList"></ul>
       </div>
 
+      <label class="lang-select-wrap">
+        <span class="lang-select-label">I speak</span>
+        <select class="lang-select" id="nativeLangSelect"></select>
+      </label>
+
+      <label class="lang-select-wrap">
+        <span class="lang-select-label">Language</span>
+        <select class="lang-select" id="langSelect"></select>
+      </label>
+
+      <p class="sidebar-nav-label">Your path</p>
+      <div class="tier-nav" id="tierNav"></div>
+
+      <!-- Games sits below the core language/path nav rather than above it —
+           it's a bonus practice tool, not primary navigation, so it shouldn't
+           push "I speak" / "Language" / "Your path" below the fold. -->
       <div class="games-card" id="gamesCard" style="display:none">
         <div class="games-card-top">
           <span class="games-card-icon">🎮</span>
@@ -1433,19 +1458,6 @@
           <button type="button" class="games-card-btn" id="speedRoundBtn">⏱️ Speed Round</button>
         </div>
       </div>
-
-      <label class="lang-select-wrap">
-        <span class="lang-select-label">I speak</span>
-        <select class="lang-select" id="nativeLangSelect"></select>
-      </label>
-
-      <label class="lang-select-wrap">
-        <span class="lang-select-label">Language</span>
-        <select class="lang-select" id="langSelect"></select>
-      </label>
-
-      <p class="sidebar-nav-label">Your path</p>
-      <div class="tier-nav" id="tierNav"></div>
 
       <div class="sidebar-footer">
         <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
