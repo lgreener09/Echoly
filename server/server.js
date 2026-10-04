@@ -435,84 +435,6 @@ const SCENARIOS = {
         character: "a warm, patient language tutor teaching how to talk about what you like and don't like",
         opening: "greet the learner and teach them how to say \"I like…\", then invite them to try it"
     },
-    // Added after launch, inserted before the first_conversation capstone so
-    // it stays the final Intro lesson (same "append within the tier, don't
-    // move anyone's existing progress" approach as how_do_you_say_basics and
-    // friends above). No unlockAfter needed here: by the time a learner can
-    // reach first_conversation they've already completed likes_basics, which
-    // is these new lessons' immediate predecessor in the path.
-    to_be_have_want_basics: {
-        tier: "Intro",
-        title: "To Be, To Have, To Want",
-        blurb: "Learn the three verbs you'll build almost every sentence from.",
-        icon: "🧠",
-        character: "a warm, patient language tutor teaching the verbs that build almost every sentence",
-        opening: "greet the learner and teach them how to say \"I am\", then invite them to try it"
-    },
-    colors_basics: {
-        tier: "Intro",
-        title: "Colors",
-        blurb: "Name colors and describe what you see.",
-        icon: "🌈",
-        character: "a warm, patient language tutor teaching color words",
-        opening: "greet the learner and teach them the word for \"red\", then invite them to try it"
-    },
-    opposites_basics: {
-        tier: "Intro",
-        title: "Opposites",
-        blurb: "Big and small, hot and cold — common opposite pairs.",
-        icon: "⚖️",
-        character: "a warm, patient language tutor teaching common opposite word pairs",
-        opening: "greet the learner and teach them the words for \"big\" and \"small\", then invite them to try it"
-    },
-    body_parts_basics: {
-        tier: "Intro",
-        title: "Parts of the Body",
-        blurb: "Name basic body parts, useful for describing how you feel.",
-        icon: "🧍",
-        character: "a warm, patient language tutor teaching basic body-part vocabulary",
-        opening: "greet the learner and teach them the word for \"head\", then invite them to try it"
-    },
-    common_objects_basics: {
-        tier: "Intro",
-        title: "Everyday Objects",
-        blurb: "Name the everyday things you see around you — phone, bag, keys, and more.",
-        icon: "🔑",
-        character: "a warm, patient language tutor teaching the names of everyday objects",
-        opening: "greet the learner and teach them the word for \"phone\", then invite them to try it"
-    },
-    telling_time_basics: {
-        tier: "Intro",
-        title: "Telling Time",
-        blurb: "Ask and say what time it is.",
-        icon: "🕐",
-        character: "a warm, patient language tutor teaching how to tell time",
-        opening: "greet the learner and teach them how to ask \"What time is it?\", then invite them to try it"
-    },
-    weather_basics: {
-        tier: "Intro",
-        title: "Talking About Weather",
-        blurb: "Say if it's hot, cold, sunny or raining.",
-        icon: "🌤️",
-        character: "a warm, patient language tutor teaching simple weather vocabulary",
-        opening: "greet the learner and teach them how to say \"It's sunny\", then invite them to try it"
-    },
-    directions_words_basics: {
-        tier: "Intro",
-        title: "Direction Words",
-        blurb: "Left, right, straight ahead, near and far.",
-        icon: "🧭",
-        character: "a warm, patient language tutor teaching basic direction words",
-        opening: "greet the learner and teach them the word for \"left\", then invite them to try it"
-    },
-    phone_email_basics: {
-        tier: "Intro",
-        title: "Phone Numbers & Email",
-        blurb: "Share and understand phone numbers, emails, and spelling things out.",
-        icon: "📱",
-        character: "a warm, patient language tutor teaching how to share contact information",
-        opening: "greet the learner and teach them how to ask for someone's phone number, then invite them to try it"
-    },
     first_conversation: {
         tier: "Intro",
         title: "Your First Real Conversation",
@@ -763,49 +685,6 @@ const SCENARIOS = {
         character: "a taxi dispatcher taking phone bookings",
         opening: "answer the phone and ask where the customer needs to be picked up"
     },
-    // Added after launch, appended at the end of the Beginner tier — same
-    // "don't move anyone's existing progress" approach as the rest of this
-    // file's post-launch additions.
-    pharmacy_otc: {
-        tier: "Beginner",
-        title: "Buy medicine at a pharmacy",
-        blurb: "Ask a pharmacist for something for a headache or a cold.",
-        icon: "💊",
-        character: "a pharmacist at the counter of a pharmacy",
-        opening: "greet the customer and ask what they need today"
-    },
-    laundromat_help: {
-        tier: "Beginner",
-        title: "Do laundry at a laundromat",
-        blurb: "Figure out the machines and buy detergent.",
-        icon: "🧺",
-        character: "an attendant working at a laundromat",
-        opening: "greet the customer and ask if they need help getting started"
-    },
-    gas_station_fillup: {
-        tier: "Beginner",
-        title: "Fill up at a gas station",
-        blurb: "Ask for help at the pump or pay inside.",
-        icon: "⛽",
-        character: "an attendant at a gas station",
-        opening: "greet the customer and ask which pump they're at, or how you can help"
-    },
-    rent_bike: {
-        tier: "Beginner",
-        title: "Rent a bike",
-        blurb: "Rent a bike for a day from a rental shop.",
-        icon: "🚲",
-        character: "an employee at a bike rental shop",
-        opening: "greet the customer and ask what kind of bike they're looking for, and for how long"
-    },
-    dog_park_smalltalk: {
-        tier: "Beginner",
-        title: "Small talk at the dog park",
-        blurb: "Chat with another dog owner while your dogs play.",
-        icon: "🐕",
-        character: "another dog owner at the dog park, friendly and chatty",
-        opening: "comment on how well the dogs are getting along and ask about the other person's dog"
-    },
     hotel_checkin: {
         tier: "Intermediate",
         title: "Check into a hotel",
@@ -1045,49 +924,6 @@ const SCENARIOS = {
         icon: "⛅",
         character: "a friend discussing upcoming travel plans",
         opening: "bring up the weather forecast and how it might affect the trip"
-    },
-    // Added after launch, appended at the end of the Intermediate tier —
-    // same "don't move anyone's existing progress" approach as the rest of
-    // this file's post-launch additions.
-    dentist_appointment: {
-        tier: "Intermediate",
-        title: "Book a dentist appointment",
-        blurb: "Call to schedule a dental checkup and describe the issue.",
-        icon: "🦷",
-        character: "a receptionist at a dentist's office answering the phone",
-        opening: "answer the phone as the dental office and ask how you can help"
-    },
-    gym_signup: {
-        tier: "Intermediate",
-        title: "Sign up for a gym membership",
-        blurb: "Ask about plans and sign up at the front desk.",
-        icon: "💪",
-        character: "a staff member at the front desk of a gym",
-        opening: "greet the visitor and ask if they're interested in a membership"
-    },
-    car_rental_counter: {
-        tier: "Intermediate",
-        title: "Rent a car",
-        blurb: "Pick up a rental car and go over the details.",
-        icon: "🚙",
-        character: "an agent at a car rental counter",
-        opening: "greet the customer and ask for their reservation details"
-    },
-    utility_setup_call: {
-        tier: "Intermediate",
-        title: "Set up utilities for a new apartment",
-        blurb: "Call to start electricity or internet service at a new place.",
-        icon: "🔌",
-        character: "a customer service representative at a utility company",
-        opening: "answer the phone and ask how you can help set up service"
-    },
-    noise_complaint_neighbor: {
-        tier: "Intermediate",
-        title: "Talk to a neighbor about noise",
-        blurb: "Politely bring up a noise concern with a neighbor.",
-        icon: "🔇",
-        character: "a neighbor who's been a bit noisy lately, open to hearing you out",
-        opening: "greet the person at the door, a little surprised to see them"
     },
     doctor_visit: {
         tier: "Advanced",
@@ -1368,7 +1204,11 @@ function buildCustomScenario(topic) {
 const LANGUAGES = [
     "Spanish", "French", "Italian", "German", "Portuguese", "Japanese",
     "Mandarin Chinese", "Korean", "Arabic", "Russian", "Hindi", "Dutch",
-    "Greek", "Turkish", "Polish", "Swedish", "Vietnamese", "Thai", "Indonesian", "Hebrew"
+    "Greek", "Turkish", "Polish", "Swedish", "Vietnamese", "Thai", "Indonesian", "Hebrew",
+    // Added after launch — no per-language content to write for these
+    // either, same as the original twenty above.
+    "Ukrainian", "Romanian", "Czech", "Hungarian", "Finnish", "Norwegian",
+    "Danish", "Filipino", "Swahili", "Persian", "Urdu", "Bengali", "Malay"
 ];
 
 // Every language a learner can pick as the one THEY already speak — every
@@ -1389,7 +1229,8 @@ function normalizeNativeLanguage(value) {
 // sound the word out with. Left as an empty string by the model for every
 // other language.
 const NON_LATIN_SCRIPT_LANGUAGES = new Set([
-    "Japanese", "Mandarin Chinese", "Korean", "Arabic", "Russian", "Hindi", "Greek", "Thai", "Hebrew"
+    "Japanese", "Mandarin Chinese", "Korean", "Arabic", "Russian", "Hindi", "Greek", "Thai", "Hebrew",
+    "Ukrainian", "Persian", "Urdu", "Bengali"
 ]);
 // A sound-it-out respelling shown in brackets next to each key phrase, e.g.
 // Dutch "Hallo" (HAH-loh). Written for the learner's own language, since
@@ -1462,7 +1303,7 @@ Rules for every turn:
 - Stay fully in character. Write "reply" ONLY in ${language} — short (1-3 sentences), natural, everyday phrasing a real native speaker would actually use in this situation, not textbook-formal language.
 - "replyTranslation" is a plain ${nativeLanguage} translation of exactly what you wrote in "reply", so the learner can check their understanding. Never put ${nativeLanguage} in "reply" itself.
 - "replyRomanization" is the romanization of exactly what you wrote in "reply", following the rule below — leave it as an empty string when that rule says to.${romanizationNote(language)}
-- Look at the learner's last message (in ${language}). If anything was unnatural, grammatically off, or not how a native speaker would actually say it, put ONE short, specific, encouraging coaching note in "tip" (${nativeLanguage}, max 2 sentences) — show what they said and a more natural way to say it. If their message was already good, or this is the very first turn, leave "tip" as an empty string. Never put coaching inside "reply" — that field is 100% in-character.
+- Look at the learner's last message (in ${language}). If anything was unnatural, grammatically off, or not how a native speaker would actually say it, put ONE short, specific, encouraging coaching note in "tip" (${nativeLanguage}, max 2 sentences) — show what they said and a more natural way to say it. If their message was already good, or this is the very first turn, leave "tip" as an empty string. Never put coaching inside "reply" — that field is 100% in-character. Do NOT flag missing accent marks or diacritics (e.g. "ola" instead of "olá", "como esta" instead of "cómo está") as a mistake worth a tip — most learners are typing on a keyboard without easy access to them, so treat the unaccented spelling as correct and only coach on actual word choice, grammar, or phrasing.
 - If the learner writes in ${nativeLanguage} or seems stuck, stay in character in ${language} but simplify your reply, and use "tip" to gently suggest a phrase they could use.
 - The learner's message will be exactly "__START__" only to signal the very start of the conversation — when you see that, ${scenario.opening}, as your character naturally would, and leave "tip" empty. Never mention "__START__" or break character to acknowledge it.${levelGuidance}${objectivesSection}`;
 }
@@ -1496,16 +1337,23 @@ const CONVERSATION_JSON_SCHEMA = {
 // per-language content to hand-author and keep in sync across 90 lessons.
 function buildLessonIntroPrompt(language, scenario, nativeLanguage) {
     const romanizationLine = `Each "keyPhrases" entry also needs a "romanization" field.${romanizationNote(language)} ${pronunciationNote(language, nativeLanguage)}`;
+    const usageLine = `Each "keyPhrases" entry also needs a short "usage" field (in ${nativeLanguage}, under 12 words) — a quick, concrete note on when or how it's actually used, e.g. "Said when answering the phone" or "More casual than the formal greeting".`;
+    const grammarNoteLine = `"grammarNote" is one short, genuinely useful grammar or usage tip (in ${nativeLanguage}, 1-2 sentences) relevant to this lesson's vocabulary — something that'll actually help, like a gender rule, a conjugation pattern, or a common mix-up, explained plainly with no jargon.`;
+    const culturalNoteLine = `"culturalNote" is one short, concrete etiquette or cultural norm tip (in ${nativeLanguage}, 1-2 sentences) relevant to this topic or scenario — a real, specific thing to know, not generic trivia.`;
     if (scenario.tier === "Intro") {
         return `The learner is an absolute beginner about to learn some of their very first words of ${language}, on this topic: ${scenario.blurb}
 
 - "objectives": exactly 3 short, concrete goals for this lesson (in ${nativeLanguage}, each under 8 words, phrased like a checklist item) — focused on LEARNING and trying out new words on this topic, not on accomplishing a task (e.g. "Learn to say hello", "Learn to say goodbye", "Try greeting the tutor").
-- "keyPhrases": 5 to 8 essential ${language} words or phrases for this specific topic, each with its plain ${nativeLanguage} translation — exactly the vocabulary this lesson is meant to teach, simple and commonly used, ordered from most to least essential. ${romanizationLine}`;
+- "keyPhrases": 8 to 12 essential ${language} words or phrases for this specific topic, each with its plain ${nativeLanguage} translation — exactly the vocabulary this lesson is meant to teach, simple and commonly used, ordered from most to least essential. ${romanizationLine} ${usageLine}
+- ${grammarNoteLine}
+- ${culturalNoteLine}`;
     }
     return `The learner is about to practice this scenario in ${language}: ${scenario.blurb} They'll be roleplaying with ${scenario.character}.
 
 - "objectives": exactly 3 short, concrete goals for what the learner should try to accomplish during this conversation (in ${nativeLanguage}, each under 8 words, phrased like a checklist item — e.g. "Greet the barista", "Order a drink", "Ask the price"). Make them specific to this scenario, not generic filler.
-- "keyPhrases": 4 to 6 short, useful phrases in ${language} the learner will likely want for this scenario, each with its plain ${nativeLanguage} translation — natural, everyday phrasing a native speaker would actually use, not textbook-formal. ${romanizationLine}`;
+- "keyPhrases": 6 to 9 short, useful phrases in ${language} the learner will likely want for this scenario, each with its plain ${nativeLanguage} translation — natural, everyday phrasing a native speaker would actually use, not textbook-formal. ${romanizationLine} ${usageLine}
+- ${grammarNoteLine}
+- ${culturalNoteLine}`;
 }
 
 const LESSON_INTRO_JSON_SCHEMA = {
@@ -1524,14 +1372,17 @@ const LESSON_INTRO_JSON_SCHEMA = {
                         phrase: { type: "string" },
                         translation: { type: "string" },
                         romanization: { type: "string" },
-                        pronunciation: { type: "string" }
+                        pronunciation: { type: "string" },
+                        usage: { type: "string" }
                     },
-                    required: ["phrase", "translation", "romanization", "pronunciation"],
+                    required: ["phrase", "translation", "romanization", "pronunciation", "usage"],
                     additionalProperties: false
                 }
-            }
+            },
+            grammarNote: { type: "string" },
+            culturalNote: { type: "string" }
         },
-        required: ["objectives", "keyPhrases"],
+        required: ["objectives", "keyPhrases", "grammarNote", "culturalNote"],
         additionalProperties: false
     }
 };
@@ -1557,15 +1408,17 @@ function buildLessonPracticePrompt(language, scenario, nativeLanguage) {
 ${levelNote}
 The learner's own native language, for every translation/instruction below, is ${nativeLanguage}.
 
-Generate exactly 5 practice exercises, one of each of these types, in this exact order: "multiple_choice", "fill_blank", "word_bank", "true_false", "matching". Every exercise must be tightly focused on vocabulary and phrases relevant to this specific topic, and each exercise's "kind" field must be set to exactly the matching type name below.
+Generate exactly 7 practice exercises, one of each of these types, in this exact order: "multiple_choice", "fill_blank", "word_bank", "true_false", "matching", "listening", "speaking". Every exercise must be tightly focused on vocabulary and phrases relevant to this specific topic, and each exercise's "kind" field must be set to exactly the matching type name below.
 
 - multiple_choice: "prompt" is a short ${language} word or phrase. "options" is an array of exactly 4 short ${nativeLanguage} translations, only one of which is correct. "correctIndex" is the 0-based index of the correct option. "promptRomanization" is "prompt"'s romanization.${rz}
 - fill_blank: "sentence" is a short ${language} sentence with exactly one blank shown as "___". "correctAnswer" is the single ${language} word or short phrase that correctly fills the blank. "translation" is the ${nativeLanguage} translation of the complete, correct sentence. "sentenceRomanization" is the romanization of the complete, correct ${language} sentence (with the blank filled in).${rz}
 - word_bank: "prompt" is a short ${nativeLanguage} sentence. "words" is that sentence's ${language} translation split into individual words/tokens, given in SCRAMBLED (shuffled) order. "correctOrder" is an array of the same length giving the 0-based indices into "words" that puts them back into a grammatically correct ${language} sentence. "wordsRomanization" is an array the same length as "words", giving the romanization of each entry in "words" at the same index (not reordered).${rz}
 - true_false: "statement" is one ${nativeLanguage} sentence claiming that a specific ${language} word or phrase means something — sometimes make the claim true, sometimes false. "isTrue" is whether the claim is actually correct.
 - matching: "pairs" is an array of exactly 4 objects, each with a "term" (a ${language} word or phrase for this topic), its "meaning" (the correct ${nativeLanguage} translation), and "termRomanization" (the romanization of "term").${rz}
+- listening: "audioText" is a short ${language} word or phrase for this topic — exactly the text that will be read aloud to the learner, with no stage directions and no punctuation beyond what belongs in the sentence itself, since the learner must type back exactly what they hear. "translation" is its ${nativeLanguage} translation, shown only after the learner checks their answer.
+- speaking: "targetPhrase" is a short, genuinely useful ${language} word or phrase for this topic that the learner will say out loud to practice pronunciation — keep it short enough to say in one breath. "translation" is its ${nativeLanguage} translation. "targetRomanization" is "targetPhrase"'s romanization.${rz}
 
-Every exercise also needs a short "instruction" field in plain ${nativeLanguage} telling the learner what to do, e.g. "Choose the correct meaning", "Fill in the blank", "Put the words in order", "True or false?", "Match each word to its meaning".`;
+Every exercise also needs a short "instruction" field in plain ${nativeLanguage} telling the learner what to do, e.g. "Choose the correct meaning", "Fill in the blank", "Put the words in order", "True or false?", "Match each word to its meaning", "Listen and type what you hear", "Say it out loud".`;
 }
 
 const PRACTICE_JSON_SCHEMA = {
@@ -1649,6 +1502,29 @@ const PRACTICE_JSON_SCHEMA = {
                                 }
                             },
                             required: ["kind", "instruction", "pairs"],
+                            additionalProperties: false
+                        },
+                        {
+                            type: "object",
+                            properties: {
+                                kind: { type: "string", enum: ["listening"] },
+                                instruction: { type: "string" },
+                                audioText: { type: "string" },
+                                translation: { type: "string" }
+                            },
+                            required: ["kind", "instruction", "audioText", "translation"],
+                            additionalProperties: false
+                        },
+                        {
+                            type: "object",
+                            properties: {
+                                kind: { type: "string", enum: ["speaking"] },
+                                instruction: { type: "string" },
+                                targetPhrase: { type: "string" },
+                                targetRomanization: { type: "string" },
+                                translation: { type: "string" }
+                            },
+                            required: ["kind", "instruction", "targetPhrase", "targetRomanization", "translation"],
                             additionalProperties: false
                         }
                     ]
