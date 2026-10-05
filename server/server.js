@@ -1204,11 +1204,7 @@ function buildCustomScenario(topic) {
 const LANGUAGES = [
     "Spanish", "French", "Italian", "German", "Portuguese", "Japanese",
     "Mandarin Chinese", "Korean", "Arabic", "Russian", "Hindi", "Dutch",
-    "Greek", "Turkish", "Polish", "Swedish", "Vietnamese", "Thai", "Indonesian", "Hebrew",
-    // Added after launch — no per-language content to write for these
-    // either, same as the original twenty above.
-    "Ukrainian", "Romanian", "Czech", "Hungarian", "Finnish", "Norwegian",
-    "Danish", "Filipino", "Swahili", "Persian", "Urdu", "Bengali", "Malay"
+    "Greek", "Turkish", "Polish", "Swedish", "Vietnamese", "Thai", "Indonesian", "Hebrew"
 ];
 
 // Every language a learner can pick as the one THEY already speak — every
@@ -1229,8 +1225,7 @@ function normalizeNativeLanguage(value) {
 // sound the word out with. Left as an empty string by the model for every
 // other language.
 const NON_LATIN_SCRIPT_LANGUAGES = new Set([
-    "Japanese", "Mandarin Chinese", "Korean", "Arabic", "Russian", "Hindi", "Greek", "Thai", "Hebrew",
-    "Ukrainian", "Persian", "Urdu", "Bengali"
+    "Japanese", "Mandarin Chinese", "Korean", "Arabic", "Russian", "Hindi", "Greek", "Thai", "Hebrew"
 ]);
 // A sound-it-out respelling shown in brackets next to each key phrase, e.g.
 // Dutch "Hallo" (HAH-loh). Written for the learner's own language, since
@@ -1275,14 +1270,22 @@ function buildSystemPrompt(language, scenario, objectives, keyPhrases, vocabHist
     // exact phrase to try BEFORE expecting a response, every single turn, and
     // "reply" is held to a hard allowlist of exactly what's been taught so
     // far (this lesson's phrases plus every earlier basics lesson).
-    const isIntro = scenario.tier === "Intro";
+    // The milestone capstone ("Your First Real Conversation") is the one
+    // Intro lesson that must NOT use the one-phrase allowlist: its whole point
+    // is a genuine back-and-forth, so a reply that ignores what the learner
+    // just said (e.g. answering "Do you like coffee?" with "See you later")
+    // defeats it. It gets its own gentle-but-responsive guidance below.
+    const isMilestone = !!scenario.milestone;
+    const isIntro = scenario.tier === "Intro" && !isMilestone;
     const hasKnownPhrases = allKnownPhrases.length > 0;
     const knownPhrasesList = hasKnownPhrases
         ? allKnownPhrases.map(p => `- ${p.phrase} (${p.translation})`).join("\n")
         : "";
 
     let levelGuidance = "";
-    if (isIntro) {
+    if (isMilestone) {
+        levelGuidance = `\n\nThis is the learner's FIRST real conversation in ${language} — a celebration capstone after the basics lessons, so they are a complete beginner.${hasKnownPhrases ? ` These are the ${language} phrases they have been taught so far:\n${knownPhrasesList}` : ""}\n\nHard rules for this conversation (they override the usual "reply" and "tip" rules above):\n- Have a genuine, warm back-and-forth. ALWAYS respond to what the learner actually just said — answer their question, react to their name, where they're from or what they like, then ask ONE simple follow-up question. Never reply with a stock phrase that ignores their message.\n- Keep "reply" very short and simple: 1-2 short sentences built mostly from the phrases above plus only the most basic connecting words (yes/no, I, you, very, too, and, also). No idioms, no complex grammar, no long sentences.\n- If they say goodbye, say a warm goodbye back.\n- "tip": leave it empty when their message was fine. If something was off, give ONE gentle, simple fix in ${nativeLanguage}. If they seem stuck, suggest one phrase to try. Whenever "tip" includes a ${language} phrase, follow it with a simple sound-it-out pronunciation in brackets (syllables separated by hyphens, stressed syllable in CAPITALS, no IPA), e.g. "Try: ¿De dónde eres? (deh DOHN-deh EH-rehs) — Where are you from?". No grammar jargon, max 2 short sentences.\n- Be encouraging — this is a big moment for them.`;
+    } else if (isIntro) {
         levelGuidance = `\n\nThis is a BASICS lesson — assume the learner may not know any ${language} yet. This overrides the usual "reply" and "tip" rules above.${hasKnownPhrases ? `\n\nThe learner has been shown this exact, complete list of ${language} phrases so far — this lesson's phrases plus every earlier basics lesson they've already completed — and nothing else:\n${knownPhrasesList}\n\nHard rules for "reply" in this lesson:\n- Use ONLY the phrases above (plus a name the learner gives you) — never introduce a new word, verb form, or sentence structure that isn't on that list.\n- "reply" must be just ONE short phrase from that list, standing alone — a greeting or exclamation, not a full sentence explaining what to say or how to say it (no "you can say...", no connecting clauses). Someone meeting this word for the very first time needs to see it used plainly, not embedded in a bigger sentence.` : `\n\nKeep "reply" itself to one very short, simple phrase — no subordinate clauses or explaining what to say, just a plain in-character reaction.`}\n- Every turn in this lesson, including the very first ("__START__") turn, use "tip" to explicitly hand them the next phrase to try — the exact ${language} phrase, then in brackets a simple sound-it-out pronunciation for a ${nativeLanguage} speaker (syllables separated by hyphens, stressed syllable in CAPITALS, no IPA symbols), then its ${nativeLanguage} meaning, e.g. "Try saying: ¡Hola! (OH-lah) — it means Hello." Never leave "tip" empty in this lesson, not even on a good attempt or the first turn — there should always be a next phrase to try. That's the only field where any teaching or explaining happens — never inside "reply".\n- If the phrase doesn't obviously follow from what's just been said — teaching a standalone word like "yes" or "mother" right after a greeting can otherwise feel like a random vocabulary drop — ground "tip" with one short, natural reason it's useful instead of just a bare translation, e.g. "Try saying: sí — it means yes. You'll use it constantly to answer simple questions." Keep "tip" to at most 2 short sentences either way.\n- Keep the language in "tip" itself dead simple — short sentences, everyday words, no grammar jargon (never terms like "conjugation", "accusative", "infinitive", etc.) — write it the way you'd patiently explain something to someone on their very first day of ever learning a language.\n- Be warm, patient, and encouraging about any attempt, even an imperfect one — talk to them like a supportive first-day teacher, not a native speaker in a hurry. The vocabulary being minimal doesn't mean the tone should be flat.`;
     } else if (hasKnownPhrases) {
         // Beyond the intro track, a hard allowlist gets unworkable fast (by
@@ -1303,7 +1306,7 @@ Rules for every turn:
 - Stay fully in character. Write "reply" ONLY in ${language} — short (1-3 sentences), natural, everyday phrasing a real native speaker would actually use in this situation, not textbook-formal language.
 - "replyTranslation" is a plain ${nativeLanguage} translation of exactly what you wrote in "reply", so the learner can check their understanding. Never put ${nativeLanguage} in "reply" itself.
 - "replyRomanization" is the romanization of exactly what you wrote in "reply", following the rule below — leave it as an empty string when that rule says to.${romanizationNote(language)}
-- Look at the learner's last message (in ${language}). If anything was unnatural, grammatically off, or not how a native speaker would actually say it, put ONE short, specific, encouraging coaching note in "tip" (${nativeLanguage}, max 2 sentences) — show what they said and a more natural way to say it. If their message was already good, or this is the very first turn, leave "tip" as an empty string. Never put coaching inside "reply" — that field is 100% in-character. Do NOT flag missing accent marks or diacritics (e.g. "ola" instead of "olá", "como esta" instead of "cómo está") as a mistake worth a tip — most learners are typing on a keyboard without easy access to them, so treat the unaccented spelling as correct and only coach on actual word choice, grammar, or phrasing.
+- Look at the learner's last message (in ${language}). If anything was unnatural, grammatically off, or not how a native speaker would actually say it, put ONE short, specific, encouraging coaching note in "tip" (${nativeLanguage}, max 2 sentences) — show what they said and a more natural way to say it. If their message was already good, or this is the very first turn, leave "tip" as an empty string. Never put coaching inside "reply" — that field is 100% in-character.
 - If the learner writes in ${nativeLanguage} or seems stuck, stay in character in ${language} but simplify your reply, and use "tip" to gently suggest a phrase they could use.
 - The learner's message will be exactly "__START__" only to signal the very start of the conversation — when you see that, ${scenario.opening}, as your character naturally would, and leave "tip" empty. Never mention "__START__" or break character to acknowledge it.${levelGuidance}${objectivesSection}`;
 }
@@ -1337,23 +1340,16 @@ const CONVERSATION_JSON_SCHEMA = {
 // per-language content to hand-author and keep in sync across 90 lessons.
 function buildLessonIntroPrompt(language, scenario, nativeLanguage) {
     const romanizationLine = `Each "keyPhrases" entry also needs a "romanization" field.${romanizationNote(language)} ${pronunciationNote(language, nativeLanguage)}`;
-    const usageLine = `Each "keyPhrases" entry also needs a short "usage" field (in ${nativeLanguage}, under 12 words) — a quick, concrete note on when or how it's actually used, e.g. "Said when answering the phone" or "More casual than the formal greeting".`;
-    const grammarNoteLine = `"grammarNote" is one short, genuinely useful grammar or usage tip (in ${nativeLanguage}, 1-2 sentences) relevant to this lesson's vocabulary — something that'll actually help, like a gender rule, a conjugation pattern, or a common mix-up, explained plainly with no jargon.`;
-    const culturalNoteLine = `"culturalNote" is one short, concrete etiquette or cultural norm tip (in ${nativeLanguage}, 1-2 sentences) relevant to this topic or scenario — a real, specific thing to know, not generic trivia.`;
     if (scenario.tier === "Intro") {
         return `The learner is an absolute beginner about to learn some of their very first words of ${language}, on this topic: ${scenario.blurb}
 
 - "objectives": exactly 3 short, concrete goals for this lesson (in ${nativeLanguage}, each under 8 words, phrased like a checklist item) — focused on LEARNING and trying out new words on this topic, not on accomplishing a task (e.g. "Learn to say hello", "Learn to say goodbye", "Try greeting the tutor").
-- "keyPhrases": 8 to 12 essential ${language} words or phrases for this specific topic, each with its plain ${nativeLanguage} translation — exactly the vocabulary this lesson is meant to teach, simple and commonly used, ordered from most to least essential. ${romanizationLine} ${usageLine}
-- ${grammarNoteLine}
-- ${culturalNoteLine}`;
+- "keyPhrases": 5 to 8 essential ${language} words or phrases for this specific topic, each with its plain ${nativeLanguage} translation — exactly the vocabulary this lesson is meant to teach, simple and commonly used, ordered from most to least essential. ${romanizationLine}`;
     }
     return `The learner is about to practice this scenario in ${language}: ${scenario.blurb} They'll be roleplaying with ${scenario.character}.
 
 - "objectives": exactly 3 short, concrete goals for what the learner should try to accomplish during this conversation (in ${nativeLanguage}, each under 8 words, phrased like a checklist item — e.g. "Greet the barista", "Order a drink", "Ask the price"). Make them specific to this scenario, not generic filler.
-- "keyPhrases": 6 to 9 short, useful phrases in ${language} the learner will likely want for this scenario, each with its plain ${nativeLanguage} translation — natural, everyday phrasing a native speaker would actually use, not textbook-formal. ${romanizationLine} ${usageLine}
-- ${grammarNoteLine}
-- ${culturalNoteLine}`;
+- "keyPhrases": 4 to 6 short, useful phrases in ${language} the learner will likely want for this scenario, each with its plain ${nativeLanguage} translation — natural, everyday phrasing a native speaker would actually use, not textbook-formal. ${romanizationLine}`;
 }
 
 const LESSON_INTRO_JSON_SCHEMA = {
@@ -1372,17 +1368,14 @@ const LESSON_INTRO_JSON_SCHEMA = {
                         phrase: { type: "string" },
                         translation: { type: "string" },
                         romanization: { type: "string" },
-                        pronunciation: { type: "string" },
-                        usage: { type: "string" }
+                        pronunciation: { type: "string" }
                     },
-                    required: ["phrase", "translation", "romanization", "pronunciation", "usage"],
+                    required: ["phrase", "translation", "romanization", "pronunciation"],
                     additionalProperties: false
                 }
-            },
-            grammarNote: { type: "string" },
-            culturalNote: { type: "string" }
+            }
         },
-        required: ["objectives", "keyPhrases", "grammarNote", "culturalNote"],
+        required: ["objectives", "keyPhrases"],
         additionalProperties: false
     }
 };
@@ -1408,17 +1401,15 @@ function buildLessonPracticePrompt(language, scenario, nativeLanguage) {
 ${levelNote}
 The learner's own native language, for every translation/instruction below, is ${nativeLanguage}.
 
-Generate exactly 7 practice exercises, one of each of these types, in this exact order: "multiple_choice", "fill_blank", "word_bank", "true_false", "matching", "listening", "speaking". Every exercise must be tightly focused on vocabulary and phrases relevant to this specific topic, and each exercise's "kind" field must be set to exactly the matching type name below.
+Generate exactly 5 practice exercises, one of each of these types, in this exact order: "multiple_choice", "fill_blank", "word_bank", "true_false", "matching". Every exercise must be tightly focused on vocabulary and phrases relevant to this specific topic, and each exercise's "kind" field must be set to exactly the matching type name below.
 
 - multiple_choice: "prompt" is a short ${language} word or phrase. "options" is an array of exactly 4 short ${nativeLanguage} translations, only one of which is correct. "correctIndex" is the 0-based index of the correct option. "promptRomanization" is "prompt"'s romanization.${rz}
 - fill_blank: "sentence" is a short ${language} sentence with exactly one blank shown as "___". "correctAnswer" is the single ${language} word or short phrase that correctly fills the blank. "translation" is the ${nativeLanguage} translation of the complete, correct sentence. "sentenceRomanization" is the romanization of the complete, correct ${language} sentence (with the blank filled in).${rz}
 - word_bank: "prompt" is a short ${nativeLanguage} sentence. "words" is that sentence's ${language} translation split into individual words/tokens, given in SCRAMBLED (shuffled) order. "correctOrder" is an array of the same length giving the 0-based indices into "words" that puts them back into a grammatically correct ${language} sentence. "wordsRomanization" is an array the same length as "words", giving the romanization of each entry in "words" at the same index (not reordered).${rz}
 - true_false: "statement" is one ${nativeLanguage} sentence claiming that a specific ${language} word or phrase means something — sometimes make the claim true, sometimes false. "isTrue" is whether the claim is actually correct.
 - matching: "pairs" is an array of exactly 4 objects, each with a "term" (a ${language} word or phrase for this topic), its "meaning" (the correct ${nativeLanguage} translation), and "termRomanization" (the romanization of "term").${rz}
-- listening: "audioText" is a short ${language} word or phrase for this topic — exactly the text that will be read aloud to the learner, with no stage directions and no punctuation beyond what belongs in the sentence itself, since the learner must type back exactly what they hear. "translation" is its ${nativeLanguage} translation, shown only after the learner checks their answer.
-- speaking: "targetPhrase" is a short, genuinely useful ${language} word or phrase for this topic that the learner will say out loud to practice pronunciation — keep it short enough to say in one breath. "translation" is its ${nativeLanguage} translation. "targetRomanization" is "targetPhrase"'s romanization.${rz}
 
-Every exercise also needs a short "instruction" field in plain ${nativeLanguage} telling the learner what to do, e.g. "Choose the correct meaning", "Fill in the blank", "Put the words in order", "True or false?", "Match each word to its meaning", "Listen and type what you hear", "Say it out loud".`;
+Every exercise also needs a short "instruction" field in plain ${nativeLanguage} telling the learner what to do, e.g. "Choose the correct meaning", "Fill in the blank", "Put the words in order", "True or false?", "Match each word to its meaning".`;
 }
 
 const PRACTICE_JSON_SCHEMA = {
@@ -1502,29 +1493,6 @@ const PRACTICE_JSON_SCHEMA = {
                                 }
                             },
                             required: ["kind", "instruction", "pairs"],
-                            additionalProperties: false
-                        },
-                        {
-                            type: "object",
-                            properties: {
-                                kind: { type: "string", enum: ["listening"] },
-                                instruction: { type: "string" },
-                                audioText: { type: "string" },
-                                translation: { type: "string" }
-                            },
-                            required: ["kind", "instruction", "audioText", "translation"],
-                            additionalProperties: false
-                        },
-                        {
-                            type: "object",
-                            properties: {
-                                kind: { type: "string", enum: ["speaking"] },
-                                instruction: { type: "string" },
-                                targetPhrase: { type: "string" },
-                                targetRomanization: { type: "string" },
-                                translation: { type: "string" }
-                            },
-                            required: ["kind", "instruction", "targetPhrase", "targetRomanization", "translation"],
                             additionalProperties: false
                         }
                     ]
