@@ -46,6 +46,13 @@ app.use(express.json({
     // for that one endpoint.
     verify: (req, res, buf) => { req.rawBody = buf; }
 }));
+// Express 5 leaves req.body undefined (not {}) when a request has no JSON
+// body, so `const { ... } = req.body` in a route would throw and turn a
+// simple bad request into a confusing 500. Default it to an empty object.
+app.use((req, res, next) => {
+    if (req.body === undefined) req.body = {};
+    next();
+});
 
 // ==============================
 // Firebase Admin — verifies the ID token a signed-in learner's browser sends,
@@ -120,12 +127,20 @@ function billingCollection() {
     return db.collection("billing");
 }
 
+// Also carries the free-tier bookkeeping (today's conversation count and
+// referral bonus) — see "Free-tier usage + referrals" below for why those
+// moved here from in-memory Maps.
 async function getBillingRecord(uid) {
-    if (!db) return { premium: false, stripeCustomerId: null };
+    if (!db) return { premium: false, stripeCustomerId: null, ...memoryUsageFor(uid) };
     const snap = await billingCollection().doc(uid).get();
-    if (!snap.exists) return { premium: false, stripeCustomerId: null };
-    const data = snap.data();
-    return { premium: data.premium === true, stripeCustomerId: data.stripeCustomerId || null };
+    const data = snap.exists ? snap.data() : {};
+    return {
+        premium: data.premium === true,
+        stripeCustomerId: data.stripeCustomerId || null,
+        referralBonus: typeof data.referralBonus === "number" ? data.referralBonus : 0,
+        referredBy: data.referredBy || null,
+        dailyConvos: data.dailyConvos && typeof data.dailyConvos === "object" ? data.dailyConvos : null
+    };
 }
 
 async function setBillingRecord(uid, fields) {
@@ -149,25 +164,87 @@ async function uidForStripeCustomer(customerId) {
     }
 }
 
-// Everything below is still a plain in-memory Map, and deliberately so — a
-// reset here (a Render free-tier sleep/restart) just means a free learner's
-// daily count or referral bonus starts over, which costs nothing anyone paid
-// for. That's a different risk than the billing state above, so it keeps the
-// original, simpler tradeoff: free to add, no Firestore round-trip per
-// request, nothing lost that matters.
-const dailyConvoCountByUid = new Map(); // "uid::YYYY-MM-DD" -> count
-const referralBonusByUid = new Map();   // uid -> extra conversations/day earned from referrals (added to FREE_DAILY_CONVERSATIONS, not consumed — same reset tradeoff as the maps above)
-const referredByUid = new Map();        // uid -> the uid of whoever referred them, set once the first time a referral is claimed
+// ==============================
+// Free-tier usage + referrals
+// ==============================
+// These used to live in in-memory Maps, which reset on every redeploy and
+// every Render restart. That had two visible effects: a learner's "+3
+// conversations/day" referral bonus silently vanished after the next
+// deploy (and they could then claim another referral), and the 5/day cap
+// reset mid-day whenever the server restarted. They now live on the same
+// server-only billing/{uid} doc as premium status:
+//   referralBonus  number — extra conversations/day from referrals
+//   referredBy     uid of whoever referred this learner (set once)
+//   dailyConvos    { date: "YYYY-MM-DD" (UTC), count }
+// The Maps below are only a fallback for local development without
+// FIREBASE_SERVICE_ACCOUNT_JSON (db === null).
+const memDailyConvos = new Map();  // uid -> { date, count }
+const memReferralBonus = new Map(); // uid -> number
+const memReferredBy = new Map();    // uid -> referrer uid
 
 const FREE_DAILY_CONVERSATIONS = 5;
 const REFERRAL_BONUS_CONVERSATIONS = 3; // added to both sides' daily limit when a referral is claimed
 
-function todayKeyFor(uid) {
-    return `${uid}::${new Date().toISOString().slice(0, 10)}`;
+function todayUtc() {
+    return new Date().toISOString().slice(0, 10);
 }
 
-function dailyLimitFor(uid) {
-    return FREE_DAILY_CONVERSATIONS + (referralBonusByUid.get(uid) || 0);
+function memoryUsageFor(uid) {
+    return {
+        referralBonus: memReferralBonus.get(uid) || 0,
+        referredBy: memReferredBy.get(uid) || null,
+        dailyConvos: memDailyConvos.get(uid) || null
+    };
+}
+
+function dailyLimitFromRecord(record) {
+    return FREE_DAILY_CONVERSATIONS + (record.referralBonus || 0);
+}
+
+function usedTodayFromRecord(record) {
+    const d = record.dailyConvos;
+    return d && d.date === todayUtc() && typeof d.count === "number" ? d.count : 0;
+}
+
+// Counts one started conversation against today's free allowance.
+async function incrementDailyConvos(uid) {
+    const today = todayUtc();
+    if (!db) {
+        const cur = memDailyConvos.get(uid);
+        memDailyConvos.set(uid, { date: today, count: cur && cur.date === today ? cur.count + 1 : 1 });
+        return;
+    }
+    const ref = billingCollection().doc(uid);
+    await db.runTransaction(async tx => {
+        const snap = await tx.get(ref);
+        const cur = snap.exists ? snap.data().dailyConvos : null;
+        const count = cur && cur.date === today && typeof cur.count === "number" ? cur.count + 1 : 1;
+        tx.set(ref, { dailyConvos: { date: today, count } }, { merge: true });
+    });
+}
+
+// Returns "claimed", "already-claimed".
+async function claimReferral(uid, code) {
+    if (!db) {
+        if (memReferredBy.has(uid)) return "already-claimed";
+        memReferredBy.set(uid, code);
+        memReferralBonus.set(uid, (memReferralBonus.get(uid) || 0) + REFERRAL_BONUS_CONVERSATIONS);
+        memReferralBonus.set(code, (memReferralBonus.get(code) || 0) + REFERRAL_BONUS_CONVERSATIONS);
+        return "claimed";
+    }
+    const mine = billingCollection().doc(uid);
+    const theirs = billingCollection().doc(code);
+    return db.runTransaction(async tx => {
+        const mySnap = await tx.get(mine);
+        const myData = mySnap.exists ? mySnap.data() : {};
+        if (myData.referredBy) return "already-claimed";
+        const theirSnap = await tx.get(theirs);
+        const theirBonus = theirSnap.exists && typeof theirSnap.data().referralBonus === "number" ? theirSnap.data().referralBonus : 0;
+        const myBonus = typeof myData.referralBonus === "number" ? myData.referralBonus : 0;
+        tx.set(mine, { referredBy: code, referralBonus: myBonus + REFERRAL_BONUS_CONVERSATIONS }, { merge: true });
+        tx.set(theirs, { referralBonus: theirBonus + REFERRAL_BONUS_CONVERSATIONS }, { merge: true });
+        return "claimed";
+    });
 }
 
 // ==============================
@@ -210,14 +287,24 @@ app.post("/admin/cache/clear", (req, res) => {
         return res.status(404).json({ error: "Not found." }); // 404, not 401 — don't confirm this endpoint exists
     }
     const { scenarioId, language, phrase } = req.body || {};
+    // Cache keys include the learner's native language (see
+    // scenarioCacheKey/lookupCacheKey). Clearing used to leave that part
+    // out, so the key never matched and nothing was actually cleared. Now a
+    // specific nativeLanguage can be passed; without one, every native-
+    // language variant of the entry is cleared.
+    const nativeLanguages = req.body && req.body.nativeLanguage
+        ? [normalizeNativeLanguage(req.body.nativeLanguage)]
+        : NATIVE_LANGUAGES;
     if (phrase && language) {
-        lookupCache.delete(lookupCacheKey(phrase, language));
+        nativeLanguages.forEach(n => lookupCache.delete(lookupCacheKey(phrase, language, n)));
         return res.json({ success: true, cleared: "lookup", phrase, language });
     }
     if (scenarioId && language) {
-        const key = scenarioCacheKey(scenarioId, language);
-        lessonIntroCache.delete(key);
-        lessonPracticeCache.delete(key);
+        nativeLanguages.forEach(n => {
+            const key = scenarioCacheKey(scenarioId, language, n);
+            lessonIntroCache.delete(key);
+            lessonPracticeCache.delete(key);
+        });
         return res.json({ success: true, cleared: "lesson", scenarioId, language });
     }
     if (req.body && req.body.clearAll === true) {
@@ -1173,6 +1260,7 @@ const SCENARIOS = {
 // free text instead of looking one up in SCENARIOS.
 const CUSTOM_SCENARIO_ID = "custom";
 const CUSTOM_TOPIC_MAX_LEN = 200;
+const MAX_MESSAGE_LEN = 1000; // per chat message (and per history turn) sent to /converse
 
 // The custom topic goes straight into the system prompt, so it's sanitized
 // like any other untrusted client input before that: collapsed to a single
@@ -1629,7 +1717,8 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
         // with no way for them to upgrade past it. Fetched once here and
         // reused below (rather than a second Firestore read after the reply)
         // so a signed-in learner's turn costs at most one billing lookup.
-        const isPremium = req.uid ? (await getBillingRecord(req.uid)).premium : false;
+        const billingRecord = req.uid ? await getBillingRecord(req.uid) : null;
+        const isPremium = billingRecord ? billingRecord.premium : false;
         // The cap counts CONVERSATIONS, not messages: only the opening turn of
         // a conversation (the client's "__START__", sent with an empty
         // history) is checked and counted. Previously every message counted,
@@ -1637,8 +1726,8 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
         // and a learner could be cut off mid-conversation.
         const isNewConversation = message === "__START__" || !Array.isArray(history) || history.length === 0;
         if (req.uid && !isPremium && isNewConversation) {
-            const usedSoFar = dailyConvoCountByUid.get(todayKeyFor(req.uid)) || 0;
-            const limit = dailyLimitFor(req.uid);
+            const usedSoFar = usedTodayFromRecord(billingRecord);
+            const limit = dailyLimitFromRecord(billingRecord);
             if (usedSoFar >= limit) {
                 return res.status(402).json({
                     error: "You've used today's free conversations.",
@@ -1666,6 +1755,12 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
         if (typeof message !== "string" || !message.trim()) {
             return res.status(400).json({ error: "Message is required." });
         }
+        // Every character sent here is paid for on the OpenAI bill, and the
+        // body limit alone (1mb) would let one request carry a novel. A real
+        // chat reply is a sentence or two, so cap it well above that.
+        if (message.length > MAX_MESSAGE_LEN) {
+            return res.status(400).json({ error: `That message is too long — keep it under ${MAX_MESSAGE_LEN} characters.` });
+        }
         if (!Array.isArray(history)) {
             return res.status(400).json({ error: "History must be an array." });
         }
@@ -1679,7 +1774,7 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
         const historyInput = history
             .filter(turn => turn && typeof turn.content === "string" && (turn.role === "user" || turn.role === "assistant"))
             .slice(-20) // keep the request small; recent context is what matters for a natural reply
-            .map(turn => ({ role: turn.role, content: turn.content }));
+            .map(turn => ({ role: turn.role, content: turn.content.slice(0, MAX_MESSAGE_LEN) }));
 
         // Echoed back by the client from /lesson-intro — sanitized here since
         // it's client-supplied. Capped to a sane length; the app only ever
@@ -1723,8 +1818,12 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
         // Only a successfully started conversation counts against the daily
         // cap — a failed call shouldn't cost the learner part of their allowance.
         if (req.uid && !isPremium && isNewConversation) {
-            const key = todayKeyFor(req.uid);
-            dailyConvoCountByUid.set(key, (dailyConvoCountByUid.get(key) || 0) + 1);
+            try {
+                await incrementDailyConvos(req.uid);
+            } catch (countError) {
+                // Don't fail the learner's reply over a bookkeeping write.
+                console.error("Couldn't record daily conversation count:", countError.message);
+            }
         }
 
         res.json({ success: true, ...result });
@@ -1921,19 +2020,25 @@ app.get("/billing/status", attachUserIfSignedIn, async (req, res) => {
     if (!req.uid) {
         return res.json({ signedIn: false, premium: false });
     }
-    const isPremium = (await getBillingRecord(req.uid)).premium;
-    const used = dailyConvoCountByUid.get(todayKeyFor(req.uid)) || 0;
-    const limit = dailyLimitFor(req.uid);
-    res.json({
-        signedIn: true,
-        premium: isPremium,
-        dailyLimit: limit,
-        dailyUsed: isPremium ? 0 : used,
-        dailyRemaining: isPremium ? null : Math.max(0, limit - used),
-        referralCode: req.uid,
-        referralBonus: referralBonusByUid.get(req.uid) || 0,
-        hasClaimedReferral: referredByUid.has(req.uid)
-    });
+    try {
+        const record = await getBillingRecord(req.uid);
+        const isPremium = record.premium;
+        const used = usedTodayFromRecord(record);
+        const limit = dailyLimitFromRecord(record);
+        res.json({
+            signedIn: true,
+            premium: isPremium,
+            dailyLimit: limit,
+            dailyUsed: isPremium ? 0 : used,
+            dailyRemaining: isPremium ? null : Math.max(0, limit - used),
+            referralCode: req.uid,
+            referralBonus: record.referralBonus || 0,
+            hasClaimedReferral: !!record.referredBy
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Couldn't load your plan right now." });
+    }
 });
 
 // POST /referral/claim — a new (or at least first-time-claiming) signed-in
@@ -1943,7 +2048,7 @@ app.get("/billing/status", attachUserIfSignedIn, async (req, res) => {
 // Doesn't verify the code belongs to a real Firebase user — the only
 // downside of a made-up code is a harmless, unclaimed bonus sitting on a
 // uid nobody owns, not worth a Firebase Admin lookup to prevent.
-app.post("/referral/claim", attachUserIfSignedIn, (req, res) => {
+app.post("/referral/claim", attachUserIfSignedIn, async (req, res) => {
     if (!req.uid) {
         return res.status(401).json({ error: "Sign in first to claim a referral." });
     }
@@ -1951,20 +2056,29 @@ app.post("/referral/claim", attachUserIfSignedIn, (req, res) => {
     if (!code) {
         return res.status(400).json({ error: "Missing referral code." });
     }
+    // The code is a Firebase uid and is used as a Firestore document id —
+    // anything with a "/" or other odd characters would make Firestore throw.
+    if (!/^[A-Za-z0-9_-]{6,128}$/.test(code)) {
+        return res.status(400).json({ error: "That referral code isn't valid." });
+    }
     if (code === req.uid) {
         return res.status(400).json({ error: "You can't refer yourself." });
     }
-    if (referredByUid.has(req.uid)) {
-        return res.status(409).json({ error: "You've already claimed a referral bonus." });
+    try {
+        const outcome = await claimReferral(req.uid, code);
+        if (outcome === "already-claimed") {
+            return res.status(409).json({ error: "You've already claimed a referral bonus." });
+        }
+        const record = await getBillingRecord(req.uid);
+        res.json({
+            success: true,
+            bonusConversations: REFERRAL_BONUS_CONVERSATIONS,
+            newDailyLimit: dailyLimitFromRecord(record)
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Couldn't claim that referral right now." });
     }
-    referredByUid.set(req.uid, code);
-    referralBonusByUid.set(req.uid, (referralBonusByUid.get(req.uid) || 0) + REFERRAL_BONUS_CONVERSATIONS);
-    referralBonusByUid.set(code, (referralBonusByUid.get(code) || 0) + REFERRAL_BONUS_CONVERSATIONS);
-    res.json({
-        success: true,
-        bonusConversations: REFERRAL_BONUS_CONVERSATIONS,
-        newDailyLimit: dailyLimitFor(req.uid)
-    });
 });
 
 // POST /billing/create-checkout-session — starts a subscription purchase for
@@ -2018,11 +2132,11 @@ app.post("/billing/create-portal-session", attachUserIfSignedIn, async (req, res
     if (!req.uid) {
         return res.status(401).json({ error: "Sign in first." });
     }
-    const { stripeCustomerId: customerId } = await getBillingRecord(req.uid);
-    if (!customerId) {
-        return res.status(404).json({ error: "No billing account found for this user yet." });
-    }
     try {
+        const { stripeCustomerId: customerId } = await getBillingRecord(req.uid);
+        if (!customerId) {
+            return res.status(404).json({ error: "No billing account found for this user yet." });
+        }
         const origin = req.get("origin") || `${req.protocol}://${req.get("host")}`;
         const session = await getStripe().billingPortal.sessions.create({
             customer: customerId,

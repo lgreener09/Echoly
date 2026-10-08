@@ -1880,7 +1880,7 @@
   <div class="chat-log" id="chatLog"></div>
   <div class="composer">
     <button class="mic-btn" id="micBtn" aria-label="Speak your reply">🎤</button>
-    <input type="text" id="messageInput" placeholder="Type your reply…" autocomplete="off">
+    <input type="text" id="messageInput" placeholder="Type your reply…" autocomplete="off" maxlength="1000">
     <button class="send-btn" id="sendBtn">Send</button>
   </div>
 </div>
@@ -2019,7 +2019,7 @@
     "Vietnamese": "vi-VN", "Thai": "th-TH", "Indonesian": "id-ID", "Hebrew": "he-IL",
     "Ukrainian": "uk-UA", "Romanian": "ro-RO", "Czech": "cs-CZ", "Hungarian": "hu-HU",
     "Finnish": "fi-FI", "Norwegian": "nb-NO", "Danish": "da-DK", "Filipino": "fil-PH",
-    "Swahili": "sw-KE", "Persian": "fa-IR", "Urdu": "ur-PK", "Bengali": "bn-BD", "Malay": "ms-MY"
+    "Swahili": "sw-KE", "Persian": "fa-IR", "Urdu": "ur-PK", "Bengali": "bn-BD", "Malay": "ms-MY", "Punjabi": "pa-IN"
   };
   function getLocaleForLanguage(lang) { return LANGUAGE_LOCALES[lang] || "en-US"; }
 
@@ -2284,7 +2284,7 @@
     "Thai": "เก่งมาก!", "Indonesian": "Kerja bagus!", "Hebrew": "כל הכבוד!",
     "Ukrainian": "Молодець!", "Romanian": "Bravo!", "Czech": "Výborně!", "Hungarian": "Szép munka!",
     "Finnish": "Hyvää työtä!", "Norwegian": "Bra jobbet!", "Danish": "Godt klaret!", "Filipino": "Magaling!",
-    "Swahili": "Vizuri sana!", "Persian": "آفرین!", "Urdu": "شاباش!", "Bengali": "চমৎকার!", "Malay": "Syabas!"
+    "Swahili": "Vizuri sana!", "Persian": "آفرین!", "Urdu": "شاباش!", "Bengali": "চমৎকার!", "Malay": "Syabas!", "Punjabi": "ਬਹੁਤ ਵਧੀਆ!"
   };
   // Shown under each language in onboarding (text, not flag emoji — flag
   // emoji render as plain letters on Windows).
@@ -2295,11 +2295,15 @@
     "Swedish": "Hej", "Vietnamese": "Xin chào", "Thai": "สวัสดี", "Indonesian": "Halo", "Hebrew": "שלום",
     "Ukrainian": "Привіт", "Romanian": "Bună", "Czech": "Ahoj", "Hungarian": "Szia", "Finnish": "Hei",
     "Norwegian": "Hei", "Danish": "Hej", "Filipino": "Kumusta", "Swahili": "Jambo", "Persian": "سلام",
-    "Urdu": "السلام علیکم", "Bengali": "নমস্কার", "Malay": "Helo"
+    "Urdu": "السلام علیکم", "Bengali": "নমস্কার", "Malay": "Helo", "Punjabi": "ਸਤ ਸ੍ਰੀ ਅਕਾਲ"
   };
   let currentScenario = null;
   let history = []; // [{role: "user"|"assistant", content}]
   let sending = false;
+  // Bumped every time a conversation starts or the learner leaves the chat
+  // screen; a reply that comes back after that is from a conversation
+  // they're no longer in, and is dropped (see sendMessage).
+  let conversationGen = 0;
   let userMessageCount = 0;
   let lookupSending = false;
 
@@ -3429,7 +3433,7 @@
 
     const { options, correctIndex } = buildMultipleChoiceOptions(selectedLanguage, card);
     qzCorrectIndex = correctIndex;
-    qzOptionsEl.innerHTML = options.map((t, i) => `<button type="button" class="qz-option" data-index="${i}">${t}</button>`).join("");
+    qzOptionsEl.innerHTML = options.map((t, i) => `<button type="button" class="qz-option" data-index="${i}">${escapeHtml(t)}</button>`).join("");
   }
 
   qzOptionsEl.addEventListener("click", e => {
@@ -3525,7 +3529,7 @@
 
     const { options, correctIndex } = buildMultipleChoiceOptions(selectedLanguage, card);
     lcCorrectIndex = correctIndex;
-    lcOptionsEl.innerHTML = options.map((t, i) => `<button type="button" class="qz-option" data-index="${i}">${t}</button>`).join("");
+    lcOptionsEl.innerHTML = options.map((t, i) => `<button type="button" class="qz-option" data-index="${i}">${escapeHtml(t)}</button>`).join("");
     speakText(card.phrase, selectedLanguage);
   }
 
@@ -4660,7 +4664,18 @@
   // tier you'd naturally go to next, any in-progress "practice your own
   // topic" form closed, scrolled up to the top). Safe to call even when
   // already on the home screen — the screen-class toggles are then no-ops.
+  // Leaving the chat abandons whatever reply was still on its way — see
+  // conversationGen in sendMessage.
+  function leaveConversation() {
+    conversationGen++;
+    sending = false;
+    sendBtn.disabled = false;
+    hideTyping();
+  }
+
   function goHome() {
+    if (chatScreen.classList.contains("active")) leaveConversation();
+    introGen++; // a lesson intro still loading shouldn't pop back up later
     chatScreen.classList.remove("active");
     introScreen.classList.remove("active");
     practiceScreen.classList.remove("active");
@@ -4710,7 +4725,7 @@
   });
 
   customTopicInputEl.addEventListener("keydown", e => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && !isImeComposing(e)) {
       e.preventDefault();
       if (!customTopicStartBtn.disabled) startCustomConversation(customTopicInputEl.value);
     }
@@ -4728,6 +4743,7 @@
   }
 
   document.getElementById("backBtn").addEventListener("click", () => {
+    leaveConversation();
     chatScreen.classList.remove("active");
     homeScreen.classList.add("active");
     resetCustomTopicForm();
@@ -4752,7 +4768,7 @@
 
   function renderIntroContent(objectives, keyPhrases) {
     introObjectivesEl.innerHTML = objectives.map((o, i) => `
-      <li><span class="obj-num">${i + 1}</span><span>${o}</span></li>`).join("");
+      <li><span class="obj-num">${i + 1}</span><span>${escapeHtml(o)}</span></li>`).join("");
     introPhrasesEl.innerHTML = keyPhrases.map((item, i) => `
       <div class="intro-phrase-item">
         <div class="phrase-item-row">
@@ -4760,12 +4776,12 @@
             ? `<button class="speak-btn" type="button" data-index="${i}" aria-label="Listen">🔊</button>`
             : `<span class="phrase-emoji">💬</span>`}
           <span class="phrase-native-col">
-            <span class="phrase-native">${item.phrase}${pronunciationHtml(item)}</span>
-            ${item.romanization ? `<span class="phrase-romanization">${item.romanization}</span>` : ""}
+            <span class="phrase-native">${escapeHtml(item.phrase)}${pronunciationHtml(item)}</span>
+            ${item.romanization ? `<span class="phrase-romanization">${escapeHtml(item.romanization)}</span>` : ""}
           </span>
-          <span class="phrase-en">${item.translation}</span>
+          <span class="phrase-en">${escapeHtml(item.translation)}</span>
         </div>
-        ${item.usage ? `<p class="phrase-usage">${item.usage}</p>` : ""}
+        ${item.usage ? `<p class="phrase-usage">${escapeHtml(item.usage)}</p>` : ""}
       </div>`).join("");
   }
   // Delegated rather than one listener per phrase — the list is rebuilt via
@@ -4779,8 +4795,13 @@
     if (item) speakText(item.phrase, selectedLanguage);
   });
 
+  // Bumped on every openIntro and whenever the learner backs out of it, so a
+  // slow response for a lesson they already left can't overwrite the screen
+  // of the lesson they opened next (and point "Start lesson" at the wrong one).
+  let introGen = 0;
   async function openIntro(lesson) {
     if (guestLimitReached()) return;
+    const myIntroGen = ++introGen;
     introLesson = lesson;
     introObjectives = [];
     introKeyPhrases = [];
@@ -4828,6 +4849,7 @@
         }).catch(() => null)
       ]);
       const introData = await introRes.json();
+      if (myIntroGen !== introGen) return; // learner moved on to something else
       if (!introRes.ok || !introData.success) {
         throw new Error(introData.error || "Couldn't prepare this lesson.");
       }
@@ -4839,6 +4861,7 @@
       if (practiceRes && practiceRes.ok) {
         try { practiceData = await practiceRes.json(); } catch (e) { practiceData = null; }
       }
+      if (myIntroGen !== introGen) return;
 
       introObjectives = Array.isArray(introData.objectives) ? introData.objectives : [];
       introKeyPhrases = Array.isArray(introData.keyPhrases) ? introData.keyPhrases : [];
@@ -4872,6 +4895,7 @@
       }
 
     } catch (err) {
+      if (myIntroGen !== introGen) return;
       introLoadingEl.style.display = "none";
       showIntroError(err.message || "Couldn't prepare this lesson. Please try again.");
       // Don't let a flaky /lesson-intro call block practice entirely — let
@@ -5328,6 +5352,7 @@
   }
 
   introBackBtn.addEventListener("click", () => {
+    introGen++;
     introScreen.classList.remove("active");
     homeScreen.classList.add("active");
   });
@@ -5402,6 +5427,12 @@
   function startConversation(lesson, objectives, keyPhrases, culturalNote, grammarNote) {
     if (guestLimitReached()) return;
     if (isGuest()) { bumpGuestConvoCount(); renderAccountCard(); }
+    // A reply from a conversation the learner already left must never land
+    // in this new one, and must not block this one's opening message.
+    conversationGen++;
+    sending = false;
+    sendBtn.disabled = false;
+    hideTyping();
     currentScenario = lesson;
     currentObjectives = objectives || [];
     currentKeyPhrases = keyPhrases || [];
@@ -5466,6 +5497,7 @@
     div.querySelector(".bubble").textContent = text;
     chatLogEl.appendChild(div);
     scrollToBottom();
+    return div;
   }
 
   function addAiTurn(reply, replyTranslation, tip, replyRomanization) {
@@ -5808,14 +5840,35 @@
     opts = opts || {};
     if (sending) return;
     if (!text || !text.trim()) return;
+    const myGen = conversationGen;
     sending = true;
     sendBtn.disabled = true;
     hideError();
 
+    let userBubble = null;
     if (!opts.silent) {
-      addUserBubble(text);
+      userBubble = addUserBubble(text);
     }
     showTyping();
+
+    // A failed turn shouldn't eat what the learner typed: take their bubble
+    // back out and put the text back in the box so they can just resend.
+    const restoreUnsentText = () => {
+      if (opts.silent) return;
+      if (userBubble && userBubble.parentNode) userBubble.remove();
+      if (!messageInput.value) messageInput.value = text;
+    };
+    // If the conversation's opening line fails (often a server waking up),
+    // the chat would otherwise sit empty with no way to get it going.
+    const showStartRetry = msg => {
+      showError(msg);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "error-banner-upgrade-btn";
+      btn.textContent = "Try again";
+      btn.addEventListener("click", () => sendMessage("__START__", { silent: true }));
+      errorBanner.appendChild(btn);
+    };
 
     try {
       const authHeadersForConvo = await authHeaders();
@@ -5835,12 +5888,16 @@
         })
       });
       const data = await res.json();
+      if (myGen !== conversationGen) return; // learner left this conversation while waiting
       hideTyping();
 
       if (!res.ok || !data.success) {
         if (data.upgradeRequired) {
           showUpgradePrompt(data.dailyLimit);
+        } else if (opts.silent && text === "__START__") {
+          showStartRetry(data.error || "Couldn't start the conversation.");
         } else {
+          restoreUnsentText();
           showError(data.error || "Something went wrong. Please try again.");
         }
         return;
@@ -5923,25 +5980,45 @@
       if (tierBadgeEarned) showSectionCompleteModal(tierBadgeEarned);
 
     } catch (err) {
+      if (myGen !== conversationGen) return;
       hideTyping();
-      showError("Couldn't reach the server. Make sure it's running and reachable.");
+      if (opts.silent && text === "__START__") {
+        showStartRetry("Couldn't reach the server. Check your connection and try again.");
+      } else {
+        restoreUnsentText();
+        showError("Couldn't reach the server. Check your connection and try again.");
+      }
     } finally {
-      sending = false;
-      sendBtn.disabled = false;
-      messageInput.focus();
+      // Only the conversation that's still on screen owns these controls.
+      if (myGen === conversationGen) {
+        sending = false;
+        sendBtn.disabled = false;
+        messageInput.focus();
+      }
     }
   }
 
-  sendBtn.addEventListener("click", () => {
+  // Sends what's in the box — but only clears the box once the message is
+  // actually going out. Previously pressing Enter while the AI was still
+  // replying cleared the box and then dropped the message.
+  function submitComposer() {
+    if (sending) return;
     const text = messageInput.value;
+    if (!text.trim()) return;
     messageInput.value = "";
     sendMessage(text);
-  });
+  }
+  // True while an input method editor (Japanese, Chinese, Korean keyboards,
+  // etc.) is still composing — the Enter that confirms a character choice
+  // must not send the message.
+  function isImeComposing(e) {
+    return e.isComposing || e.keyCode === 229;
+  }
+  sendBtn.addEventListener("click", submitComposer);
   messageInput.addEventListener("keydown", e => {
-    if (e.key === "Enter") {
-      const text = messageInput.value;
-      messageInput.value = "";
-      sendMessage(text);
+    if (e.key === "Enter" && !isImeComposing(e)) {
+      e.preventDefault();
+      submitComposer();
     }
   });
 
@@ -6085,7 +6162,7 @@
 
   lookupSubmitBtn.addEventListener("click", submitLookup);
   lookupInput.addEventListener("keydown", e => {
-    if (e.key === "Enter") submitLookup();
+    if (e.key === "Enter" && !isImeComposing(e)) submitLookup();
   });
 
   async function init() {

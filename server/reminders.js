@@ -331,10 +331,28 @@ module.exports = function registerReminders({ app, getDb, getAuth, SCENARIOS }) 
         }
         res.send(unsubPage("You're unsubscribed.", "You won't get any more practice reminders. You can turn them back on any time from the app's sidebar."));
     }
-    app.get("/unsubscribe", handleUnsubscribe);
+    // GET only shows a confirm button. Many inboxes and corporate email
+    // scanners automatically open every link in a message to check it for
+    // malware — if a plain GET unsubscribed, those scanners would silently
+    // unsubscribe learners who never clicked anything. The actual change
+    // happens on POST: the button below, or an email provider's built-in
+    // one-click "Unsubscribe" (List-Unsubscribe-Post), which always POSTs.
+    app.get("/unsubscribe", (req, res) => {
+        const uid = String(req.query.u || "");
+        const token = String(req.query.t || "");
+        if (!uid || !process.env.CRON_SECRET || !tokenMatches(uid, token)) {
+            return res.status(400).send(unsubPage("That unsubscribe link isn't valid.", "If you keep getting emails you don't want, reply to one of them or email echolylanguage@yahoo.com and we'll stop them."));
+        }
+        const action = `/unsubscribe?u=${encodeURIComponent(uid)}&t=${encodeURIComponent(token)}`;
+        res.send(unsubPage(
+            "Stop practice reminders?",
+            "You'll stop getting daily practice reminder emails from Echoly.",
+            `<form method="post" action="${escapeHtml(action)}" style="margin-top:18px;"><button type="submit" style="background:#e85d4c;color:#fff;border:0;border-radius:11px;padding:12px 22px;font-weight:700;font-size:15px;cursor:pointer;">Unsubscribe</button></form>`
+        ));
+    });
     app.post("/unsubscribe", handleUnsubscribe);
 
-    function unsubPage(title, body) {
+    function unsubPage(title, body, extraHtml) {
         return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Echoly — ${escapeHtml(title)}</title></head>
 <body style="margin:0;background:#fbf7f2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Arial,sans-serif;color:#221825;">
@@ -342,6 +360,7 @@ module.exports = function registerReminders({ app, getDb, getAuth, SCENARIOS }) 
 <div style="font-size:22px;font-weight:800;margin-bottom:24px;"><span style="color:#e85d4c;">●</span> Echoly</div>
 <h1 style="font-size:26px;margin:0 0 10px;">${escapeHtml(title)}</h1>
 <p style="color:#6b5f6e;font-size:15px;line-height:1.5;">${escapeHtml(body)}</p>
+${extraHtml || ""}
 <a href="${appUrl()}/app.html" style="display:inline-block;margin-top:14px;color:#e85d4c;font-weight:700;">Back to Echoly</a>
 </div></body></html>`;
     }
