@@ -11,7 +11,8 @@ const Stripe = require("stripe");
 // imports now.
 const { initializeApp, cert } = require("firebase-admin/app");
 const { getAuth } = require("firebase-admin/auth");
-const { getFirestore } = require("firebase-admin/firestore");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
+const crypto = require("crypto");
 
 const app = express();
 
@@ -184,6 +185,18 @@ const memReferredBy = new Map();    // uid -> referrer uid
 
 const FREE_DAILY_CONVERSATIONS = 5;
 const REFERRAL_BONUS_CONVERSATIONS = 3; // added to both sides' daily limit when a referral is claimed
+// Cap on how much extra a REFERRER can earn (5 referrals' worth). Without
+// it, someone could make throwaway accounts that each claim their code and
+// end up with unlimited free conversations. The friend who signs up still
+// always gets their own +3.
+const MAX_REFERRER_BONUS = 15;
+// Guests (not signed in) are capped per network address per day on the
+// server too. The app's own "3 free guest conversations" count lives in the
+// browser, so signing out or opening a private window used to reset it —
+// and since guests had no server-side cap at all, that meant unlimited
+// free conversations. A little above the app's 3 so people sharing a
+// network (a household, an office) aren't cut off by each other right away.
+const GUEST_DAILY_CONVERSATIONS_PER_IP = 5;
 
 function todayUtc() {
     return new Date().toISOString().slice(0, 10);
@@ -223,13 +236,40 @@ async function incrementDailyConvos(uid) {
     });
 }
 
+// Guest usage, keyed by a hash of the visitor's IP address plus the date —
+// the raw IP is never stored. Kept in Firestore (guestUsage collection,
+// server-only) so it survives restarts; old docs are harmless and tiny.
+function guestUsageId(ip) {
+    return crypto.createHash("sha256").update(`${ip || "unknown"}::${todayUtc()}`).digest("hex").slice(0, 40);
+}
+const memGuestUsage = new Map(); // guestUsageId -> count (fallback without Firestore)
+
+async function guestUsedToday(ip) {
+    const id = guestUsageId(ip);
+    if (!db) return memGuestUsage.get(id) || 0;
+    const snap = await db.collection("guestUsage").doc(id).get();
+    return snap.exists && typeof snap.data().count === "number" ? snap.data().count : 0;
+}
+
+async function incrementGuestUsage(ip) {
+    const id = guestUsageId(ip);
+    if (!db) {
+        memGuestUsage.set(id, (memGuestUsage.get(id) || 0) + 1);
+        return;
+    }
+    await db.collection("guestUsage").doc(id).set(
+        { count: FieldValue.increment(1), date: todayUtc() },
+        { merge: true }
+    );
+}
+
 // Returns "claimed", "already-claimed".
 async function claimReferral(uid, code) {
     if (!db) {
         if (memReferredBy.has(uid)) return "already-claimed";
         memReferredBy.set(uid, code);
         memReferralBonus.set(uid, (memReferralBonus.get(uid) || 0) + REFERRAL_BONUS_CONVERSATIONS);
-        memReferralBonus.set(code, (memReferralBonus.get(code) || 0) + REFERRAL_BONUS_CONVERSATIONS);
+        memReferralBonus.set(code, Math.min(MAX_REFERRER_BONUS, (memReferralBonus.get(code) || 0) + REFERRAL_BONUS_CONVERSATIONS));
         return "claimed";
     }
     const mine = billingCollection().doc(uid);
@@ -242,7 +282,9 @@ async function claimReferral(uid, code) {
         const theirBonus = theirSnap.exists && typeof theirSnap.data().referralBonus === "number" ? theirSnap.data().referralBonus : 0;
         const myBonus = typeof myData.referralBonus === "number" ? myData.referralBonus : 0;
         tx.set(mine, { referredBy: code, referralBonus: myBonus + REFERRAL_BONUS_CONVERSATIONS }, { merge: true });
-        tx.set(theirs, { referralBonus: theirBonus + REFERRAL_BONUS_CONVERSATIONS }, { merge: true });
+        if (theirBonus < MAX_REFERRER_BONUS) {
+            tx.set(theirs, { referralBonus: Math.min(MAX_REFERRER_BONUS, theirBonus + REFERRAL_BONUS_CONVERSATIONS) }, { merge: true });
+        }
         return "claimed";
     });
 }
@@ -1292,7 +1334,11 @@ function buildCustomScenario(topic) {
 const LANGUAGES = [
     "Spanish", "French", "Italian", "German", "Portuguese", "Japanese",
     "Mandarin Chinese", "Korean", "Arabic", "Russian", "Hindi", "Dutch",
-    "Greek", "Turkish", "Polish", "Swedish", "Vietnamese", "Thai", "Indonesian", "Hebrew"
+    "Greek", "Turkish", "Polish", "Swedish", "Vietnamese", "Thai", "Indonesian", "Hebrew",
+    // Added so the app matches the 34 languages the landing page lists (the
+    // app already had voices, greetings and labels for all of these).
+    "Ukrainian", "Romanian", "Czech", "Hungarian", "Finnish", "Norwegian", "Danish",
+    "Filipino", "Swahili", "Persian", "Urdu", "Bengali", "Malay", "Punjabi"
 ];
 
 // Every language a learner can pick as the one THEY already speak — every
@@ -1313,7 +1359,8 @@ function normalizeNativeLanguage(value) {
 // sound the word out with. Left as an empty string by the model for every
 // other language.
 const NON_LATIN_SCRIPT_LANGUAGES = new Set([
-    "Japanese", "Mandarin Chinese", "Korean", "Arabic", "Russian", "Hindi", "Greek", "Thai", "Hebrew"
+    "Japanese", "Mandarin Chinese", "Korean", "Arabic", "Russian", "Hindi", "Greek", "Thai", "Hebrew",
+    "Ukrainian", "Persian", "Urdu", "Bengali", "Punjabi"
 ]);
 // A sound-it-out respelling shown in brackets next to each key phrase, e.g.
 // Dutch "Hallo" (HAH-loh). Written for the learner's own language, since
@@ -1710,13 +1757,13 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
         const { scenarioId, language, history, message, objectives, keyPhrases, vocabHistory, customTopic } = req.body;
         const nativeLanguage = normalizeNativeLanguage(req.body.nativeLanguage);
 
-        // Free-tier daily cap — only applies to signed-in, non-premium learners.
-        // Anonymous use keeps relying solely on the IP limiter above, same as
-        // before this feature existed: there's no account to bill or track a
-        // fair cap against yet, so gating a guest here would just add friction
-        // with no way for them to upgrade past it. Fetched once here and
-        // reused below (rather than a second Firestore read after the reply)
-        // so a signed-in learner's turn costs at most one billing lookup.
+        // Free-tier daily caps: signed-in, non-premium learners get
+        // dailyLimitFromRecord() conversations a day; guests get
+        // GUEST_DAILY_CONVERSATIONS_PER_IP per network address, and hitting
+        // that asks them to create a free account rather than to upgrade.
+        // The billing record is fetched once here and reused below (rather
+        // than a second Firestore read after the reply) so a signed-in
+        // learner's turn costs at most one billing lookup.
         const billingRecord = req.uid ? await getBillingRecord(req.uid) : null;
         const isPremium = billingRecord ? billingRecord.premium : false;
         // The cap counts CONVERSATIONS, not messages: only the opening turn of
@@ -1725,6 +1772,16 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
         // so "20 free conversations" ran out after roughly four real ones,
         // and a learner could be cut off mid-conversation.
         const isNewConversation = message === "__START__" || !Array.isArray(history) || history.length === 0;
+        if (!req.uid && isNewConversation) {
+            let guestUsed = 0;
+            try { guestUsed = await guestUsedToday(req.ip); } catch (e) { guestUsed = 0; }
+            if (guestUsed >= GUEST_DAILY_CONVERSATIONS_PER_IP) {
+                return res.status(402).json({
+                    error: "You've used today's free guest conversations. Create a free account to keep going.",
+                    signupRequired: true
+                });
+            }
+        }
         if (req.uid && !isPremium && isNewConversation) {
             const usedSoFar = usedTodayFromRecord(billingRecord);
             const limit = dailyLimitFromRecord(billingRecord);
@@ -1817,6 +1874,13 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
 
         // Only a successfully started conversation counts against the daily
         // cap — a failed call shouldn't cost the learner part of their allowance.
+        if (!req.uid && isNewConversation) {
+            try {
+                await incrementGuestUsage(req.ip);
+            } catch (countError) {
+                console.error("Couldn't record guest conversation count:", countError.message);
+            }
+        }
         if (req.uid && !isPremium && isNewConversation) {
             try {
                 await incrementDailyConvos(req.uid);

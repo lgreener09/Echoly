@@ -3897,6 +3897,103 @@
       populateNativeLangSelect();
     }
   }
+  // ---------- Combining guest progress with an existing account ----------
+  // Which account the learner data in this browser belongs to. Unset means
+  // it was made as a guest (or before this was tracked). Used on sign-in to
+  // decide whether this browser's progress should be added to the account
+  // (guest work, or this same account's unsynced work) or ignored (leftovers
+  // from a DIFFERENT account that signed out on this browser).
+  const LOCAL_OWNER_KEY = "echoly_local_owner_v1";
+  function loadLocalOwner() {
+    try { return localStorage.getItem(LOCAL_OWNER_KEY) || null; } catch (e) { return null; }
+  }
+  function saveLocalOwner(uid) {
+    try { localStorage.setItem(LOCAL_OWNER_KEY, uid); } catch (e) { /* non-fatal */ }
+  }
+  // Clears the learner's own data from this browser (not theme or other
+  // device settings), so one account's progress never leaks into another's.
+  function resetLocalLearnerData() {
+    saveAllProgress({});
+    saveStreakData({});
+    saveVocabBank({});
+    saveTipsHistory([]);
+    saveConvoCounts({});
+    saveAchievements({});
+  }
+
+  function mergeStreaks(a, b) {
+    const x = a || {}, y = b || {};
+    if (!x.lastActiveDate) return Object.assign({}, y);
+    if (!y.lastActiveDate) return Object.assign({}, x, { dailyGoal: y.dailyGoal || x.dailyGoal });
+    let merged;
+    if (x.lastActiveDate === y.lastActiveDate) {
+      merged = Object.assign({}, x, {
+        currentStreak: Math.max(x.currentStreak || 0, y.currentStreak || 0),
+        todayCount: Math.max(x.todayCount || 0, y.todayCount || 0)
+      });
+    } else {
+      const [older, newer] = x.lastActiveDate < y.lastActiveDate ? [x, y] : [y, x];
+      merged = Object.assign({}, newer);
+      // e.g. the account practiced yesterday and the guest practiced today:
+      // that's one unbroken streak, not a fresh start at 1.
+      if (daysBetween(older.lastActiveDate, newer.lastActiveDate) === 1) {
+        merged.currentStreak = Math.max(newer.currentStreak || 0, (older.currentStreak || 0) + 1);
+      }
+    }
+    merged.longestStreak = Math.max(x.longestStreak || 0, y.longestStreak || 0, merged.currentStreak || 0);
+    merged.dailyGoal = y.dailyGoal || x.dailyGoal || DEFAULT_DAILY_GOAL; // the account's own setting wins
+    return merged;
+  }
+
+  // Cloud is the base (its settings — language, native language, reminders,
+  // daily goal — win); anything this browser has that the cloud doesn't is
+  // added on top: completed lessons, review cards, tips, streak days.
+  function mergeLocalIntoCloud(cloud, local) {
+    const out = Object.assign({}, cloud);
+
+    const progress = JSON.parse(JSON.stringify(cloud.progress || {}));
+    Object.keys(local.progress || {}).forEach(lang => {
+      const lp = local.progress[lang] || {};
+      const cp = progress[lang] || (progress[lang] = { completed: [] });
+      if (!Array.isArray(cp.completed)) cp.completed = [];
+      (lp.completed || []).forEach(id => { if (!cp.completed.includes(id)) cp.completed.push(id); });
+      if (lp.keyPhrasesByLesson) {
+        cp.keyPhrasesByLesson = Object.assign({}, lp.keyPhrasesByLesson, cp.keyPhrasesByLesson || {});
+      }
+    });
+    out.progress = progress;
+
+    const vocab = JSON.parse(JSON.stringify(cloud.vocab || {}));
+    Object.keys(local.vocab || {}).forEach(lang => {
+      const cards = vocab[lang] || (vocab[lang] = []);
+      const known = new Set(cards.map(c => c.phrase));
+      (local.vocab[lang] || []).forEach(card => {
+        if (card && card.phrase && !known.has(card.phrase)) { cards.push(card); known.add(card.phrase); }
+      });
+    });
+    out.vocab = vocab;
+
+    const seenTips = new Set();
+    out.tips = [...(local.tips || []), ...(cloud.tips || [])]
+      .filter(t => {
+        const key = t && `${t.date}::${t.tip}`;
+        if (!t || seenTips.has(key)) return false;
+        seenTips.add(key);
+        return true;
+      })
+      .sort((p, q) => (q.date || "").localeCompare(p.date || ""))
+      .slice(0, TIPS_MAX);
+
+    const counts = Object.assign({}, cloud.convoCounts || {});
+    Object.keys(local.convoCounts || {}).forEach(d => {
+      counts[d] = Math.max(counts[d] || 0, local.convoCounts[d] || 0);
+    });
+    out.convoCounts = counts;
+
+    out.streak = mergeStreaks(local.streak, cloud.streak);
+    return out;
+  }
+
   // Fire-and-forget — a failed sync (offline, blocked, etc.) just means this
   // browser's local copy stays the source of truth until the next
   // successful sync; nothing the learner is doing gets interrupted by it.
@@ -4270,11 +4367,28 @@
     renderAccountCard();
     try {
       const snap = await fbGetDoc(fbDoc(firestoreDb, "users", user.uid));
+      const owner = loadLocalOwner();
+      // Progress in this browser that should come along: guest work, or
+      // this same account's own not-yet-synced work. NOT another account's
+      // leftovers from before it signed out here.
+      const localBelongsHere = !owner || owner === user.uid;
+      if (!localBelongsHere) resetLocalLearnerData();
       if (snap.exists()) {
-        applyCloudSnapshot(snap.data());
+        if (localBelongsHere && hasAnyProgress()) {
+          // Previously the cloud copy simply replaced this browser's data,
+          // so a guest who signed into an existing account lost everything
+          // they'd just practiced. Combine the two instead.
+          const merged = mergeLocalIntoCloud(snap.data(), localDataSnapshot());
+          applyCloudSnapshot(merged);
+          await fbSetDoc(fbDoc(firestoreDb, "users", user.uid), localDataSnapshot());
+        } else {
+          applyCloudSnapshot(snap.data());
+        }
       } else {
         await fbSetDoc(fbDoc(firestoreDb, "users", user.uid), localDataSnapshot());
       }
+      saveLocalOwner(user.uid);
+      checkAchievements(); // re-derive badges from the progress that's now here
     } catch (e) {
       // Offline, or Firestore briefly unreachable — keep using whatever is
       // already in this browser rather than blocking the learner.
@@ -5894,6 +6008,12 @@
       if (!res.ok || !data.success) {
         if (data.upgradeRequired) {
           showUpgradePrompt(data.dailyLimit);
+        } else if (data.signupRequired) {
+          // The server's own guest cap (per network, per day) — same next
+          // step as the app's guest limit: a free account.
+          showError(data.error || "Create a free account to keep going.");
+          trackEvent("guest_limit_reached", { source: "server" });
+          openAuthModal("signup", data.error || "Create a free account to keep going — your progress comes with you.");
         } else if (opts.silent && text === "__START__") {
           showStartRetry(data.error || "Couldn't start the conversation.");
         } else {
