@@ -497,6 +497,15 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
             <select class="demo-lang" id="demoLang" aria-label="Language to practice">
               <option>Spanish</option><option>French</option><option>Italian</option>
               <option>German</option><option>Portuguese</option><option>Japanese</option>
+              <optgroup label="More languages">
+                <option>Arabic</option><option>Bengali</option><option>Czech</option><option>Danish</option>
+                <option>Dutch</option><option>Filipino</option><option>Finnish</option><option>Greek</option>
+                <option>Hebrew</option><option>Hindi</option><option>Hungarian</option><option>Indonesian</option>
+                <option>Korean</option><option>Malay</option><option>Mandarin Chinese</option><option>Norwegian</option>
+                <option>Persian</option><option>Polish</option><option>Punjabi</option><option>Romanian</option>
+                <option>Russian</option><option>Swahili</option><option>Swedish</option><option>Thai</option>
+                <option>Turkish</option><option>Ukrainian</option><option>Urdu</option><option>Vietnamese</option>
+              </optgroup>
             </select>
           </div>
           <div class="mock-body demo-body" id="demoBody" aria-live="polite"></div>
@@ -836,7 +845,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   var MAX_TURNS = 3;
 
   var urlLang = new URLSearchParams(location.search).get("lang");
-  if (urlLang && OPENERS[urlLang]) langSel.value = urlLang;
+  if (urlLang && Array.prototype.some.call(langSel.options, function (o) { return o.value === urlLang; })) langSel.value = urlLang;
 
   function track(name, params) { try { trackEvent(name, params); } catch (e) {} }
   function scroll() { body.scrollTop = body.scrollHeight; }
@@ -870,6 +879,13 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     if (on && !t) { t = el("div", "typing-dots"); t.innerHTML = "<i></i><i></i><i></i>"; t.style.alignSelf = "flex-start"; body.appendChild(t); scroll(); }
     if (!on && t) t.remove();
   }
+  // The server's two "you could say…" phrases, as [phrase, translation] pairs.
+  function suggestionPairs(d) {
+    return (Array.isArray(d && d.suggestions) ? d.suggestions : [])
+      .filter(function (x) { return x && x.phrase; })
+      .slice(0, 2)
+      .map(function (x) { return [x.phrase, x.translation || ""]; });
+  }
   function appLink() {
     return "/app.html?lang=" + encodeURIComponent(langSel.value) + "&utm_source=landing_demo";
   }
@@ -890,11 +906,37 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     history = []; learnerTurns = 0; busy = false;
     body.innerHTML = "";
     input.disabled = false; sendBtn.disabled = false; input.placeholder = "Type your reply…";
-    var o = OPENERS[langSel.value] || OPENERS.Spanish;
-    aiBubble(o[0], o[1]);
-    history.push({ role: "assistant", content: o[0] });
-    chips(o[2]);
-    body.appendChild(el("p", "demo-hint", "Tap a phrase, or type anything, even in English"));
+    var o = OPENERS[langSel.value];
+    if (o) {
+      aiBubble(o[0], o[1]);
+      history.push({ role: "assistant", content: o[0] });
+      chips(o[2]);
+      body.appendChild(el("p", "demo-hint", "Tap a phrase, or type anything, even in English"));
+      return;
+    }
+    // The other languages have no pre-written greeting: the barista's
+    // opening line comes from the server, only when someone picks one.
+    var myGen = gen, lang = langSel.value;
+    busy = true; sendBtn.disabled = true;
+    typing(true);
+    fetch("/demo-chat", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ language: lang, history: [], message: "__START__" })
+    }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (myGen !== gen) return;
+        typing(false); busy = false; sendBtn.disabled = false;
+        if (!res.ok || !res.d.success) { finish("The demo's busy right now, but the app is ready."); return; }
+        aiBubble(res.d.reply, res.d.replyTranslation);
+        history.push({ role: "assistant", content: res.d.reply });
+        chips(suggestionPairs(res.d));
+        body.appendChild(el("p", "demo-hint", "Tap a phrase, or type anything, even in English"));
+      })
+      .catch(function () {
+        if (myGen !== gen) return;
+        typing(false); busy = false; sendBtn.disabled = false;
+        finish("Couldn't reach the demo, but the app is ready.");
+      });
   }
   function send(text, how) {
     text = (text || "").trim();
@@ -922,7 +964,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         if (d.tip) tipBubble(d.tip);
         aiBubble(d.reply, d.replyTranslation);
         if (learnerTurns >= MAX_TURNS) { track("demo_completed", { language: langSel.value }); finish(); return; }
-        if (d.suggestion) chips([[d.suggestion, d.suggestionTranslation]]);
+        chips(suggestionPairs(d));
         input.focus({ preventScroll: true });
       })
       .catch(function () {

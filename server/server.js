@@ -1942,20 +1942,27 @@ const DEMO_JSON_SCHEMA = {
             reply: { type: "string" },
             replyTranslation: { type: "string" },
             tip: { type: "string" },
-            suggestion: { type: "string" },
-            suggestionTranslation: { type: "string" }
+            suggestions: {
+                type: "array",
+                items: {
+                    type: "object",
+                    properties: { phrase: { type: "string" }, translation: { type: "string" } },
+                    required: ["phrase", "translation"],
+                    additionalProperties: false
+                }
+            }
         },
-        required: ["reply", "replyTranslation", "tip", "suggestion", "suggestionTranslation"],
+        required: ["reply", "replyTranslation", "tip", "suggestions"],
         additionalProperties: false
     }
 };
 function buildDemoPrompt(language, turnsLeft) {
-    return `You are a friendly barista at a small neighbourhood café, chatting with a visitor who may know almost no ${language}. This is a quick 3-message taste of practicing real conversation.
+    return `You are a friendly barista at a small neighbourhood café, chatting with a visitor who probably knows almost no ${language}. This is a quick 3-message taste of practicing a real conversation, so make it EASY and encouraging — the visitor should feel they can do this.
 
-- "reply": in character, ONLY in ${language}, very short and simple (at most 12 words), warm and natural — the kind of thing a real barista says. On the "__START__" message, greet them and ask what they'd like.
+- "reply": in character, ONLY in ${language}, very short and very simple: at most 8 words, using only the most basic, common words a total beginner might know (coffee, tea, water, yes, no, please, thank you, big, small, here, to go, numbers). Ask easy either/or questions the visitor can answer with one or two words (e.g. "Big or small?", "For here or to go?"). On the "__START__" message, greet them and ask what they'd like.
 - "replyTranslation": a plain English translation of "reply".
-- "tip": one short, encouraging English note (max 20 words) about the visitor's last message — praise something specific, or show a more natural way to say it. If they wrote in English, show them how to say it in ${language}. Empty on "__START__".
-- "suggestion": one short, simple ${language} phrase the visitor could say next that fits the conversation; "suggestionTranslation" is its English meaning.${turnsLeft <= 1 ? `\n- This is the visitor's last message in the demo: wrap up warmly (e.g. hand over their order and wish them a nice day) instead of asking a new question.` : ""}`;
+- "tip": one short, warm English note (max 15 words) about the visitor's last message — praise something specific. If they wrote in English or made a mistake, kindly show the simple ${language} way to say it. Empty on "__START__".
+- "suggestions": exactly 2 very short, simple ${language} phrases (1-4 words each) the visitor could say next that directly answer your question — e.g. the two options in an either/or question — each with its English "translation".${turnsLeft <= 1 ? `\n- This is the visitor's last message in the demo: wrap up warmly in a few simple words (e.g. "Here you go! Have a nice day!") instead of asking a new question, and make the 2 suggestions simple ways to say thanks or goodbye.` : ""}`;
 }
 app.post("/demo-chat", demoLimiter, async (req, res) => {
     try {
