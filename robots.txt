@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://echoly-enjr.onrender.com/sitemap.xml
+Sitemap: https://getecholy.com/sitemap.xml

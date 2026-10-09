@@ -9,7 +9,7 @@ const fs = require("fs");
 const path = require("path");
 const { LANGUAGES, SITUATIONS } = require("./phrase-guides.data.js");
 
-const SITE = (process.env.SITE_URL || "https://echoly-enjr.onrender.com").replace(/\/+$/, "");
+const SITE = (process.env.SITE_URL || "https://getecholy.com").replace(/\/+$/, "");
 const ROOT = path.join(__dirname, "..");
 const OUT = path.join(ROOT, "learn");
 

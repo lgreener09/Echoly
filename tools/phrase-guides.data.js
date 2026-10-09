@@ -230,7 +230,188 @@ const SITUATIONS = [
             it: "\"Mi fa male…\" means \"…hurts\": \"mi fa male la testa\" (my head hurts). In Italy a \"ricetta\" is a prescription as well as a recipe.",
             pt: "In Brazil, \"estou com…\" is how you describe symptoms: \"estou com dor de cabeça\" (I have a headache). \"Consulta\" is the appointment and \"receita\" is the prescription."
         }
+    },
+    {
+        slug: "buy-a-train-ticket",
+        title: "buy a train ticket",
+        icon: "🚆",
+        topic: "buying a train ticket at the station and asking which platform to go to",
+        topicTitle: "Buy a train ticket",
+        intro: "Train stations are busy, announcements are fast, and the ticket office queue doesn't wait. These phrases get you the right ticket, the right platform and the right train.",
+        phrases: [
+            { en: "A ticket to the airport, please.", es: "Un billete para el aeropuerto, por favor.", fr: "Un billet pour l'aéroport, s'il vous plaît.", de: "Eine Fahrkarte zum Flughafen, bitte.", it: "Un biglietto per l'aeroporto, per favore.", pt: "Uma passagem para o aeroporto, por favor." },
+            { en: "One way / return (round trip)", es: "Solo ida / ida y vuelta", fr: "Aller simple / aller-retour", de: "Einfach / hin und zurück", it: "Solo andata / andata e ritorno", pt: "Só ida / ida e volta" },
+            { en: "When does the next train leave?", es: "¿A qué hora sale el próximo tren?", fr: "À quelle heure part le prochain train ?", de: "Wann fährt der nächste Zug?", it: "A che ora parte il prossimo treno?", pt: "Que horas sai o próximo trem?" },
+            { en: "Which platform?", es: "¿De qué andén sale?", fr: "C'est quel quai ?", de: "Von welchem Gleis?", it: "Da quale binario parte?", pt: "Qual é a plataforma?" },
+            { en: "Do I have to change trains?", es: "¿Tengo que hacer transbordo?", fr: "Est-ce que je dois changer de train ?", de: "Muss ich umsteigen?", it: "Devo cambiare treno?", pt: "Preciso fazer baldeação?" },
+            { en: "How long does the trip take?", es: "¿Cuánto dura el viaje?", fr: "Combien de temps dure le trajet ?", de: "Wie lange dauert die Fahrt?", it: "Quanto dura il viaggio?", pt: "Quanto tempo dura a viagem?" },
+            { en: "A window seat, please.", es: "Un asiento de ventanilla, por favor.", fr: "Une place côté fenêtre, s'il vous plaît.", de: "Einen Fensterplatz, bitte.", it: "Un posto vicino al finestrino, per favore.", pt: "Um assento na janela, por favor." },
+            { en: "Is there a student discount?", es: "¿Hay descuento para estudiantes?", fr: "Il y a une réduction pour les étudiants ?", de: "Gibt es eine Ermäßigung für Studenten?", it: "C'è uno sconto per studenti?", pt: "Tem desconto para estudante?" },
+            { en: "The train is delayed.", es: "El tren lleva retraso.", fr: "Le train a du retard.", de: "Der Zug hat Verspätung.", it: "Il treno è in ritardo.", pt: "O trem está atrasado." },
+            { en: "Is this seat free?", es: "¿Está libre este asiento?", fr: "Cette place est libre ?", de: "Ist der Platz noch frei?", it: "È libero questo posto?", pt: "Este lugar está livre?" }
+        ],
+        roles: { them: "Ticket clerk", you: "You" },
+        dialogue: [
+            { who: "them", en: "Next, please!", es: "¡El siguiente, por favor!", fr: "Au suivant, s'il vous plaît !", de: "Der Nächste, bitte!", it: "Il prossimo, prego!", pt: "Próximo, por favor!" },
+            { who: "you", en: "A return ticket to the airport, please.", es: "Un billete de ida y vuelta para el aeropuerto, por favor.", fr: "Un aller-retour pour l'aéroport, s'il vous plaît.", de: "Eine Fahrkarte zum Flughafen, hin und zurück, bitte.", it: "Un biglietto di andata e ritorno per l'aeroporto, per favore.", pt: "Uma passagem de ida e volta para o aeroporto, por favor." },
+            { who: "them", en: "That's twelve euros. The next train leaves at 10:15.", enBy: { pt: "That's eighteen reais. The next train leaves at 10:15." }, es: "Son doce euros. El próximo tren sale a las diez y cuarto.", fr: "Ça fait douze euros. Le prochain train part à dix heures quinze.", de: "Das macht zwölf Euro. Der nächste Zug fährt um zehn Uhr fünfzehn.", it: "Sono dodici euro. Il prossimo treno parte alle dieci e un quarto.", pt: "São dezoito reais. O próximo trem sai às dez e quinze." },
+            { who: "you", en: "Which platform does it leave from?", es: "¿De qué andén sale?", fr: "Il part de quel quai ?", de: "Von welchem Gleis fährt er?", it: "Da quale binario parte?", pt: "Sai de qual plataforma?" },
+            { who: "them", en: "Platform three.", es: "Del andén tres.", fr: "Du quai numéro trois.", de: "Von Gleis drei.", it: "Dal binario tre.", pt: "Da plataforma três." },
+            { who: "you", en: "Great, thank you!", es: "¡Genial, gracias!", fr: "Super, merci !", de: "Super, danke!", it: "Perfetto, grazie!", pt: "Ótimo, obrigado!" }
+        ],
+        tips: {
+            es: "In Spain a train ticket is a \"billete\" (in Latin America, \"boleto\"). \"Andén\" is the platform you stand on, and \"vía\" is the track number shown on the departure board.",
+            fr: "If there's a yellow machine, validate (\"composter\") a paper ticket for a regional train before boarding. \"Quai\" is the platform and \"voie\" the track number on the board.",
+            de: "\"Umsteigen\" (to change trains) is the word to listen for. The \"Gleis\" number is on the departure board, and so is any \"Verspätung\" (delay).",
+            it: "On regional trains, validate (\"convalidare\") a paper ticket in the small machine before you board, or you can be fined. \"Binario\" is the platform.",
+            pt: "In Brazil, long trips are usually by bus from the \"rodoviária\", while trains (\"trem\") and the metro run within big cities. \"Passagem\" is the word for a travel ticket."
+        }
+    },
+    {
+        slug: "shop-for-clothes",
+        title: "shop for clothes",
+        icon: "👕",
+        topic: "shopping for clothes in a store and asking for a different size",
+        topicTitle: "Shop for clothes",
+        intro: "Sizes, colors, fitting rooms and the all-important \"I'll take it\". Here's everything you need to shop for clothes without pointing and hoping for the best.",
+        phrases: [
+            { en: "I'm just looking, thanks.", es: "Solo estoy mirando, gracias.", fr: "Je regarde seulement, merci.", de: "Ich schaue mich nur um, danke.", it: "Sto solo dando un'occhiata, grazie.", pt: "Só estou dando uma olhada, obrigado." },
+            { en: "Do you have this in a medium?", es: "¿Lo tiene en la talla M?", fr: "Vous l'avez en M ?", de: "Haben Sie das in M?", it: "Ce l'ha nella taglia M?", pt: "Tem esse no tamanho M?" },
+            { en: "Do you have it in another color?", es: "¿Lo tiene en otro color?", fr: "Vous l'avez dans une autre couleur ?", de: "Haben Sie das in einer anderen Farbe?", it: "Ce l'ha in un altro colore?", pt: "Tem em outra cor?" },
+            { en: "Where are the fitting rooms?", es: "¿Dónde están los probadores?", fr: "Où sont les cabines d'essayage ?", de: "Wo sind die Umkleidekabinen?", it: "Dove sono i camerini?", pt: "Onde ficam os provadores?" },
+            { en: "Can I try it on?", es: "¿Me lo puedo probar?", fr: "Je peux l'essayer ?", de: "Kann ich das anprobieren?", it: "Posso provarlo?", pt: "Posso experimentar?" },
+            { en: "It's too big / too small.", es: "Me queda grande / pequeño.", fr: "C'est trop grand / trop petit.", de: "Das ist zu groß / zu klein.", it: "È troppo grande / troppo piccolo.", pt: "Está grande demais / pequeno demais." },
+            { en: "It fits well.", es: "Me queda bien.", fr: "Ça me va bien.", de: "Das passt gut.", it: "Mi sta bene.", pt: "Ficou bom." },
+            { en: "How much does it cost?", es: "¿Cuánto cuesta?", fr: "Combien ça coûte ?", de: "Wie viel kostet das?", it: "Quanto costa?", pt: "Quanto custa?" },
+            { en: "Is it on sale?", es: "¿Está rebajado?", fr: "C'est en solde ?", de: "Ist das reduziert?", it: "È in saldo?", pt: "Está em promoção?" },
+            { en: "I'll take it.", es: "Me lo llevo.", fr: "Je le prends.", de: "Ich nehme es.", it: "Lo prendo.", pt: "Vou levar." }
+        ],
+        roles: { them: "Shop assistant", you: "You" },
+        dialogue: [
+            { who: "them", en: "Hello! Can I help you?", es: "¡Hola! ¿Le puedo ayudar?", fr: "Bonjour ! Je peux vous aider ?", de: "Hallo! Kann ich Ihnen helfen?", it: "Buongiorno! Posso aiutarla?", pt: "Oi! Posso ajudar?" },
+            { who: "you", en: "Yes, do you have this shirt in a medium?", es: "Sí, ¿tiene esta camisa en la talla M?", fr: "Oui, vous avez cette chemise en M ?", de: "Ja, haben Sie dieses Hemd in M?", it: "Sì, ha questa camicia nella taglia M?", pt: "Sim, tem essa camisa no tamanho M?" },
+            { who: "them", en: "Let me check... Here you go.", es: "Déjeme mirar... Aquí tiene.", fr: "Je vais voir... Voilà.", de: "Ich schaue mal nach... Bitte schön.", it: "Controllo subito... Ecco qua.", pt: "Vou ver... Aqui está." },
+            { who: "you", en: "Thanks. Where are the fitting rooms?", es: "Gracias. ¿Dónde están los probadores?", fr: "Merci. Où sont les cabines d'essayage ?", de: "Danke. Wo sind die Umkleidekabinen?", it: "Grazie. Dove sono i camerini?", pt: "Obrigado. Onde ficam os provadores?" },
+            { who: "them", en: "At the back, on the left.", es: "Al fondo, a la izquierda.", fr: "Au fond, à gauche.", de: "Hinten links.", it: "In fondo a sinistra.", pt: "Lá no fundo, à esquerda." },
+            { who: "you", en: "It fits well. I'll take it!", es: "Me queda bien. ¡Me la llevo!", fr: "Elle me va bien. Je la prends !", de: "Das passt gut. Ich nehme es!", it: "Mi sta bene. La prendo!", pt: "Ficou bom. Vou levar!" }
+        ],
+        tips: {
+            es: "\"Me queda…\" is how Spanish talks about fit: \"me queda grande\" (it's big on me), \"me queda bien\" (it fits). Clothing sizes are \"tallas\"; for shoes, ask for your \"número\".",
+            fr: "\"Ça me va\" means it fits or suits you. In France, the big sales (\"les soldes\") happen at fixed times, usually in January and early summer.",
+            de: "\"Anprobieren\" means to try on. Prices in German shops are fixed, so haggling isn't expected, but \"reduziert\" or \"Sale\" signs mean a discount.",
+            it: "\"Mi sta bene\" means it fits or suits you. Italian clothing sizes use different numbers from the US and UK, so it's worth asking \"Che taglia è?\" (what size is it?).",
+            pt: "Brazilians often say \"ficou bom\" (it looks good, it fits) after trying something on. \"Provador\" is the fitting room, and many shops let you pay in installments (\"parcelado\")."
+        }
+    },
+    {
+        slug: "book-a-table",
+        title: "book a table",
+        icon: "📞",
+        topic: "phoning a restaurant to book a table for dinner",
+        topicTitle: "Book a table",
+        intro: "Booking a table means a phone call, which is the scariest kind of conversation because you can't point at anything. These phrases cover the whole call, from the greeting to spelling your name.",
+        phrases: [
+            { en: "I'd like to book a table.", es: "Quisiera reservar una mesa.", fr: "Je voudrais réserver une table.", de: "Ich möchte einen Tisch reservieren.", it: "Vorrei prenotare un tavolo.", pt: "Eu gostaria de reservar uma mesa." },
+            { en: "For four people", es: "Para cuatro personas", fr: "Pour quatre personnes", de: "Für vier Personen", it: "Per quattro persone", pt: "Para quatro pessoas" },
+            { en: "Tonight at eight", es: "Esta noche a las ocho", fr: "Ce soir à vingt heures", de: "Heute Abend um acht", it: "Stasera alle otto", pt: "Hoje à noite, às oito" },
+            { en: "Do you have a table outside?", es: "¿Tienen mesa en la terraza?", fr: "Vous avez une table en terrasse ?", de: "Haben Sie einen Tisch draußen?", it: "Avete un tavolo all'aperto?", pt: "Vocês têm mesa do lado de fora?" },
+            { en: "Under the name…", es: "A nombre de…", fr: "Au nom de…", de: "Auf den Namen…", it: "A nome di…", pt: "No nome de…" },
+            { en: "Is there anything later?", es: "¿Hay algo más tarde?", fr: "Vous avez quelque chose plus tard ?", de: "Geht es auch später?", it: "C'è qualcosa più tardi?", pt: "Tem algum horário mais tarde?" },
+            { en: "We're fully booked.", es: "Estamos completos.", fr: "Nous sommes complets.", de: "Wir sind leider ausgebucht.", it: "Siamo al completo.", pt: "Estamos lotados." },
+            { en: "Can you spell that?", es: "¿Me lo puede deletrear?", fr: "Vous pouvez l'épeler ?", de: "Können Sie das buchstabieren?", it: "Può dirmelo lettera per lettera?", pt: "Pode soletrar?" },
+            { en: "I need to cancel my reservation.", es: "Tengo que cancelar mi reserva.", fr: "Je dois annuler ma réservation.", de: "Ich muss meine Reservierung stornieren.", it: "Devo disdire la mia prenotazione.", pt: "Preciso cancelar minha reserva." },
+            { en: "See you tonight!", es: "¡Hasta esta noche!", fr: "À ce soir !", de: "Bis heute Abend!", it: "A stasera!", pt: "Até hoje à noite!" }
+        ],
+        roles: { them: "Restaurant", you: "You" },
+        dialogue: [
+            { who: "them", en: "Hello, La Piazza restaurant.", es: "Restaurante La Piazza, ¿dígame?", fr: "Bonjour, restaurant La Piazza.", de: "Restaurant La Piazza, guten Tag.", it: "Pronto, ristorante La Piazza.", pt: "Alô, restaurante La Piazza." },
+            { who: "you", en: "Hello, I'd like to book a table for four tonight.", es: "Hola, quisiera reservar una mesa para cuatro para esta noche.", fr: "Bonjour, je voudrais réserver une table pour quatre ce soir.", de: "Hallo, ich möchte für heute Abend einen Tisch für vier Personen reservieren.", it: "Buongiorno, vorrei prenotare un tavolo per quattro per stasera.", pt: "Oi, eu gostaria de reservar uma mesa para quatro hoje à noite." },
+            { who: "them", en: "What time?", es: "¿A qué hora?", fr: "Pour quelle heure ?", de: "Um wie viel Uhr?", it: "A che ora?", pt: "Para que horas?" },
+            { who: "you", en: "At eight, if possible.", es: "A las ocho, si es posible.", fr: "À vingt heures, si possible.", de: "Um acht, wenn möglich.", it: "Alle otto, se possibile.", pt: "Às oito, se possível." },
+            { who: "them", en: "Perfect. Under what name?", es: "Perfecto. ¿A nombre de quién?", fr: "Parfait. À quel nom ?", de: "In Ordnung. Auf welchen Namen?", it: "Perfetto. A che nome?", pt: "Perfeito. Em nome de quem?" },
+            { who: "you", en: "Under the name Taylor. See you tonight!", es: "A nombre de Taylor. ¡Hasta esta noche!", fr: "Au nom de Taylor. À ce soir !", de: "Auf den Namen Taylor. Bis heute Abend!", it: "A nome Taylor. A stasera!", pt: "No nome de Taylor. Até hoje à noite!" }
+        ],
+        tips: {
+            es: "Spaniards eat late: dinner bookings at 21:00 or 22:00 are normal, and many kitchens don't open before 20:30. \"¿Dígame?\" is a common way to answer the phone.",
+            fr: "French uses the 24-hour clock for bookings, so 8 pm is \"vingt heures\". Popular restaurants fill up fast, so booking a day ahead is wise.",
+            de: "\"Ausgebucht\" means fully booked. Germans expect punctuality, and a table is often held for only about 15 minutes.",
+            it: "Italians answer the phone with \"Pronto?\". Dinner usually starts around 20:00 or later, and a \"coperto\" (cover charge) per person on the bill is normal.",
+            pt: "In Brazil, \"Alô?\" is how you answer the phone. Many popular restaurants don't take bookings at all, so it's worth asking \"Vocês fazem reserva?\" (do you take reservations?)."
+        }
+    },
+    {
+        slug: "at-the-pharmacy",
+        title: "ask for help at a pharmacy",
+        icon: "💊",
+        topic: "asking a pharmacist for something for a cold and a headache",
+        topicTitle: "At the pharmacy",
+        intro: "Feeling under the weather abroad is no fun, but pharmacists are some of the most helpful people you'll meet. These phrases help you explain what's wrong and understand how to take what they give you.",
+        phrases: [
+            { en: "I need something for a headache.", es: "Necesito algo para el dolor de cabeza.", fr: "J'ai besoin de quelque chose contre le mal de tête.", de: "Ich brauche etwas gegen Kopfschmerzen.", it: "Ho bisogno di qualcosa per il mal di testa.", pt: "Preciso de alguma coisa para dor de cabeça." },
+            { en: "I have a cold.", es: "Estoy resfriado.", fr: "J'ai un rhume.", de: "Ich bin erkältet.", it: "Ho il raffreddore.", pt: "Estou resfriado." },
+            { en: "I have a cough.", es: "Tengo tos.", fr: "Je tousse.", de: "Ich habe Husten.", it: "Ho la tosse.", pt: "Estou com tosse." },
+            { en: "Something for a sore throat", es: "Algo para el dolor de garganta", fr: "Quelque chose pour le mal de gorge", de: "Etwas gegen Halsschmerzen", it: "Qualcosa per il mal di gola", pt: "Alguma coisa para dor de garganta" },
+            { en: "Do I need a prescription for this?", es: "¿Hace falta receta para esto?", fr: "Il faut une ordonnance pour ça ?", de: "Ist das verschreibungspflichtig?", it: "Ci vuole la ricetta per questo?", pt: "Precisa de receita para isso?" },
+            { en: "How many times a day?", es: "¿Cuántas veces al día?", fr: "Combien de fois par jour ?", de: "Wie oft am Tag?", it: "Quante volte al giorno?", pt: "Quantas vezes por dia?" },
+            { en: "Before or after meals?", es: "¿Antes o después de las comidas?", fr: "Avant ou après les repas ?", de: "Vor oder nach dem Essen?", it: "Prima o dopo i pasti?", pt: "Antes ou depois das refeições?" },
+            { en: "Does it make you drowsy?", es: "¿Da sueño?", fr: "Ça fait dormir ?", de: "Macht das müde?", it: "Fa venire sonno?", pt: "Dá sono?" },
+            { en: "Sunscreen", es: "Protector solar", fr: "De la crème solaire", de: "Sonnencreme", it: "Crema solare", pt: "Protetor solar" },
+            { en: "Where is the nearest pharmacy?", es: "¿Dónde está la farmacia más cercana?", fr: "Où est la pharmacie la plus proche ?", de: "Wo ist die nächste Apotheke?", it: "Dov'è la farmacia più vicina?", pt: "Onde fica a farmácia mais próxima?" }
+        ],
+        roles: { them: "Pharmacist", you: "You" },
+        dialogue: [
+            { who: "them", en: "Hello, what can I do for you?", es: "Hola, ¿en qué le puedo ayudar?", fr: "Bonjour, qu'est-ce que je peux faire pour vous ?", de: "Guten Tag, was kann ich für Sie tun?", it: "Buongiorno, cosa posso fare per lei?", pt: "Oi, em que posso ajudar?" },
+            { who: "you", en: "I have a cold and a bad headache.", es: "Estoy resfriado y me duele mucho la cabeza.", fr: "J'ai un rhume et très mal à la tête.", de: "Ich bin erkältet und habe starke Kopfschmerzen.", it: "Ho il raffreddore e un forte mal di testa.", pt: "Estou resfriado e com muita dor de cabeça." },
+            { who: "them", en: "Are you allergic to any medication?", es: "¿Tiene alergia a algún medicamento?", fr: "Vous êtes allergique à des médicaments ?", de: "Haben Sie Allergien gegen Medikamente?", it: "È allergico a qualche farmaco?", pt: "Tem alergia a algum remédio?" },
+            { who: "you", en: "No, none.", es: "No, a ninguno.", fr: "Non, aucun.", de: "Nein, keine.", it: "No, a nessuno.", pt: "Não, a nenhum." },
+            { who: "them", en: "Take one of these every eight hours, after meals.", es: "Tómese una de estas cada ocho horas, después de las comidas.", fr: "Prenez-en un toutes les huit heures, après les repas.", de: "Nehmen Sie alle acht Stunden eine davon, nach dem Essen.", it: "Ne prenda una ogni otto ore, dopo i pasti.", pt: "Tome um a cada oito horas, depois das refeições." },
+            { who: "you", en: "Great, thank you very much.", es: "Muy bien, muchas gracias.", fr: "Très bien, merci beaucoup.", de: "Gut, vielen Dank.", it: "Va bene, grazie mille.", pt: "Ótimo, muito obrigado." }
+        ],
+        tips: {
+            es: "Spanish pharmacies have a green cross, and one in each area stays open late (the \"farmacia de guardia\"). \"Estoy resfriado/a\" means you have a cold, not that you feel cold.",
+            fr: "Look for the green cross. French pharmacists give real advice, so describing your symptoms is normal. The \"pharmacie de garde\" is the one open at night and on Sundays.",
+            de: "In Germany, medicine (even basic painkillers) is sold only in an \"Apotheke\", not in supermarkets. A \"Drogerie\" sells toiletries and cosmetics, not medicine.",
+            it: "Italian pharmacies have a green cross, and most medicines, even simple ones, are only sold there. The \"farmacia di turno\" is the one open at night or on holidays.",
+            pt: "Brazilian \"farmácias\" sell a lot more than medicine, and many are open 24 hours. \"Remédio\" is the everyday word for medicine."
+        }
+    },
+    {
+        slug: "make-small-talk",
+        title: "make small talk",
+        icon: "🌤️",
+        topic: "making small talk with a neighbour about the weather and weekend plans",
+        topicTitle: "Small talk",
+        intro: "Small talk is where real fluency shows: no script, no menu, just a friendly chat. These phrases (in the casual \"you\" you'd use with a friendly neighbour) get you through the weather, the weekend and a warm goodbye.",
+        phrases: [
+            { en: "How's it going?", es: "¿Qué tal?", fr: "Ça va ?", de: "Wie geht's?", it: "Come va?", pt: "Tudo bem?" },
+            { en: "Nice weather today, isn't it?", es: "Hace buen tiempo hoy, ¿verdad?", fr: "Il fait beau aujourd'hui, hein ?", de: "Schönes Wetter heute, oder?", it: "Che bella giornata oggi, vero?", pt: "Que dia bonito hoje, né?" },
+            { en: "It's so hot / so cold!", es: "¡Qué calor / qué frío!", fr: "Il fait tellement chaud / froid !", de: "Ist das heiß / kalt heute!", it: "Che caldo / che freddo!", pt: "Que calor / que frio!" },
+            { en: "Any plans for the weekend?", es: "¿Tienes planes para el fin de semana?", fr: "Tu as des projets pour le week-end ?", de: "Hast du was vor am Wochenende?", it: "Hai programmi per il fine settimana?", pt: "Tem planos para o fim de semana?" },
+            { en: "Not much, just relaxing.", es: "Nada especial, descansar.", fr: "Pas grand-chose, je vais me reposer.", de: "Nicht viel, einfach entspannen.", it: "Niente di speciale, mi riposo.", pt: "Nada de mais, só descansar." },
+            { en: "How was your weekend?", es: "¿Qué tal el fin de semana?", fr: "Tu as passé un bon week-end ?", de: "Wie war dein Wochenende?", it: "Com'è andato il fine settimana?", pt: "Como foi o fim de semana?" },
+            { en: "How long have you lived here?", es: "¿Cuánto tiempo llevas viviendo aquí?", fr: "Tu habites ici depuis combien de temps ?", de: "Wie lange wohnst du schon hier?", it: "Da quanto tempo abiti qui?", pt: "Faz quanto tempo que você mora aqui?" },
+            { en: "What do you do for work?", es: "¿A qué te dedicas?", fr: "Tu fais quoi dans la vie ?", de: "Was machst du beruflich?", it: "Che lavoro fai?", pt: "Você trabalha com o quê?" },
+            { en: "Nice talking to you!", es: "¡Encantado de charlar contigo!", fr: "Ça m'a fait plaisir de discuter !", de: "Schön, mit dir zu plaudern!", it: "È stato un piacere chiacchierare!", pt: "Foi bom conversar com você!" },
+            { en: "See you around!", es: "¡Nos vemos!", fr: "À la prochaine !", de: "Bis bald!", it: "Ci vediamo!", pt: "A gente se vê!" }
+        ],
+        roles: { them: "Neighbour", you: "You" },
+        dialogue: [
+            { who: "them", en: "Hi! How's it going?", es: "¡Hola! ¿Qué tal?", fr: "Salut ! Ça va ?", de: "Hallo! Wie geht's?", it: "Ciao! Come va?", pt: "Oi! Tudo bem?" },
+            { who: "you", en: "Good, thanks! Nice weather today, isn't it?", es: "¡Bien, gracias! Hace buen tiempo hoy, ¿verdad?", fr: "Ça va, merci ! Il fait beau aujourd'hui, hein ?", de: "Gut, danke! Schönes Wetter heute, oder?", it: "Bene, grazie! Che bella giornata oggi, vero?", pt: "Tudo ótimo, obrigado! Que dia bonito hoje, né?" },
+            { who: "them", en: "Finally! Any plans for the weekend?", es: "¡Por fin! ¿Tienes planes para el fin de semana?", fr: "Enfin ! Tu as des projets pour le week-end ?", de: "Endlich! Hast du was vor am Wochenende?", it: "Finalmente! Hai programmi per il fine settimana?", pt: "Até que enfim! Tem planos para o fim de semana?" },
+            { who: "you", en: "I'm going to the beach with some friends. And you?", es: "Voy a la playa con unos amigos. ¿Y tú?", fr: "Je vais à la plage avec des amis. Et toi ?", de: "Ich fahre mit Freunden an den Strand. Und du?", it: "Vado al mare con degli amici. E tu?", pt: "Vou à praia com uns amigos. E você?" },
+            { who: "them", en: "Nothing special, just relaxing at home.", es: "Nada especial, descansar en casa.", fr: "Rien de spécial, je vais me reposer à la maison.", de: "Nichts Besonderes, einfach zu Hause entspannen.", it: "Niente di speciale, mi riposo a casa.", pt: "Nada de mais, só descansar em casa." },
+            { who: "you", en: "Sounds good! See you around!", es: "¡Suena bien! ¡Nos vemos!", fr: "Bonne idée ! À la prochaine !", de: "Klingt gut! Bis bald!", it: "Ottima idea! Ci vediamo!", pt: "Boa! A gente se vê!" }
+        ],
+        tips: {
+            es: "Spanish small talk is warm and quick to use \"tú\". \"¿Qué tal?\" works for almost everything: \"¿Qué tal el trabajo?\" (how's work?), \"¿Qué tal las vacaciones?\" (how was the holiday?).",
+            fr: "These phrases use the friendly \"tu\". With an older neighbour or someone you've just met, switch to \"vous\": \"Vous avez des projets pour le week-end ?\".",
+            de: "These phrases use the friendly \"du\". With older neighbours or in formal settings, use \"Sie\": \"Wie geht es Ihnen?\" The weather is a safe topic everywhere.",
+            it: "\"Come va?\" and \"Che bella giornata!\" are perfect openers. Italians often add \"dai\" for warmth, as in \"Dai, ci vediamo!\" (come on, see you soon!).",
+            pt: "\"Né?\" (short for \"não é?\") is the Brazilian \"isn't it?\" and you'll hear it constantly. \"Tudo bem?\" is both the question and the answer: \"Tudo!\""
+        }
     }
+
 ];
 
 module.exports = { LANGUAGES, SITUATIONS };

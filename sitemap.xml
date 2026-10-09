@@ -1,197 +1,322 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://echoly-enjr.onrender.com/</loc>
+    <loc>https://getecholy.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/</loc>
+    <loc>https://getecholy.com/learn/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/spanish/</loc>
+    <loc>https://getecholy.com/learn/spanish/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/spanish/order-coffee.html</loc>
+    <loc>https://getecholy.com/learn/spanish/order-coffee.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/spanish/order-at-a-restaurant.html</loc>
+    <loc>https://getecholy.com/learn/spanish/order-at-a-restaurant.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/spanish/ask-for-directions.html</loc>
+    <loc>https://getecholy.com/learn/spanish/ask-for-directions.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/spanish/check-into-a-hotel.html</loc>
+    <loc>https://getecholy.com/learn/spanish/check-into-a-hotel.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/spanish/introduce-yourself.html</loc>
+    <loc>https://getecholy.com/learn/spanish/introduce-yourself.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/spanish/make-a-doctors-appointment.html</loc>
+    <loc>https://getecholy.com/learn/spanish/make-a-doctors-appointment.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/french/</loc>
+    <loc>https://getecholy.com/learn/spanish/buy-a-train-ticket.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/french/order-coffee.html</loc>
+    <loc>https://getecholy.com/learn/spanish/shop-for-clothes.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/french/order-at-a-restaurant.html</loc>
+    <loc>https://getecholy.com/learn/spanish/book-a-table.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/french/ask-for-directions.html</loc>
+    <loc>https://getecholy.com/learn/spanish/at-the-pharmacy.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/french/check-into-a-hotel.html</loc>
+    <loc>https://getecholy.com/learn/spanish/make-small-talk.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/french/introduce-yourself.html</loc>
+    <loc>https://getecholy.com/learn/french/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/french/make-a-doctors-appointment.html</loc>
+    <loc>https://getecholy.com/learn/french/order-coffee.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/german/</loc>
+    <loc>https://getecholy.com/learn/french/order-at-a-restaurant.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/german/order-coffee.html</loc>
+    <loc>https://getecholy.com/learn/french/ask-for-directions.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/german/order-at-a-restaurant.html</loc>
+    <loc>https://getecholy.com/learn/french/check-into-a-hotel.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/german/ask-for-directions.html</loc>
+    <loc>https://getecholy.com/learn/french/introduce-yourself.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/german/check-into-a-hotel.html</loc>
+    <loc>https://getecholy.com/learn/french/make-a-doctors-appointment.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/german/introduce-yourself.html</loc>
+    <loc>https://getecholy.com/learn/french/buy-a-train-ticket.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/german/make-a-doctors-appointment.html</loc>
+    <loc>https://getecholy.com/learn/french/shop-for-clothes.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/italian/</loc>
+    <loc>https://getecholy.com/learn/french/book-a-table.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/italian/order-coffee.html</loc>
+    <loc>https://getecholy.com/learn/french/at-the-pharmacy.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/italian/order-at-a-restaurant.html</loc>
+    <loc>https://getecholy.com/learn/french/make-small-talk.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/italian/ask-for-directions.html</loc>
+    <loc>https://getecholy.com/learn/german/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/italian/check-into-a-hotel.html</loc>
+    <loc>https://getecholy.com/learn/german/order-coffee.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/italian/introduce-yourself.html</loc>
+    <loc>https://getecholy.com/learn/german/order-at-a-restaurant.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/italian/make-a-doctors-appointment.html</loc>
+    <loc>https://getecholy.com/learn/german/ask-for-directions.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/portuguese/</loc>
+    <loc>https://getecholy.com/learn/german/check-into-a-hotel.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/portuguese/order-coffee.html</loc>
+    <loc>https://getecholy.com/learn/german/introduce-yourself.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/portuguese/order-at-a-restaurant.html</loc>
+    <loc>https://getecholy.com/learn/german/make-a-doctors-appointment.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/portuguese/ask-for-directions.html</loc>
+    <loc>https://getecholy.com/learn/german/buy-a-train-ticket.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/portuguese/check-into-a-hotel.html</loc>
+    <loc>https://getecholy.com/learn/german/shop-for-clothes.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/portuguese/introduce-yourself.html</loc>
+    <loc>https://getecholy.com/learn/german/book-a-table.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/learn/portuguese/make-a-doctors-appointment.html</loc>
+    <loc>https://getecholy.com/learn/german/at-the-pharmacy.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/privacy.html</loc>
+    <loc>https://getecholy.com/learn/german/make-small-talk.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/italian/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/italian/order-coffee.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/italian/order-at-a-restaurant.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/italian/ask-for-directions.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/italian/check-into-a-hotel.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/italian/introduce-yourself.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/italian/make-a-doctors-appointment.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/italian/buy-a-train-ticket.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/italian/shop-for-clothes.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/italian/book-a-table.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/italian/at-the-pharmacy.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/italian/make-small-talk.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/portuguese/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/portuguese/order-coffee.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/portuguese/order-at-a-restaurant.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/portuguese/ask-for-directions.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/portuguese/check-into-a-hotel.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/portuguese/introduce-yourself.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/portuguese/make-a-doctors-appointment.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/portuguese/buy-a-train-ticket.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/portuguese/shop-for-clothes.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/portuguese/book-a-table.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/portuguese/at-the-pharmacy.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/learn/portuguese/make-small-talk.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://getecholy.com/privacy.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://echoly-enjr.onrender.com/tos.html</loc>
+    <loc>https://getecholy.com/tos.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>

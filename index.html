@@ -6,7 +6,7 @@
 <title>Echoly — Practice real conversations in 34 languages</title>
 <meta name="description" content="Stop memorizing word lists. Echoly drops you into real-life situations — ordering dinner, meeting the in-laws, a job interview — with an AI conversation partner that talks back and coaches you. Free to try, no signup needed.">
 <meta name="theme-color" content="#e85d4c">
-<link rel="canonical" href="https://echoly-enjr.onrender.com/">
+<link rel="canonical" href="https://getecholy.com/">
 
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="/favicon-32.png" type="image/png" sizes="32x32">
@@ -16,15 +16,15 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="Echoly — Practice real conversations in 34 languages">
 <meta property="og:description" content="Not vocab drills. Real conversations for real-life situations, with an AI partner that coaches you as you go.">
-<meta property="og:image" content="https://echoly-enjr.onrender.com/og-image.png?v=2">
+<meta property="og:image" content="https://getecholy.com/og-image.png?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Echoly: stop memorizing words, start talking. Chatto the monkey reading, talking and listening.">
-<meta property="og:url" content="https://echoly-enjr.onrender.com/">
+<meta property="og:url" content="https://getecholy.com/">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Echoly — Practice real conversations in 34 languages">
 <meta name="twitter:description" content="Not vocab drills. Real conversations for real-life situations, with an AI partner that coaches you as you go.">
-<meta name="twitter:image" content="https://echoly-enjr.onrender.com/og-image.png?v=2">
+<meta name="twitter:image" content="https://getecholy.com/og-image.png?v=2">
 
 <script>
   // Old links pointed at the app on "/" — referral links (?ref=), Stripe's
@@ -33,7 +33,9 @@
   (function () {
     var q = location.search;
     var standalone = window.matchMedia && window.matchMedia("(display-mode: standalone)").matches;
-    if (/[?&](ref|upgraded)=/.test(q) || standalone) location.replace("/app.html" + q);
+    // Ad links that promise a specific conversation (?topic= / ?scenario=)
+    // skip the landing page too and go straight into talking.
+    if (/[?&](ref|upgraded|topic|scenario|friend)=/.test(q) || standalone) location.replace("/app.html" + q);
   })();
 </script>
 
@@ -95,7 +97,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   "@context": "https://schema.org",
   "@type": "WebApplication",
   "name": "Echoly",
-  "url": "https://echoly-enjr.onrender.com/",
+  "url": "https://getecholy.com/",
   "applicationCategory": "EducationalApplication",
   "operatingSystem": "Any (web browser)",
   "description": "AI conversation practice for real-life situations in 34 languages.",
@@ -241,6 +243,55 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .reveal-seq > *:nth-child(4) { animation-delay: 3.2s; }
   .reveal-seq > *:nth-child(5) { animation-delay: 4.1s; }
   @keyframes pop { to { opacity: 1; transform: none; } }
+
+  /* Live demo (replaces the old animated mock): the first thing a visitor
+     can do is actually talk. */
+  .demo-body { min-height: 300px; max-height: 400px; overflow-y: auto; scroll-behavior: smooth; }
+  .demo-lang {
+    margin-left: auto; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--ink); background: var(--bg-deep);
+    border: 1px solid var(--border); border-radius: 8px; padding: 4px 6px; cursor: pointer; max-width: 120px;
+  }
+  .demo-chips { display: flex; flex-wrap: wrap; gap: 6px; align-self: flex-end; justify-content: flex-end; max-width: 92%; }
+  .demo-chip {
+    font: inherit; font-size: 13px; text-align: left; background: var(--surface); color: var(--ink); cursor: pointer;
+    border: 1.5px dashed var(--accent); border-radius: 12px; padding: 6px 11px; line-height: 1.3;
+  }
+  .demo-chip small { display: block; font-size: 11.5px; color: var(--ink-soft); }
+  .demo-chip:hover { background: var(--accent-soft); }
+  .demo-hint { align-self: center; font-size: 12px; color: var(--ink-soft); margin: 2px 0 0; }
+  .demo-composer { display: flex; gap: 8px; padding: 12px 14px 14px; border-top: 1px solid var(--border); align-items: center; }
+  .demo-input {
+    flex: 1; min-width: 0; border: 1.5px solid var(--border); border-radius: 12px; padding: 10px 12px;
+    font: inherit; font-size: 15px; color: var(--ink); background: var(--surface);
+  }
+  .demo-input:focus { outline: none; border-color: var(--accent); }
+  .demo-send {
+    background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: 10px 14px;
+    font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  .demo-send:disabled { opacity: 0.55; cursor: default; }
+  .demo-done {
+    align-self: stretch; text-align: center; background: var(--plum); color: #f7f1ec; border-radius: 16px; padding: 16px;
+  }
+  .demo-done b { display: block; font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px; margin-bottom: 10px; }
+  .demo-done .btn { width: 100%; }
+  .demo .mock { transform: none; }
+  /* Chatto peeks over the demo's top corner instead of covering the
+     reply box; on phones he steps aside so the chat fits above the fold. */
+  .hero-visual .hero-mascot { left: -92px; top: -70px; bottom: auto; width: 118px; pointer-events: none; }
+  @media (max-width: 900px) { .hero-visual .hero-mascot { display: none; } }
+  @media (max-width: 900px) {
+    /* On phones, the live chat comes right after the headline, above the
+       fold, instead of after all the text. */
+    .hero-grid { gap: 0; }
+    .hero-grid > .hero-copy { display: contents; }
+    .hero-copy .eyebrow, .hero-copy h1 { order: 1; }
+    .hero-visual { order: 2; margin: 22px 0 6px; }
+    .hero-sub { order: 3; margin: 22px 0 22px; }
+    .hero-ctas { order: 4; }
+    .hero-note { order: 5; }
+    .demo-body { min-height: 230px; max-height: 330px; }
+  }
 
   /* Problem strip */
   .problem { background: var(--plum); color: var(--cream-on-plum); }
@@ -425,7 +476,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   <!-- Hero -->
   <section class="hero">
     <div class="wrap hero-grid">
-      <div>
+      <div class="hero-copy">
         <span class="eyebrow">AI conversation practice · 34 languages</span>
         <h1>Stop memorizing words.<br>Start <em>having conversations.</em></h1>
         <p class="hero-sub">Echoly drops you into real-life situations, like ordering dinner, meeting your partner's parents or a job interview, with an AI partner that talks back, gently corrects you and helps the moment you get stuck.</p>
@@ -438,25 +489,21 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
 
       <div class="hero-visual">
       <img class="hero-mascot" src="/mascot/mascot-wave.webp" width="560" height="670" alt="Chatto, Echoly's monkey mascot, waving hello">
-      <div aria-label="Example Echoly conversation: ordering a coffee in French" role="img">
+      <div class="demo" id="demo">
         <div class="mock">
           <div class="mock-top">
             <span class="mock-top-icon">☕</span>
-            <div><b>Order a coffee</b><small>Practicing French</small></div>
-            <span class="mock-live">● Live</span>
+            <div><b>Try it: order a coffee</b><small>Tap a phrase or type your own</small></div>
+            <select class="demo-lang" id="demoLang" aria-label="Language to practice">
+              <option>Spanish</option><option>French</option><option>Italian</option>
+              <option>German</option><option>Portuguese</option><option>Japanese</option>
+            </select>
           </div>
-          <div class="mock-body reveal-seq">
-            <div class="bubble b-ai">Bonjour ! Qu'est-ce que je vous sers ?<small>Hello! What can I get you?</small></div>
-            <div class="bubble b-me">Je veux un café, s'il vous plaît.</div>
-            <div class="b-tip"><span>💡</span><span>Understood! For ordering, <b>« Je voudrais un café »</b> sounds more polite than « je veux ».</span></div>
-            <div class="bubble b-ai">Bien sûr ! Sur place ou à emporter ?<small>Of course! For here or to go?</small></div>
-            <div class="typing-dots" aria-hidden="true"><i></i><i></i><i></i></div>
-          </div>
-          <div class="mock-composer" aria-hidden="true">
-            <span class="mock-mic">🎤</span>
-            <span class="mock-input">Sur place, merci !</span>
-            <span class="mock-send">Send</span>
-          </div>
+          <div class="mock-body demo-body" id="demoBody" aria-live="polite"></div>
+          <form class="demo-composer" id="demoForm" autocomplete="off">
+            <input class="demo-input" id="demoInput" type="text" maxlength="200" placeholder="Type your reply…" aria-label="Your reply">
+            <button class="demo-send" id="demoSend" type="submit">Send</button>
+          </form>
         </div>
       </div>
       </div>
@@ -762,6 +809,131 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   function onScroll() { nav.classList.toggle("scrolled", window.scrollY > 8); }
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
+})();
+</script>
+<script>
+// ---------- Landing-page live demo ----------
+// Opens with a pre-written greeting and two tap-to-say phrases (no server
+// call, so it costs nothing for visitors who just look). Each reply goes to
+// /demo-chat; after 3 replies the visitor is handed into the real app in
+// the same language. See /demo-chat in server/server.js.
+(function () {
+  var OPENERS = {
+    Spanish: ["¡Hola! ¿Qué te pongo?", "Hi! What can I get you?", [["Un café, por favor.", "A coffee, please."], ["Hola, ¿qué me recomienda?", "Hi, what do you recommend?"]]],
+    French: ["Bonjour ! Qu'est-ce que je vous sers ?", "Hello! What can I get you?", [["Un café, s'il vous plaît.", "A coffee, please."], ["Bonjour ! Qu'est-ce que vous me conseillez ?", "Hello! What do you recommend?"]]],
+    Italian: ["Ciao! Cosa ti preparo?", "Hi! What can I make you?", [["Un cappuccino, per favore.", "A cappuccino, please."], ["Ciao! Cosa mi consigli?", "Hi! What do you recommend?"]]],
+    German: ["Hallo! Was darf's sein?", "Hi! What would you like?", [["Einen Kaffee, bitte.", "A coffee, please."], ["Hallo! Was empfehlen Sie?", "Hi! What do you recommend?"]]],
+    Portuguese: ["Olá! O que vai ser?", "Hi! What will it be?", [["Um café, por favor.", "A coffee, please."], ["Olá! O que me recomenda?", "Hi! What do you recommend?"]]],
+    Japanese: ["いらっしゃいませ！ご注文は？", "Welcome! What would you like?", [["コーヒーをください。", "A coffee, please."], ["おすすめは何ですか？", "What do you recommend?"]]]
+  };
+  var body = document.getElementById("demoBody");
+  var form = document.getElementById("demoForm");
+  var input = document.getElementById("demoInput");
+  var sendBtn = document.getElementById("demoSend");
+  var langSel = document.getElementById("demoLang");
+  if (!body || !form) return;
+  var history = [], busy = false, learnerTurns = 0, started = false, gen = 0;
+  var MAX_TURNS = 3;
+
+  var urlLang = new URLSearchParams(location.search).get("lang");
+  if (urlLang && OPENERS[urlLang]) langSel.value = urlLang;
+
+  function track(name, params) { try { trackEvent(name, params); } catch (e) {} }
+  function scroll() { body.scrollTop = body.scrollHeight; }
+  function el(tag, cls, text) { var d = document.createElement(tag); if (cls) d.className = cls; if (text != null) d.textContent = text; return d; }
+  function aiBubble(text, translation) {
+    var b = el("div", "bubble b-ai", text);
+    if (translation) b.appendChild(el("small", null, translation));
+    body.appendChild(b); scroll();
+  }
+  function tipBubble(text) {
+    var t = el("div", "b-tip");
+    t.appendChild(el("span", null, "💡")); t.appendChild(el("span", null, text));
+    body.appendChild(t); scroll();
+  }
+  function clearChips() { var c = body.querySelector(".demo-chips"); if (c) c.remove(); var h = body.querySelector(".demo-hint"); if (h) h.remove(); }
+  function chips(list) {
+    clearChips();
+    if (!list.length) return;
+    var wrap = el("div", "demo-chips");
+    list.forEach(function (pair) {
+      var c = el("button", "demo-chip", pair[0]);
+      c.type = "button";
+      if (pair[1]) c.appendChild(el("small", null, pair[1]));
+      c.addEventListener("click", function () { send(pair[0], "chip"); });
+      wrap.appendChild(c);
+    });
+    body.appendChild(wrap); scroll();
+  }
+  function typing(on) {
+    var t = body.querySelector(".typing-dots");
+    if (on && !t) { t = el("div", "typing-dots"); t.innerHTML = "<i></i><i></i><i></i>"; t.style.alignSelf = "flex-start"; body.appendChild(t); scroll(); }
+    if (!on && t) t.remove();
+  }
+  function appLink() {
+    return "/app.html?lang=" + encodeURIComponent(langSel.value) + "&utm_source=landing_demo";
+  }
+  function finish(message) {
+    clearChips();
+    var d = el("div", "demo-done");
+    d.appendChild(el("b", null, message || ("🎉 You just had a real conversation in " + langSel.value + "!")));
+    var a = el("a", "btn btn-primary", "Keep talking, free →");
+    a.href = appLink();
+    a.setAttribute("data-track", "demo_continue");
+    d.appendChild(a);
+    body.appendChild(d); scroll();
+    input.disabled = true; sendBtn.disabled = true;
+    input.placeholder = "Keep going in the app ↑";
+  }
+  function reset() {
+    gen++;
+    history = []; learnerTurns = 0; busy = false;
+    body.innerHTML = "";
+    input.disabled = false; sendBtn.disabled = false; input.placeholder = "Type your reply…";
+    var o = OPENERS[langSel.value] || OPENERS.Spanish;
+    aiBubble(o[0], o[1]);
+    history.push({ role: "assistant", content: o[0] });
+    chips(o[2]);
+    body.appendChild(el("p", "demo-hint", "Tap a phrase, or type anything, even in English"));
+  }
+  function send(text, how) {
+    text = (text || "").trim();
+    if (!text || busy || learnerTurns >= MAX_TURNS) return;
+    if (!started) { started = true; track("demo_started", { language: langSel.value, how: how || "typed" }); }
+    busy = true; sendBtn.disabled = true;
+    clearChips();
+    body.appendChild(el("div", "bubble b-me", text)); scroll();
+    input.value = "";
+    typing(true);
+    var myGen = gen;
+    var sentHistory = history.slice();
+    fetch("/demo-chat", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ language: langSel.value, history: sentHistory, message: text })
+    }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (myGen !== gen) return;
+        typing(false); busy = false; sendBtn.disabled = false;
+        if (!res.ok || !res.d.success) { finish(res.d && res.d.demoOver ? "That's the demo. Ready for the real thing?" : "The demo's busy right now, but the app is ready."); return; }
+        var d = res.d;
+        learnerTurns++;
+        history.push({ role: "user", content: text }, { role: "assistant", content: d.reply });
+        track("demo_message_sent", { language: langSel.value, turn: learnerTurns });
+        if (d.tip) tipBubble(d.tip);
+        aiBubble(d.reply, d.replyTranslation);
+        if (learnerTurns >= MAX_TURNS) { track("demo_completed", { language: langSel.value }); finish(); return; }
+        if (d.suggestion) chips([[d.suggestion, d.suggestionTranslation]]);
+        input.focus({ preventScroll: true });
+      })
+      .catch(function () {
+        if (myGen !== gen) return;
+        typing(false); busy = false; sendBtn.disabled = false;
+        finish("Couldn't reach the demo, but the app is ready.");
+      });
+  }
+  form.addEventListener("submit", function (e) { e.preventDefault(); send(input.value, "typed"); });
+  langSel.addEventListener("change", function () { track("demo_language_changed", { language: langSel.value }); reset(); });
+  reset();
 })();
 </script>
 </body>

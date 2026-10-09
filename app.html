@@ -31,17 +31,17 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="Echoly — Practice Real Conversations">
 <meta property="og:description" content="AI conversation practice for real-life situations — not vocab drills, real fluency.">
-<meta property="og:image" content="https://echoly-enjr.onrender.com/og-image.png?v=2">
+<meta property="og:image" content="https://getecholy.com/og-image.png?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Echoly: stop memorizing words, start talking. Chatto the monkey reading, talking and listening.">
-<meta property="og:url" content="https://echoly-enjr.onrender.com">
+<meta property="og:url" content="https://getecholy.com">
 
 <!-- Twitter/X card -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Echoly — Practice Real Conversations">
 <meta name="twitter:description" content="AI conversation practice for real-life situations — not vocab drills, real fluency.">
-<meta name="twitter:image" content="https://echoly-enjr.onrender.com/og-image.png?v=2">
+<meta name="twitter:image" content="https://getecholy.com/og-image.png?v=2">
 
 <!-- Google Analytics — optional. Set GA_MEASUREMENT_ID below to your real GA4
      measurement ID (Google Analytics > Admin > Create Property, then Data
@@ -392,6 +392,57 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   }
   .reminder-yes { background: var(--accent); color: #fff; border: none; }
   .reminder-no { background: var(--bg); color: var(--ink-soft); border: 1.5px solid var(--border); }
+  /* Same ask, shown inside the chat right after a finished conversation. */
+  .chat-reminder-card { display: flex; align-self: center; width: 100%; max-width: 460px; margin: 8px auto; }
+  .chat-reminder-done { font-size: 13.5px; font-weight: 700; color: var(--ok-fg); }
+
+  /* -------- Home: recurring friend, "things you can do", install -------- */
+  .friend-card {
+    max-width: 640px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 0 0 16px;
+    padding: 15px 16px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 16px;
+  }
+  .friend-avatar {
+    width: 50px; height: 50px; border-radius: 50%; background: var(--accent-soft); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 25px;
+  }
+  .friend-text { flex: 1; min-width: 200px; }
+  .friend-eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); margin: 0 0 2px; }
+  .friend-hook { font-family: 'Bricolage Grotesque', sans-serif; font-size: 16px; font-weight: 700; margin: 0; line-height: 1.3; color: var(--ink); }
+  .friend-go {
+    background: var(--accent); color: #fff; border: none; border-radius: 11px; padding: 10px 16px;
+    font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit; white-space: nowrap;
+  }
+  .friend-go:hover { filter: brightness(1.07); }
+  @media (max-width: 520px) { .friend-go { width: 100%; } }
+  .friend-bye {
+    align-self: center; max-width: 460px; text-align: center; font-size: 13.5px; font-weight: 600; color: var(--ink-soft);
+    background: var(--surface); border: 1.5px dashed var(--border); border-radius: 14px; padding: 10px 16px; margin: 6px auto;
+  }
+
+  .cando-card {
+    max-width: 640px; margin: 0 0 26px; padding: 16px 18px; background: var(--surface);
+    border: 1.5px solid var(--border); border-radius: 16px;
+  }
+  .cando-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .cando-title { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 16px; margin: 0; }
+  .cando-count { font-size: 12.5px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; }
+  .cando-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 14px; }
+  .cando-list li { font-size: 13.5px; line-height: 1.35; display: flex; gap: 7px; align-items: flex-start; }
+  .cando-list li.next { color: var(--ink-soft); }
+  .cando-list li.next button {
+    background: none; border: none; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; text-decoration: underline dotted;
+  }
+  .cando-more { font-size: 12.5px; color: var(--ink-soft); margin: 8px 0 0; }
+
+  .install-card {
+    max-width: 640px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 16px;
+    padding: 13px 15px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px;
+  }
+  .install-card img { width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0; }
+  .install-text { flex: 1; min-width: 200px; font-size: 13.5px; line-height: 1.4; }
+  .install-text b { display: block; font-family: 'Bricolage Grotesque', sans-serif; font-size: 15px; }
+  .install-actions { display: flex; gap: 8px; }
+  .install-actions button { border-radius: 9px; padding: 8px 14px; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit; }
 
   .share-win-row { align-self: center; margin: 0 auto 4px; }
   .share-win-btn {
@@ -786,6 +837,42 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     border-radius: 12px; padding: 10px 13px; font-size: 13px; color: var(--tip); display: flex; gap: 8px;
   }
   .tip-card .tip-icon { flex-shrink: 0; }
+  /* "Try again" nudge: the learner fixes their own mistake; the answer sits
+     behind a tap. "Fixed" is the little win when they do. */
+  .tip-card--nudge { border-style: dashed; border-width: 1.5px; flex-wrap: wrap; }
+  .tip-card--nudge .tip-body { flex: 1; min-width: 0; }
+  .tip-nudge-label { display: block; font-weight: 800; margin-bottom: 2px; }
+  .tip-reveal-btn {
+    margin-top: 6px; background: none; border: none; padding: 0; font: inherit; font-size: 12.5px;
+    font-weight: 700; color: var(--tip); text-decoration: underline; cursor: pointer;
+  }
+  .tip-answer { margin-top: 6px; font-weight: 700; color: var(--ink); }
+  .tip-card--fixed { background: var(--ok-bg); border-color: var(--ok-border); color: var(--ok-fg); font-weight: 600; }
+
+  /* "Run it again, faster" — offer card, live per-reply timer, results. */
+  .replay-card {
+    align-self: center; width: 100%; max-width: 460px; background: var(--surface); border: 1.5px solid var(--accent);
+    border-radius: 18px; padding: 16px 18px; margin: 8px auto;
+  }
+  .replay-card h4 { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 17px; margin: 0 0 4px; }
+  .replay-card p { font-size: 13.5px; color: var(--ink-soft); margin: 0 0 4px; line-height: 1.45; }
+  .replay-card .recap-next { margin-top: 10px; }
+  .replay-stats { display: flex; gap: 10px; margin: 12px 0 4px; }
+  .replay-stat { flex: 1; text-align: center; background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 10px 6px; }
+  .replay-stat b { display: block; font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; font-weight: 800; color: var(--ink); }
+  .replay-stat span { font-size: 11.5px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.03em; }
+  .replay-stat.better { background: var(--ok-bg); border-color: var(--ok-border); }
+  .replay-stat.better b { color: var(--ok-fg); }
+  .replay-banner {
+    align-self: center; background: var(--accent-soft); color: var(--accent); font-weight: 700;
+    font-size: 13px; padding: 8px 16px; border-radius: 999px; margin: 4px auto; text-align: center;
+  }
+  .replay-timer {
+    display: inline-block; padding: 4px 12px; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent); font-weight: 800; font-size: 13px; font-variant-numeric: tabular-nums;
+  }
+  .replay-timer-row { display: none; justify-content: center; padding: 6px 0 0; flex-shrink: 0; }
+  .replay-timer-row.shown { display: flex; }
 
   .completion-banner {
     align-self: center; background: var(--accent-soft); color: var(--accent); font-weight: 700;
@@ -1554,6 +1641,30 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         <p class="today-quick-label" id="todayQuickLabel">Or jump straight into a real situation:</p>
         <div class="today-chips" id="todayChips"></div>
       </section>
+      <section class="friend-card" id="friendCard" style="display:none">
+        <span class="friend-avatar" id="friendAvatar">☕</span>
+        <div class="friend-text">
+          <p class="friend-eyebrow" id="friendEyebrow">Your friend in Madrid</p>
+          <p class="friend-hook" id="friendHook"></p>
+        </div>
+        <button type="button" class="friend-go" id="friendGoBtn">Chat →</button>
+      </section>
+      <section class="cando-card" id="candoCard" style="display:none">
+        <div class="cando-head">
+          <h2 class="cando-title" id="candoTitle">Things you can do in Spanish</h2>
+          <span class="cando-count" id="candoCount"></span>
+        </div>
+        <ul class="cando-list" id="candoList"></ul>
+        <p class="cando-more" id="candoMore"></p>
+      </section>
+      <div class="install-card" id="installCard" style="display:none">
+        <img src="/icon-192.png" alt="">
+        <span class="install-text"><b>Put Echoly on your home screen</b><span id="installHow">One tap to your next conversation, like any other app.</span></span>
+        <span class="install-actions">
+          <button type="button" class="reminder-yes" id="installYesBtn">Add it</button>
+          <button type="button" class="reminder-no" id="installNoBtn">Not now</button>
+        </span>
+      </div>
       <div class="main-header">
         <h1 class="main-tier-title" id="mainTierTitle">Loading…</h1>
         <span class="main-tier-frac" id="mainTierFrac"></span>
@@ -1914,6 +2025,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   </div>
   <div class="error-banner" id="errorBanner"></div>
   <div class="chat-log" id="chatLog"></div>
+  <div class="replay-timer-row" id="replayTimerRow"><span class="replay-timer" id="replayTimer" aria-live="off">⏱ 0s</span></div>
   <div class="composer">
     <button class="mic-btn" id="micBtn" aria-label="Speak your reply">🎤</button>
     <input type="text" id="messageInput" placeholder="Type your reply…" autocomplete="off" maxlength="1000">
@@ -2041,6 +2153,10 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // instead of one of the preset lessons — see startCustomConversation.
   const CUSTOM_SCENARIO_ID = "custom";
   const CUSTOM_TOPIC_MAX_LEN = 200;
+  // The recurring friend chat (see FRIENDS in server.js): one character per
+  // language who remembers the learner. Profiles come from /scenarios.
+  const FRIEND_SCENARIO_ID = "friend";
+  let FRIENDS = {};
   let customConversationCompleted = false; // reset per conversation in startConversation()
 
   // BCP-47 locale for each language the app offers, used for both
@@ -2241,6 +2357,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // this conversation" buttons: skip onboarding and start that conversation.
   const requestedTopic = (urlParams.get("topic") || "").slice(0, 200);
   const requestedTopicTitle = (urlParams.get("title") || "").slice(0, 60);
+  // ?scenario=<lesson id> (with ?lang=…) opens that lesson directly — for
+  // ads that promise a specific situation. ?friend=1 opens the friend chat
+  // (linked from reminder emails that mention what the friend wants to ask).
+  const requestedScenario = (urlParams.get("scenario") || "").slice(0, 80);
+  const requestedFriend = urlParams.get("friend") === "1";
   let requestedTopicConsumed = false;
 
   // ---------- Onboarding + learner goal (first visit only) ----------
@@ -2342,6 +2463,25 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   let conversationGen = 0;
   let userMessageCount = 0;
   let lookupSending = false;
+
+  // Self-correction: the server's "feedbackType" for the last AI turn. When
+  // it was "nudge", the learner's next message is their retry, and the
+  // server is told so (it then moves on, and never nudges twice in a row).
+  let lastFeedbackType = "none";
+
+  // "Run it again, faster" (a 4/3/2-style repeat: same scenario again, with
+  // fewer hints and a visible clock, which research links to more fluent
+  // speech). Fluency is measured as seconds between the AI's reply landing
+  // and the learner sending theirs, plus words per reply.
+  const REPLAY_GAP_CAP_SEC = 90; // a long pause is someone who walked away, not slow speech
+  let replayMode = false;        // this conversation IS a replay round
+  let roundEndHandled = false;   // end-of-round card already shown this conversation
+  let lastAiTurnAt = 0;          // ms timestamp the latest AI reply was shown
+  let turnGaps = [];             // seconds per learner reply, this conversation
+  let turnWords = [];            // words per learner reply, this conversation
+  let firstRoundStats = null;    // stats from the round being replayed
+  let lastConversationArgs = null; // what startConversation was called with, to replay it
+  let replayTimerInterval = null;
 
   // Lesson intro + objectives tracking
   let introLesson = null; // the lesson currently shown on the intro screen
@@ -3906,7 +4046,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // progress, streak, and vocab — as a single snapshot. Firestore security
   // rules restrict a document to its own owner (see the project README).
   function localDataSnapshot() {
-    return { progress: loadAllProgress(), streak: loadStreakData(), vocab: loadVocabBank(), tips: loadTipsHistory(), convoCounts: loadConvoCounts(), nativeLanguage: selectedNativeLanguage, onboarding: loadOnboarding(), reminders: loadReminderPrefs() };
+    return { progress: loadAllProgress(), streak: loadStreakData(), vocab: loadVocabBank(), tips: loadTipsHistory(), convoCounts: loadConvoCounts(), nativeLanguage: selectedNativeLanguage, onboarding: loadOnboarding(), reminders: loadReminderPrefs(), friend: loadFriendData() };
   }
   function applyCloudSnapshot(data) {
     if (data && data.progress) saveAllProgress(data.progress);
@@ -3914,6 +4054,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     if (data && data.vocab) saveVocabBank(data.vocab);
     if (data && data.tips) saveTipsHistory(data.tips);
     if (data && data.convoCounts) saveConvoCounts(data.convoCounts);
+    if (data && data.friend && typeof data.friend === "object") saveFriendData(data.friend);
     if (data && data.reminders && typeof data.reminders === "object") {
       saveReminderPrefs(data.reminders);
     }
@@ -4620,7 +4761,9 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // Called whenever the home screen becomes reachable (app entered, lesson
   // path loaded, auth modal dismissed). Only ever shows once per learner.
   function maybeStartRequestedTopic() {
-    if (requestedTopicConsumed || !requestedTopic) return false;
+    if (requestedTopicConsumed) return false;
+    if ((requestedScenario || requestedFriend) && !requestedTopic) return maybeStartRequestedLesson();
+    if (!requestedTopic) return false;
     if (!LANGUAGES.includes(requestedLanguage)) return false;
     requestedTopicConsumed = true;
     window.history.replaceState({}, "", location.pathname);
@@ -4634,6 +4777,29 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     saveOnboarding({ ...ob, done: true, language: selectedLanguage });
     trackEvent("guide_topic_started", { language: selectedLanguage, topic: requestedTopicTitle || requestedTopic });
     startCustomConversation(requestedTopic, { icon: "💬", title: requestedTopicTitle || requestedTopic });
+    return true;
+  }
+
+  function maybeStartRequestedLesson() {
+    const lang = LANGUAGES.includes(requestedLanguage) ? requestedLanguage : selectedLanguage;
+    const lesson = requestedScenario ? PATH.find(l => l.id === requestedScenario) : null;
+    if (!lang || (requestedScenario && !lesson)) return false;
+    requestedTopicConsumed = true;
+    window.history.replaceState({}, "", location.pathname);
+    if (lang !== selectedLanguage) {
+      selectedLanguage = lang;
+      selectedTier = pickDefaultTier(selectedLanguage);
+      populateLangSelect();
+      renderHome();
+    }
+    saveOnboarding({ ...loadOnboarding(), done: true, language: selectedLanguage });
+    if (lesson) {
+      trackEvent("deeplink_lesson_opened", { language: selectedLanguage, scenario: lesson.id });
+      openIntro(lesson);
+    } else {
+      trackEvent("deeplink_friend_opened", { language: selectedLanguage });
+      startFriendChat();
+    }
     return true;
   }
 
@@ -4767,6 +4933,166 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     }
   });
 
+  // ---------- Home: the recurring friend ----------
+  // { [language]: { notes: [..], hook, chats, lastChat } } — what the
+  // friend remembers (written by the AI each turn, from what the learner
+  // said), synced to the cloud with the rest of the learner's data.
+  const FRIEND_KEY = "echoly_friend_v1";
+  function loadFriendData() {
+    try {
+      const o = JSON.parse(localStorage.getItem(FRIEND_KEY) || "null");
+      return (o && typeof o === "object") ? o : {};
+    } catch (e) { return {}; }
+  }
+  function saveFriendData(o) {
+    try { localStorage.setItem(FRIEND_KEY, JSON.stringify(o)); } catch (e) { /* non-fatal */ }
+  }
+  function friendStateFor(language) {
+    const d = loadFriendData()[language];
+    return {
+      notes: d && Array.isArray(d.notes) ? d.notes.filter(n => typeof n === "string").slice(0, 12) : [],
+      hook: d && typeof d.hook === "string" ? d.hook : "",
+      chats: d && typeof d.chats === "number" ? d.chats : 0,
+      lastChat: d && typeof d.lastChat === "string" ? d.lastChat : ""
+    };
+  }
+  function updateFriendState(language, patch) {
+    const all = loadFriendData();
+    all[language] = { ...friendStateFor(language), ...patch };
+    saveFriendData(all);
+  }
+  function renderFriendCard() {
+    const el = document.getElementById("friendCard");
+    const f = selectedLanguage && FRIENDS[selectedLanguage];
+    // Shown once they've had at least one conversation — the very first
+    // visit should lead with onboarding and the basics instead.
+    if (!f || !hasAnyProgress()) { el.style.display = "none"; return; }
+    const st = friendStateFor(selectedLanguage);
+    document.getElementById("friendAvatar").textContent = f.icon;
+    document.getElementById("friendEyebrow").textContent = f.place
+      ? `Your friend in ${f.place} · ${selectedLanguage}`
+      : `Your ${selectedLanguage}-speaking friend`;
+    const chattedToday = st.lastChat === todayDateStr();
+    document.getElementById("friendHook").textContent = st.hook && !chattedToday
+      ? st.hook
+      : (st.chats
+        ? (chattedToday ? `${f.name} enjoyed today's chat. Fancy another?` : `${f.name} is around for a chat.`)
+        : `Meet ${f.name}, who ${f.role}. ${f.name} remembers what you talk about.`);
+    document.getElementById("friendGoBtn").textContent = st.chats ? `Chat with ${f.name} →` : `Say hi to ${f.name} →`;
+    el.style.display = "flex";
+  }
+  function startFriendChat() {
+    const f = FRIENDS[selectedLanguage];
+    if (!f) return;
+    trackEvent("friend_chat_started", { language: selectedLanguage, returning: friendStateFor(selectedLanguage).chats > 0 ? 1 : 0 });
+    startConversation({ id: FRIEND_SCENARIO_ID, tier: "Custom", icon: f.icon, title: `Chat with ${f.name}`, friend: true }, [], [], "", "");
+  }
+  document.getElementById("friendGoBtn").addEventListener("click", startFriendChat);
+
+  // ---------- Home: "Things you can do in <language>" ----------
+  // Progress in real-life terms: finished lessons beyond the basics, plus
+  // the next couple to unlock that list a little further.
+  function renderCanDoCard() {
+    const el = document.getElementById("candoCard");
+    if (!PATH.length || !selectedLanguage) { el.style.display = "none"; return; }
+    const completed = getCompletedLessons(selectedLanguage);
+    const real = PATH.filter(l => l.tier !== "Intro" && !l.milestone);
+    const done = real.filter(l => completed.includes(l.id));
+    if (!done.length) { el.style.display = "none"; return; }
+    const upcoming = real.filter(l => !completed.includes(l.id)).slice(0, 2);
+    const shown = done.slice(-6).reverse();
+    document.getElementById("candoTitle").textContent = `Things you can do in ${selectedLanguage}`;
+    document.getElementById("candoCount").textContent = `${done.length} of ${real.length} situations`;
+    const list = document.getElementById("candoList");
+    list.innerHTML = "";
+    shown.forEach(l => {
+      const li = document.createElement("li");
+      li.textContent = `✅ ${l.title}`;
+      list.appendChild(li);
+    });
+    upcoming.forEach(l => {
+      const li = document.createElement("li");
+      li.className = "next";
+      li.appendChild(document.createTextNode("⬜ "));
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = l.title;
+      b.addEventListener("click", () => openIntro(l));
+      li.appendChild(b);
+      list.appendChild(li);
+    });
+    document.getElementById("candoMore").textContent = done.length > shown.length ? `…plus ${done.length - shown.length} more you've already done.` : "";
+    el.style.display = "block";
+  }
+
+  // ---------- Home: "Put Echoly on your home screen" ----------
+  // Offered from a learner's second visit on (after at least one finished
+  // conversation), never inside the installed app, and never again once
+  // they say "not now" twice.
+  const INSTALL_KEY = "echoly_install_v1";
+  let deferredInstallPrompt = null;
+  function loadInstallState() {
+    try { const o = JSON.parse(localStorage.getItem(INSTALL_KEY) || "null"); return (o && typeof o === "object") ? o : {}; }
+    catch (e) { return {}; }
+  }
+  function saveInstallState(o) {
+    try { localStorage.setItem(INSTALL_KEY, JSON.stringify(o)); } catch (e) { /* non-fatal */ }
+  }
+  (function countVisit() {
+    const st = loadInstallState();
+    st.visits = (st.visits || 0) + 1;
+    saveInstallState(st);
+  })();
+  window.addEventListener("beforeinstallprompt", e => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    renderInstallCard();
+  });
+  window.addEventListener("appinstalled", () => {
+    saveInstallState({ ...loadInstallState(), installed: true });
+    trackEvent("app_installed");
+    renderInstallCard();
+  });
+  function isStandalone() {
+    return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
+  }
+  function installInstructions() {
+    const ua = navigator.userAgent || "";
+    if (/Instagram|FBAN|FBAV|TikTok|musical_ly|Bytedance/i.test(ua)) return "Open Echoly in Safari or Chrome first, then add it from the browser's menu.";
+    if (/iPhone|iPad|iPod/i.test(ua)) return "Tap the Share button (the square with an arrow), then “Add to Home Screen”.";
+    return "Open your browser's menu and choose “Install app” or “Add to Home screen”.";
+  }
+  function renderInstallCard() {
+    const el = document.getElementById("installCard");
+    if (!el) return;
+    const st = loadInstallState();
+    const show = !isStandalone() && !st.installed && (st.dismissals || 0) < 2
+      && (!st.snoozedUntil || Date.now() > st.snoozedUntil)
+      && (st.visits || 0) >= 2 && !!loadStreakData().lastActiveDate;
+    el.style.display = show ? "flex" : "none";
+    if (show && !el.dataset.tracked) { el.dataset.tracked = "1"; trackEvent("install_prompt_shown", { native: deferredInstallPrompt ? 1 : 0 }); }
+  }
+  document.getElementById("installYesBtn").addEventListener("click", async () => {
+    trackEvent("install_prompt_accepted", { native: deferredInstallPrompt ? 1 : 0 });
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      try { await deferredInstallPrompt.userChoice; } catch (e) { /* ignore */ }
+      deferredInstallPrompt = null;
+      renderInstallCard();
+      return;
+    }
+    document.getElementById("installHow").textContent = installInstructions();
+    document.getElementById("installYesBtn").style.display = "none";
+    document.getElementById("installNoBtn").textContent = "Got it";
+  });
+  document.getElementById("installNoBtn").addEventListener("click", () => {
+    const st = loadInstallState();
+    // "Not now" hides it for a week; a second "not now" for good.
+    saveInstallState({ ...st, dismissals: (st.dismissals || 0) + 1, snoozedUntil: Date.now() + 7 * 86400000 });
+    trackEvent("install_prompt_dismissed");
+    renderInstallCard();
+  });
+
   // Asked once, to signed-in learners who've finished at least one
   // conversation — after a win, when a reminder actually sounds useful.
   function renderReminderPrompt() {
@@ -4785,7 +5111,10 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
 
   function renderHome() {
     renderReminderPrompt();
+    renderInstallCard();
+    renderFriendCard();
     renderTodayCard();
+    renderCanDoCard();
     renderTierNav();
     renderLessonRows();
     renderReviewCard();
@@ -4821,6 +5150,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     sending = false;
     sendBtn.disabled = false;
     hideTyping();
+    stopReplayTimer();
   }
 
   function goHome() {
@@ -5574,7 +5904,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     grammarNoteCardEl.style.display = "none";
   });
 
-  function startConversation(lesson, objectives, keyPhrases, culturalNote, grammarNote) {
+  function startConversation(lesson, objectives, keyPhrases, culturalNote, grammarNote, startOpts) {
+    startOpts = startOpts || {};
     if (guestLimitReached()) return;
     if (isGuest()) { bumpGuestConvoCount(); renderAccountCard(); }
     // A reply from a conversation the learner already left must never land
@@ -5593,6 +5924,18 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     history = [];
     userMessageCount = 0;
     customConversationCompleted = false;
+    lastFeedbackType = "none";
+    replayMode = !!startOpts.replay;
+    roundEndHandled = false;
+    lastAiTurnAt = 0;
+    turnGaps = [];
+    turnWords = [];
+    if (!replayMode) firstRoundStats = null;
+    // A custom topic has no lesson to unlock, so a replay of one must not
+    // fire the "conversation complete" streak/banner a second time.
+    if (replayMode && lesson.id === CUSTOM_SCENARIO_ID) customConversationCompleted = true;
+    lastConversationArgs = { lesson, objectives: objectives || [], keyPhrases: keyPhrases || [] };
+    stopReplayTimer();
     chatLogEl.innerHTML = "";
     hideError();
     lookupPanel.classList.remove("shown");
@@ -5618,9 +5961,147 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     chatLanguageLabelEl.textContent = `Practicing ${selectedLanguage}`;
     homeScreen.classList.remove("active");
     chatScreen.classList.add("active");
-    trackEvent("conversation_started", { scenario: lesson.id, language: selectedLanguage });
+    trackEvent("conversation_started", { scenario: lesson.id, language: selectedLanguage, replay: replayMode ? 1 : 0 });
     recordConversationStarted();
+    if (replayMode) {
+      // Fewer hints this time: the phrase list and notes are folded away
+      // (still one tap to open), and a clock shows how long each reply takes.
+      objectivesCardEl.classList.add("collapsed");
+      culturalNoteCardEl.style.display = "none";
+      grammarNoteCardEl.style.display = "none";
+      chatScenarioTitleEl.textContent = `⚡ ${lesson.title} — faster`;
+      const banner = document.createElement("div");
+      banner.className = "replay-banner";
+      banner.textContent = firstRoundStats && firstRoundStats.avgGap
+        ? `⚡ Replay round — beat ${formatSecs(firstRoundStats.avgGap)} per reply. Hints are tucked away; you've got this.`
+        : "⚡ Replay round — same conversation, fewer hints. Reply as fast as you can.";
+      chatLogEl.appendChild(banner);
+    }
     sendMessage("__START__", { silent: true });
+  }
+
+  // ---------- Replay round ("Run it again, faster") ----------
+  function formatSecs(s) {
+    return s >= 10 ? `${Math.round(s)}s` : `${Math.round(s * 10) / 10}s`;
+  }
+  function wordCount(text) {
+    return (text || "").trim().split(/\s+/).filter(Boolean).length;
+  }
+  function average(list) {
+    return list.length ? list.reduce((a, b) => a + b, 0) / list.length : 0;
+  }
+  function currentRoundStats() {
+    return { avgGap: average(turnGaps), avgWords: average(turnWords), replies: turnGaps.length };
+  }
+  function startReplayTimer() {
+    if (!replayMode) return;
+    const row = document.getElementById("replayTimerRow");
+    const el = document.getElementById("replayTimer");
+    if (!row || !el) return;
+    if (replayTimerInterval) clearInterval(replayTimerInterval);
+    row.classList.add("shown");
+    const tick = () => { el.textContent = `⏱ ${Math.floor((Date.now() - lastAiTurnAt) / 1000)}s`; };
+    tick();
+    replayTimerInterval = setInterval(tick, 250);
+  }
+  function stopReplayTimer() {
+    if (replayTimerInterval) clearInterval(replayTimerInterval);
+    replayTimerInterval = null;
+    const row = document.getElementById("replayTimerRow");
+    if (row) row.classList.remove("shown");
+  }
+  function startReplayRound() {
+    if (!lastConversationArgs) return;
+    firstRoundStats = currentRoundStats();
+    trackEvent("replay_started", { scenario: lastConversationArgs.lesson.id, language: selectedLanguage });
+    const a = lastConversationArgs;
+    startConversation(a.lesson, a.objectives, a.keyPhrases, "", "", { replay: true });
+  }
+  // Guests are left out on purpose: their few free conversations are better
+  // spent reaching the "save your progress" moment than on a repeat.
+  function canOfferReplay() {
+    return !replayMode && !isGuest() && !!lastConversationArgs && turnGaps.length >= 2
+      && currentScenario && currentScenario.tier !== "Intro" && !currentScenario.milestone
+      && currentScenario.id !== FRIEND_SCENARIO_ID;
+  }
+  function makeReplayButton(ghost) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = ghost ? "recap-next recap-next--ghost" : "recap-next";
+    btn.textContent = "⚡ Run it again, faster";
+    btn.addEventListener("click", startReplayRound);
+    return btn;
+  }
+  function addReplayOfferCard() {
+    trackEvent("replay_offered", { scenario: currentScenario.id, language: selectedLanguage });
+    const s = currentRoundStats();
+    const card = document.createElement("div");
+    card.className = "replay-card";
+    const h = document.createElement("h4");
+    h.textContent = "⚡ Run it again, faster?";
+    const p = document.createElement("p");
+    p.textContent = `You took about ${formatSecs(s.avgGap)} per reply. Doing the same conversation again, quicker and with fewer hints, is one of the fastest ways to get fluent.`;
+    card.appendChild(h);
+    card.appendChild(p);
+    card.appendChild(makeReplayButton(false));
+    chatLogEl.appendChild(card);
+    scrollToBottom();
+  }
+  function addReplayResultsCard() {
+    stopReplayTimer();
+    const before = firstRoundStats || { avgGap: 0, avgWords: 0 };
+    const after = currentRoundStats();
+    const fasterPct = before.avgGap > 0 ? Math.round((1 - after.avgGap / before.avgGap) * 100) : 0;
+    trackEvent("replay_completed", {
+      scenario: currentScenario.id, language: selectedLanguage,
+      before_sec: Math.round(before.avgGap * 10) / 10, after_sec: Math.round(after.avgGap * 10) / 10, faster_pct: fasterPct
+    });
+    const card = document.createElement("div");
+    card.className = "replay-card";
+    const h = document.createElement("h4");
+    h.textContent = fasterPct > 0 ? `🚀 ${fasterPct}% faster!` : "💪 Round two done!";
+    const p = document.createElement("p");
+    p.textContent = fasterPct > 0
+      ? "Same conversation, less thinking time. That's what fluency feels like."
+      : "Speed comes with repetition. Try it once more, or come back to it tomorrow.";
+    card.appendChild(h);
+    card.appendChild(p);
+    const stats = document.createElement("div");
+    stats.className = "replay-stats";
+    const stat = (value, label, better) => {
+      const d = document.createElement("div");
+      d.className = "replay-stat" + (better ? " better" : "");
+      const b = document.createElement("b"); b.textContent = value;
+      const sp = document.createElement("span"); sp.textContent = label;
+      d.appendChild(b); d.appendChild(sp);
+      return d;
+    };
+    stats.appendChild(stat(formatSecs(before.avgGap), "First try, per reply", false));
+    stats.appendChild(stat(formatSecs(after.avgGap), "Now, per reply", after.avgGap < before.avgGap));
+    stats.appendChild(stat(`${Math.round(after.avgWords * 10) / 10}`, "Words per reply", after.avgWords > before.avgWords));
+    card.appendChild(stats);
+    // Another repeat compares against the round just finished
+    // (startReplayRound snapshots the current round's stats).
+    const again = makeReplayButton(false);
+    again.textContent = "⚡ One more time";
+    card.appendChild(again);
+    const next = currentScenario.id !== CUSTOM_SCENARIO_ID ? findNextLesson(selectedLanguage) : null;
+    if (next) {
+      const go = document.createElement("button");
+      go.type = "button";
+      go.className = "recap-next recap-next--ghost";
+      go.textContent = `Next lesson: ${next.icon} ${next.title} →`;
+      go.addEventListener("click", () => { chatScreen.classList.remove("active"); openIntro(next); });
+      card.appendChild(go);
+    }
+    const home = document.createElement("button");
+    home.type = "button";
+    home.className = "recap-next recap-next--ghost";
+    home.textContent = "Back to home";
+    home.addEventListener("click", goHome);
+    card.appendChild(home);
+    chatLogEl.appendChild(card);
+    scrollToBottom();
   }
 
   // Skips the lesson-intro and practice-round screens entirely — a custom
@@ -5650,7 +6131,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     return div;
   }
 
-  function addAiTurn(reply, replyTranslation, tip, replyRomanization) {
+  function addAiTurn(reply, replyTranslation, tip, replyRomanization, feedback) {
+    feedback = feedback || {};
     const div = document.createElement("div");
     div.className = "turn ai";
     const bubbleRow = document.createElement("div");
@@ -5691,7 +6173,43 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     div.appendChild(translation);
     chatLogEl.appendChild(div);
 
-    if (tip && tip.trim()) {
+    if (tip && tip.trim() && feedback.type === "nudge") {
+      // Self-correction: a hint, not the answer. The learner retries; the
+      // corrected sentence is one tap away if they're truly stuck.
+      const tipDiv = document.createElement("div");
+      tipDiv.className = "tip-card tip-card--nudge";
+      tipDiv.innerHTML = `<span class="tip-icon">🤔</span><span class="tip-body"><span class="tip-nudge-label">Try again</span><span class="tip-text"></span></span>`;
+      tipDiv.querySelector(".tip-text").textContent = tip;
+      const answer = (feedback.answer || "").trim();
+      if (answer) {
+        const body = tipDiv.querySelector(".tip-body");
+        const revealBtn = document.createElement("button");
+        revealBtn.type = "button";
+        revealBtn.className = "tip-reveal-btn";
+        revealBtn.textContent = "Show me the answer";
+        revealBtn.addEventListener("click", () => {
+          const ans = document.createElement("div");
+          ans.className = "tip-answer";
+          ans.textContent = answer;
+          revealBtn.replaceWith(ans);
+          trackEvent("nudge_answer_revealed", { scenario: currentScenario && currentScenario.id, language: selectedLanguage });
+          // Seen the answer = worth reviewing later.
+          addTip(selectedLanguage, currentScenario.title, `${tip} → ${answer}`);
+          syncToCloud();
+          scrollToBottom();
+        });
+        body.appendChild(revealBtn);
+      }
+      chatLogEl.appendChild(tipDiv);
+      trackEvent("nudge_shown", { scenario: currentScenario && currentScenario.id, language: selectedLanguage });
+    } else if (tip && tip.trim() && feedback.type === "fixed") {
+      const tipDiv = document.createElement("div");
+      tipDiv.className = "tip-card tip-card--fixed";
+      tipDiv.innerHTML = `<span class="tip-icon">✅</span><span></span>`;
+      tipDiv.querySelector("span:last-child").textContent = tip;
+      chatLogEl.appendChild(tipDiv);
+      trackEvent("self_correction_fixed", { scenario: currentScenario && currentScenario.id, language: selectedLanguage });
+    } else if (tip && tip.trim()) {
       const tipDiv = document.createElement("div");
       tipDiv.className = "tip-card";
       tipDiv.innerHTML = `<span class="tip-icon">💡</span><span></span>`;
@@ -5744,7 +6262,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     div.className = "completion-banner";
     // A learner-typed topic isn't part of the lesson path, so nothing
     // gets unlocked by finishing one.
-    const isCustom = currentScenario && currentScenario.id === CUSTOM_SCENARIO_ID;
+    const isCustom = currentScenario && (currentScenario.id === CUSTOM_SCENARIO_ID || currentScenario.id === FRIEND_SCENARIO_ID);
     const isMilestone = currentScenario && currentScenario.milestone;
     const base = isMilestone
       ? `🏆 You just had your first real conversation in ${selectedLanguage}!`
@@ -5833,7 +6351,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   }
   function addRecapQuiz() {
     const questions = buildRecapQuestions(currentKeyPhrases, getVocabHistory(selectedLanguage));
-    if (!questions.length) return;
+    if (!questions.length) return false;
     const lang = selectedLanguage;
     const lessonId = currentScenario && currentScenario.id;
     const card = document.createElement("div");
@@ -5912,11 +6430,16 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         ? "Perfect! Chatto's impressed."
         : "Good effort! These phrases will come back in your review deck.";
       card.appendChild(box);
+      const offerReplay = canOfferReplay();
+      if (offerReplay) {
+        trackEvent("replay_offered", { scenario: lessonId, language: lang });
+        card.appendChild(makeReplayButton(false));
+      }
       const next = findNextLesson(lang);
       if (next) {
         const go = document.createElement("button");
         go.type = "button";
-        go.className = "recap-next";
+        go.className = offerReplay ? "recap-next recap-next--ghost" : "recap-next";
         go.textContent = `Next lesson: ${next.icon} ${next.title} →`;
         go.addEventListener("click", () => { chatScreen.classList.remove("active"); openIntro(next); });
         card.appendChild(go);
@@ -5931,6 +6454,55 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     }
 
     renderQuestion();
+    return true;
+  }
+
+  // End of a friend chat: what they'll talk about next time.
+  function addFriendByeCard() {
+    const st = friendStateFor(selectedLanguage);
+    const f = FRIENDS[selectedLanguage];
+    if (!f) return;
+    const div = document.createElement("div");
+    div.className = "friend-bye";
+    div.textContent = st.hook ? `👋 See you tomorrow! ${st.hook}` : `👋 ${f.name} will remember this chat. Come back tomorrow!`;
+    chatLogEl.appendChild(div);
+    scrollToBottom();
+  }
+
+  // The reminder ask, inline right after a finished conversation — the
+  // moment a "nudge tomorrow?" sounds most useful. Same preference as the
+  // home-screen prompt; asked only once either way.
+  function maybeAddChatReminderAsk() {
+    if (!accountsEnabled || !currentUser || loadReminderPrefs().decided) return;
+    const card = document.createElement("div");
+    card.className = "reminder-prompt chat-reminder-card";
+    card.innerHTML = `<span style="font-size:22px">📬</span>
+      <span class="reminder-prompt-text"><b>Want a 2-minute nudge tomorrow?</b>One short email in the evening, only on days you haven't practiced yet.</span>
+      <span class="reminder-prompt-actions">
+        <button type="button" class="reminder-yes">Yes, remind me</button>
+        <button type="button" class="reminder-no">No thanks</button>
+      </span>`;
+    const done = msg => {
+      card.innerHTML = "";
+      const d = document.createElement("span");
+      d.className = "chat-reminder-done";
+      d.textContent = msg;
+      card.appendChild(d);
+    };
+    card.querySelector(".reminder-yes").addEventListener("click", () => {
+      setRemindersEnabled(true);
+      trackEvent("reminders_on_from_chat");
+      done("✓ Done. See you tomorrow evening!");
+    });
+    card.querySelector(".reminder-no").addEventListener("click", () => {
+      saveReminderPrefs({ ...loadReminderPrefs(), enabled: false, decided: true, updatedAt: new Date().toISOString() });
+      trackEvent("reminders_declined", { source: "chat" });
+      syncToCloud();
+      renderReminderPrompt();
+      done("No problem. You can turn reminders on any time from the menu.");
+    });
+    chatLogEl.appendChild(card);
+    scrollToBottom();
   }
 
   // Shown to guests right after they finish a conversation — the moment
@@ -5996,8 +6568,12 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     hideError();
 
     let userBubble = null;
+    const sentAt = Date.now();
     if (!opts.silent) {
       userBubble = addUserBubble(text);
+      // Freeze the replay clock on the time they took; it restarts when
+      // the AI's next reply lands.
+      if (replayTimerInterval) { clearInterval(replayTimerInterval); replayTimerInterval = null; }
     }
     showTyping();
 
@@ -6005,6 +6581,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     // back out and put the text back in the box so they can just resend.
     const restoreUnsentText = () => {
       if (opts.silent) return;
+      if (!roundEndHandled) startReplayTimer();
       if (userBubble && userBubble.parentNode) userBubble.remove();
       if (!messageInput.value) messageInput.value = text;
     };
@@ -6034,6 +6611,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           objectives: currentObjectives,
           keyPhrases: currentKeyPhrases,
           vocabHistory: getVocabHistory(selectedLanguage),
+          // Self-correction: this message is the retry after a "nudge".
+          retrying: !opts.silent && lastFeedbackType === "nudge",
+          replayRound: replayMode,
+          friendMemory: currentScenario.id === FRIEND_SCENARIO_ID ? friendStateFor(selectedLanguage).notes : undefined,
+          friendHook: currentScenario.id === FRIEND_SCENARIO_ID ? friendStateFor(selectedLanguage).hook : undefined,
           customTopic: currentScenario.id === CUSTOM_SCENARIO_ID ? currentScenario.customTopic : undefined
         })
       });
@@ -6068,6 +6650,16 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         renderObjectivesCard();
       }
 
+      // The friend remembers: save the AI's updated notes and next-time
+      // teaser every turn, so leaving mid-chat loses nothing.
+      if (currentScenario.id === FRIEND_SCENARIO_ID) {
+        const patch = { lastChat: todayDateStr() };
+        if (Array.isArray(data.memoryNotes)) patch.notes = data.memoryNotes.filter(n => typeof n === "string").slice(0, 12);
+        if (typeof data.tomorrowHook === "string" && data.tomorrowHook.trim()) patch.hook = data.tomorrowHook.trim().slice(0, 160);
+        if (opts.silent && text === "__START__") patch.chats = friendStateFor(selectedLanguage).chats + 1;
+        updateFriendState(selectedLanguage, patch);
+      }
+
       let justCompleted = false;
       let streakIncreased = false;
       let streakAfter = 0;
@@ -6076,13 +6668,20 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         history.push({ role: "user", content: text });
         trackEvent("message_sent", { scenario: currentScenario.id, language: selectedLanguage });
         userMessageCount++;
+        if (lastAiTurnAt) {
+          turnGaps.push(Math.min((sentAt - lastAiTurnAt) / 1000, REPLAY_GAP_CAP_SEC));
+          turnWords.push(wordCount(text));
+        }
         // A lesson finishes either by hitting all of its objectives, or by
         // the message-count fallback — whichever happens first. The fallback
         // keeps things moving if the learner takes the conversation somewhere
         // the objectives don't quite anticipate.
         const allObjectivesDone = currentObjectives.length > 0 && completedObjectiveIndices.length >= currentObjectives.length;
-        const readyToComplete = allObjectivesDone || userMessageCount >= LESSON_COMPLETE_AFTER;
-        const isCustom = currentScenario.id === CUSTOM_SCENARIO_ID;
+        const nudgePending = data.feedbackType === "nudge";
+        const readyToComplete = !nudgePending && (allObjectivesDone || userMessageCount >= LESSON_COMPLETE_AFTER);
+        // The friend chat isn't a lesson either — it completes like a
+        // custom topic (streak + banner, nothing to unlock).
+        const isCustom = currentScenario.id === CUSTOM_SCENARIO_ID || currentScenario.id === FRIEND_SCENARIO_ID;
         // Every custom conversation shares the literal id "custom" (there's
         // no fixed lesson to unlock), so it can't use the normal completed-
         // lessons list as its "already done" guard the way a real lesson
@@ -6123,11 +6722,28 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         }
       }
       history.push({ role: "assistant", content: data.reply });
-      addAiTurn(data.reply, data.replyTranslation, data.tip, data.replyRomanization);
+      lastFeedbackType = data.feedbackType || "none";
+      addAiTurn(data.reply, data.replyTranslation, data.tip, data.replyRomanization, { type: lastFeedbackType, answer: data.nudgeAnswer });
+      lastAiTurnAt = Date.now();
       if (justCompleted) addCompletionBanner(streakIncreased, streakAfter);
-      if (justCompleted && !currentScenario.customTopic) addRecapQuiz();
+      const recapShown = justCompleted && !currentScenario.customTopic ? addRecapQuiz() : false;
+      if (justCompleted && currentScenario.id === FRIEND_SCENARIO_ID) addFriendByeCard();
       if (justCompleted) addShareRow();
       if (justCompleted && isGuest()) addGuestSaveCard();
+      if (justCompleted && !isGuest()) maybeAddChatReminderAsk();
+      // End of a round: a replay shows its before/after; a first round
+      // offers "Run it again, faster" (inside the recap's score screen when
+      // there is one, otherwise as its own card). Also fires for lessons
+      // the learner had already completed before, which skip the banner.
+      if (!opts.silent && !roundEndHandled && lastFeedbackType !== "nudge") {
+        const allDone = currentObjectives.length > 0 && completedObjectiveIndices.length >= currentObjectives.length;
+        if (allDone || userMessageCount >= LESSON_COMPLETE_AFTER) {
+          roundEndHandled = true;
+          if (replayMode) addReplayResultsCard();
+          else if (!recapShown && canOfferReplay()) addReplayOfferCard();
+        }
+      }
+      if (!roundEndHandled) startReplayTimer();
       // Tier-completion badges get the bigger celebration overlay; everything
       // else gets the small inline pill. At most one tier badge can realistically
       // be earned per lesson completion, so showing one modal is enough.
@@ -6345,6 +6961,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       PATH = data.scenarios;
       LANGUAGES = data.languages;
       NATIVE_LANGUAGES = Array.isArray(data.nativeLanguages) && data.nativeLanguages.length ? data.nativeLanguages : ["English", ...LANGUAGES];
+      FRIENDS = (data.friends && typeof data.friends === "object") ? data.friends : {};
       const savedLanguage = loadOnboarding().language;
       selectedLanguage = LANGUAGES.includes(savedLanguage) ? savedLanguage : LANGUAGES[0];
       selectedTier = pickDefaultTier(selectedLanguage);

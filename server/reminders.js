@@ -30,7 +30,7 @@
 //                    GitHub repo's Actions secrets (see the workflow file)
 //   FIREBASE_SERVICE_ACCOUNT_JSON  (already set up for billing)
 // Optional:
-//   APP_URL                 defaults to https://echoly-enjr.onrender.com
+//   APP_URL                 defaults to https://getecholy.com
 //   REMINDER_HOUR           local hour to start sending, default 18 (6pm)
 //   EMAIL_MAILING_ADDRESS   your postal mailing address, shown in the
 //                           email footer (Canada's anti-spam law, CASL,
@@ -51,7 +51,7 @@ const GOAL_TOPICS = {
 };
 
 function appUrl() {
-    return (process.env.APP_URL || "https://echoly-enjr.onrender.com").replace(/\/+$/, "");
+    return (process.env.APP_URL || "https://getecholy.com").replace(/\/+$/, "");
 }
 
 function escapeHtml(s) {
@@ -126,6 +126,44 @@ function decideReminder(userDoc, logDoc, now, reminderHour) {
     return { send: true, reason: "ok", today, tz, inactiveDays, streakAlive, currentStreak: streak.currentStreak || 0 };
 }
 
+// Sunday-evening weekly recap: replaces that day's daily reminder for
+// opted-in learners who practiced at least once in the last two weeks
+// (someone long gone keeps getting the slower lapsed schedule instead).
+// Counts come from the app's per-day conversation counts (convoCounts,
+// "YYYY-MM-DD" → conversations started that day, synced with progress).
+function weekdayIn(now, tz) {
+    return new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short" }).format(now);
+}
+function shiftDate(dateStr, days) {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const t = new Date(Date.UTC(y, m - 1, d + days));
+    return t.toISOString().slice(0, 10);
+}
+function decideWeekly(userDoc, logDoc, now, reminderHour) {
+    const reminders = userDoc && userDoc.reminders;
+    if (!reminders || reminders.enabled !== true) return { send: false, reason: "not opted in" };
+    const unsubscribedAt = logDoc && logDoc.unsubscribedAt ? Date.parse(logDoc.unsubscribedAt) : 0;
+    const optedInAt = reminders.updatedAt ? Date.parse(reminders.updatedAt) : 0;
+    if (unsubscribedAt && unsubscribedAt >= optedInAt) return { send: false, reason: "unsubscribed" };
+    const tz = isValidTimeZone(reminders.tz) ? reminders.tz : DEFAULT_TZ;
+    if (weekdayIn(now, tz) !== "Sun") return { send: false, reason: "not Sunday" };
+    const { date: today, hour } = localDateAndHour(now, tz);
+    if (hour < reminderHour || hour >= reminderHour + 3) return { send: false, reason: `outside send window (local hour ${hour})` };
+    if (logDoc && logDoc.lastWeeklyDate === today) return { send: false, reason: "weekly already sent" };
+    const counts = (userDoc.convoCounts && typeof userDoc.convoCounts === "object") ? userDoc.convoCounts : {};
+    const weekStart = shiftDate(today, -6);      // last 7 days, including today
+    const prevStart = shiftDate(today, -13);     // the 7 days before that
+    let thisWeek = 0, lastWeek = 0;
+    Object.keys(counts).forEach(d => {
+        const n = Number(counts[d]) || 0;
+        if (d >= weekStart && d <= today) thisWeek += n;
+        else if (d >= prevStart && d < weekStart) lastWeek += n;
+    });
+    if (thisWeek + lastWeek === 0) return { send: false, reason: "no practice in two weeks" };
+    const streak = userDoc.streak || {};
+    return { send: true, weekly: true, today, tz, thisWeek, lastWeek, currentStreak: streak.currentStreak || 0 };
+}
+
 // Picks the learner's language, their next lesson in it, and a few
 // goal-based situations to suggest.
 function buildPlan(userDoc, SCENARIOS) {
@@ -139,12 +177,23 @@ function buildPlan(userDoc, SCENARIOS) {
     const nextId = Object.keys(SCENARIOS).find(id => !completed.includes(id) && !(movedOn && SCENARIOS[id].tier === "Intro"));
     const next = nextId ? { id: nextId, ...SCENARIOS[nextId] } : null;
     const topics = GOAL_TOPICS[onboarding.goal] || GOAL_TOPICS.fun;
-    return { language, next, topics, completedCount: completed.length };
+    // Real-life things they can now do (finished lessons beyond the basics),
+    // most recent last — the weekly email shows a few.
+    const canDo = Object.keys(SCENARIOS)
+        .filter(id => completed.includes(id) && SCENARIOS[id].tier !== "Intro" && !SCENARIOS[id].milestone)
+        .map(id => SCENARIOS[id].title);
+    // The recurring friend's "next time" teaser, if they've chatted (see
+    // FRIENDS in server.js) — the most personal reason to come back.
+    const friendData = userDoc && userDoc.friend && userDoc.friend[language];
+    const friendHook = friendData && typeof friendData.hook === "string" ? friendData.hook.slice(0, 160) : "";
+    return { language, next, topics, completedCount: completed.length, canDo, friendHook };
 }
 
 function buildEmail({ plan, decision, uid }) {
     const { language, next, topics } = plan;
-    const link = `${appUrl()}/app.html?utm_source=reminder&utm_medium=email`;
+    const useFriend = !decision.streakAlive && decision.inactiveDays <= 3 && !!plan.friendHook;
+    // A friend-hook email opens straight into that friend chat.
+    const link = `${appUrl()}/app.html?utm_source=reminder&utm_medium=email${useFriend ? `&friend=1&lang=${encodeURIComponent(language)}` : ""}`;
     const unsub = unsubscribeUrl(uid);
 
     let subject;
@@ -152,6 +201,9 @@ function buildEmail({ plan, decision, uid }) {
     if (decision.streakAlive) {
         subject = `🔥 Keep your ${decision.currentStreak}-day streak alive`;
         headline = `Your ${decision.currentStreak}-day streak ends at midnight.`;
+    } else if (useFriend) {
+        subject = plan.friendHook;
+        headline = `${plan.friendHook} Got two minutes to catch up in ${language}?`;
     } else if (decision.inactiveDays <= 3) {
         subject = next ? `Today's ${language} conversation: ${next.title}` : `Your ${language} conversation for today`;
         headline = `Got two minutes? Your next ${language} conversation is ready.`;
@@ -204,6 +256,65 @@ function buildEmail({ plan, decision, uid }) {
     return { subject, html, text, unsub };
 }
 
+function buildWeeklyEmail({ plan, decision, uid }) {
+    const { language, next, canDo } = plan;
+    const link = `${appUrl()}/app.html?utm_source=weekly&utm_medium=email`;
+    const unsub = unsubscribeUrl(uid);
+    const n = decision.thisWeek;
+    const convos = c => `${c} conversation${c === 1 ? "" : "s"}`;
+    const subject = n > 0 ? `Your week in ${language}: ${convos(n)} 🎉` : `Your ${language} week — let's get one in`;
+    let compare;
+    if (n > 0 && decision.lastWeek > 0 && n > decision.lastWeek) compare = `That's ${n - decision.lastWeek} more than last week. You're picking up speed.`;
+    else if (n > 0 && decision.lastWeek > 0 && n === decision.lastWeek) compare = `Same as last week. Nice and steady.`;
+    else if (n > 0 && decision.lastWeek === 0) compare = `Up from zero last week. Great restart.`;
+    else if (n > 0) compare = `Every conversation counts. Can you beat it this week?`;
+    else compare = `You had ${convos(decision.lastWeek)} the week before. One short chat today gets you back on track.`;
+    const headline = n > 0 ? `You had ${convos(n)} in ${language} this week.` : `No ${language} conversations this week, yet.`;
+    const recent = (canDo || []).slice(-5).reverse();
+    const canDoHtml = recent.length
+        ? `<tr><td style="padding:18px 0 6px;font-size:14px;font-weight:700;">Things you can now do in ${escapeHtml(language)}:</td></tr>
+           <tr><td style="font-size:14px;line-height:1.8;">${recent.map(t => `✅ ${escapeHtml(t)}`).join("<br>")}${canDo.length > recent.length ? `<br><span style="color:#6b5f6e;">…and ${canDo.length - recent.length} more</span>` : ""}</td></tr>`
+        : "";
+    const streakHtml = decision.currentStreak > 1
+        ? `<tr><td style="padding-top:10px;font-size:14px;">🔥 ${decision.currentStreak}-day streak</td></tr>` : "";
+    const nextHtml = next
+        ? `<tr><td style="padding:18px 0 4px;"><table role="presentation" width="100%"><tr><td style="padding:16px 18px;background:#322234;border-radius:14px;color:#f7f1ec;">
+             <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#f0836f;font-weight:700;margin-bottom:6px;">Next up</div>
+             <div style="font-size:18px;font-weight:800;">${escapeHtml(next.icon)} ${escapeHtml(next.title)}</div>
+           </td></tr></table></td></tr>` : "";
+    const mailing = process.env.EMAIL_MAILING_ADDRESS ? `<br>${escapeHtml(process.env.EMAIL_MAILING_ADDRESS)}` : "";
+    const html = `<!doctype html><html><body style="margin:0;background:#fbf7f2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Arial,sans-serif;color:#221825;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fbf7f2;padding:28px 12px;"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+  <tr><td style="padding-bottom:14px;"><img src="${appUrl()}/mascot/mascot-wave-email.png" width="84" alt="Chatto from Echoly" style="display:block;width:84px;height:auto;border:0;"></td></tr>
+  <tr><td style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#e85d4c;font-weight:700;padding-bottom:6px;">Your week in ${escapeHtml(language)}</td></tr>
+  <tr><td style="font-size:22px;font-weight:800;line-height:1.25;padding-bottom:6px;">${escapeHtml(headline)}</td></tr>
+  <tr><td style="font-size:15px;color:#6b5f6e;">${escapeHtml(compare)}</td></tr>
+  ${streakHtml}
+  ${canDoHtml}
+  ${nextHtml}
+  <tr><td style="padding:22px 0 8px;">
+    <a href="${link}" style="display:inline-block;background:#e85d4c;color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 22px;border-radius:11px;">Start this week's first conversation →</a>
+  </td></tr>
+  <tr><td style="padding-top:28px;font-size:12px;color:#8a7f8c;line-height:1.5;border-top:1px solid #eae1e6;">
+    You're getting this because you turned on practice reminders in Echoly.
+    <a href="${unsub}" style="color:#8a7f8c;">Unsubscribe</a> or switch them off any time in the app.<br>
+    Echoly · <a href="mailto:echolylanguage@yahoo.com" style="color:#8a7f8c;">echolylanguage@yahoo.com</a>${mailing}
+  </td></tr>
+</table></td></tr></table></body></html>`;
+    const text = [
+        headline, compare,
+        decision.currentStreak > 1 ? `🔥 ${decision.currentStreak}-day streak` : "",
+        recent.length ? `\nThings you can now do in ${language}:\n${recent.map(t => `- ${t}`).join("\n")}` : "",
+        next ? `\nNext up: ${next.title}` : "",
+        `\nStart this week's first conversation: ${link}`,
+        `\n—\nYou're getting this because you turned on practice reminders in Echoly.`,
+        `Unsubscribe: ${unsub}`,
+        `Echoly · echolylanguage@yahoo.com${process.env.EMAIL_MAILING_ADDRESS ? `\n${process.env.EMAIL_MAILING_ADDRESS}` : ""}`
+    ].filter(Boolean).join("\n");
+    return { subject, html, text, unsub };
+}
+
 async function sendViaResend({ to, subject, html, text, unsub }) {
     const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -251,6 +362,14 @@ module.exports = function registerReminders({ app, getDb, getAuth, SCENARIOS }) 
 
     let running = false;
 
+    // GET /status — safe to open in a browser: says whether reminder and
+    // weekly emails can actually go out (names of missing settings only,
+    // never their values).
+    app.get("/status", (req, res) => {
+        const missing = missingConfig();
+        res.json({ status: "online", reminderEmails: missing.length ? "off" : "on", missing });
+    });
+
     // POST /cron/send-reminders  (Authorization: Bearer <CRON_SECRET>)
     // ?dryRun=1 reports what would be sent without sending anything.
     app.post("/cron/send-reminders", async (req, res) => {
@@ -275,7 +394,8 @@ module.exports = function registerReminders({ app, getDb, getAuth, SCENARIOS }) 
                 const logSnap = await logRef.get();
                 const logDoc = logSnap.exists ? logSnap.data() : null;
 
-                const decision = decideReminder(userDoc, logDoc, now, reminderHour);
+                const weekly = decideWeekly(userDoc, logDoc, now, reminderHour);
+                const decision = weekly.send ? weekly : decideReminder(userDoc, logDoc, now, reminderHour);
                 if (!decision.send) {
                     summary.skipped++;
                     if (dryRun) summary.details.push({ uid, send: false, reason: decision.reason });
@@ -291,14 +411,16 @@ module.exports = function registerReminders({ app, getDb, getAuth, SCENARIOS }) 
                 }
 
                 const plan = buildPlan(userDoc, SCENARIOS);
-                const message = buildEmail({ plan, decision, uid });
+                const message = decision.weekly ? buildWeeklyEmail({ plan, decision, uid }) : buildEmail({ plan, decision, uid });
                 if (dryRun) {
-                    summary.details.push({ uid, send: true, subject: message.subject, inactiveDays: decision.inactiveDays, language: plan.language });
+                    summary.details.push({ uid, send: true, weekly: !!decision.weekly, subject: message.subject, inactiveDays: decision.inactiveDays, language: plan.language });
                     continue;
                 }
                 try {
                     await sendViaResend({ to: email, ...message });
-                    await logRef.set({ lastSentDate: decision.today, lastSentAt: now.toISOString() }, { merge: true });
+                    const logUpdate = { lastSentDate: decision.today, lastSentAt: now.toISOString() };
+                    if (decision.weekly) logUpdate.lastWeeklyDate = decision.today;
+                    await logRef.set(logUpdate, { merge: true });
                     summary.sent++;
                 } catch (e) {
                     summary.failed++;
@@ -370,3 +492,5 @@ ${extraHtml || ""}
 module.exports.decideReminder = decideReminder;
 module.exports.buildPlan = buildPlan;
 module.exports.buildEmail = buildEmail;
+module.exports.decideWeekly = decideWeekly;
+module.exports.buildWeeklyEmail = buildWeeklyEmail;

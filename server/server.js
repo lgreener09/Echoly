@@ -414,6 +414,24 @@ const practiceLimiter = rateLimit({
 // development (not index.html directly).
 // The static root is the whole project folder, which includes this
 // server/ folder — don't serve the server's own source files to the web.
+// One address for everyone: once CANONICAL_HOST is set on Render (e.g.
+// "getecholy.com"), page visits to the old echoly-enjr.onrender.com address
+// or to www. are permanently redirected there, so links, bookmarks and
+// Google all end up on the real domain. Only GET/HEAD page loads are
+// redirected — POSTs from Stripe webhooks, the GitHub reminder job and the
+// app's own API calls keep working on whichever address they use. Leave
+// CANONICAL_HOST unset until the domain is connected and working.
+app.use((req, res, next) => {
+    const canonical = (process.env.CANONICAL_HOST || "").trim().toLowerCase();
+    if (!canonical || (req.method !== "GET" && req.method !== "HEAD")) return next();
+    const host = (req.get("host") || "").toLowerCase().split(":")[0];
+    if (host === canonical) return next();
+    if (host.endsWith(".onrender.com") || host === `www.${canonical}`) {
+        return res.redirect(301, `https://${canonical}${req.originalUrl}`);
+    }
+    next();
+});
+
 app.use("/server", (req, res) => res.status(404).end());
 app.use(express.static(path.join(__dirname, "..")));
 
@@ -1326,6 +1344,97 @@ function buildCustomScenario(topic) {
     };
 }
 
+// ==============================
+// "Your friend in <language>" — a recurring character who remembers you
+// ==============================
+// The same character every time, per language, who remembers what the
+// learner told them (memory notes kept on the learner's device and synced
+// with the rest of their progress) and ends each chat with something to
+// follow up on next time ("tomorrowHook") — shown on the home screen and in
+// reminder emails, to give a reason to come back tomorrow.
+const FRIEND_SCENARIO_ID = "friend";
+const FRIEND_MEMORY_MAX = 12;
+const FRIEND_NOTE_MAX_LEN = 160;
+const FRIENDS = {
+    "Spanish": { name: "Lucía", icon: "☕", place: "Madrid", role: "runs a little café in Madrid" },
+    "French": { name: "Camille", icon: "📚", place: "Lyon", role: "owns a small bookshop in Lyon" },
+    "Italian": { name: "Marco", icon: "🍝", place: "Bologna", role: "cooks at his family's trattoria in Bologna" },
+    "German": { name: "Jonas", icon: "🚲", place: "Berlin", role: "fixes bikes in a little shop in Berlin" },
+    "Portuguese": { name: "Beatriz", icon: "🎶", place: "Lisbon", role: "plays guitar in a band in Lisbon" },
+    "Japanese": { name: "Yuki", icon: "🍵", place: "Osaka", role: "works at a tea shop in Osaka" },
+    "Mandarin Chinese": { name: "Li Wei", icon: "🥟", place: "Chengdu", role: "runs a dumpling stall in Chengdu" },
+    "Korean": { name: "Minji", icon: "🎧", place: "Seoul", role: "is a graphic designer in Seoul" },
+    "Arabic": { name: "Layla", icon: "🌿", place: "Amman", role: "is a nurse in Amman who loves gardening" },
+    "Russian": { name: "Dmitri", icon: "♟️", place: "Saint Petersburg", role: "teaches chess in Saint Petersburg" },
+    "Hindi": { name: "Priya", icon: "🎨", place: "Jaipur", role: "paints and sells art in Jaipur" },
+    "Dutch": { name: "Sanne", icon: "🌷", place: "Utrecht", role: "works at a flower market in Utrecht" },
+    "Greek": { name: "Nikos", icon: "⛵", place: "Thessaloniki", role: "runs boat tours from Thessaloniki" },
+    "Turkish": { name: "Elif", icon: "🫖", place: "Izmir", role: "runs a tea garden in Izmir" },
+    "Polish": { name: "Kasia", icon: "🥐", place: "Kraków", role: "bakes at a bakery in Kraków" },
+    "Swedish": { name: "Erik", icon: "🌲", place: "Gothenburg", role: "is a forest guide near Gothenburg" },
+    "Vietnamese": { name: "Linh", icon: "🛵", place: "Hanoi", role: "runs a food tour in Hanoi" },
+    "Thai": { name: "Ploy", icon: "🌶️", place: "Chiang Mai", role: "teaches cooking classes in Chiang Mai" },
+    "Indonesian": { name: "Dewi", icon: "🏄", place: "Bali", role: "teaches surfing in Bali" },
+    "Hebrew": { name: "Noa", icon: "🎬", place: "Tel Aviv", role: "edits films in Tel Aviv" },
+    "Ukrainian": { name: "Oksana", icon: "🌻", place: "Lviv", role: "runs a coffee roastery in Lviv" },
+    "Romanian": { name: "Andrei", icon: "🏔️", place: "Brașov", role: "leads mountain hikes near Brașov" },
+    "Czech": { name: "Tomáš", icon: "🎻", place: "Prague", role: "plays violin in Prague" },
+    "Hungarian": { name: "Réka", icon: "♨️", place: "Budapest", role: "works at a thermal bath in Budapest" },
+    "Finnish": { name: "Aino", icon: "🧖", place: "Tampere", role: "is a librarian in Tampere who loves saunas" },
+    "Norwegian": { name: "Lars", icon: "🎣", place: "Bergen", role: "is a fisherman in Bergen" },
+    "Danish": { name: "Freja", icon: "🧶", place: "Aarhus", role: "designs knitwear in Aarhus" },
+    "Filipino": { name: "Paolo", icon: "🏀", place: "Cebu", role: "coaches basketball in Cebu" },
+    "Swahili": { name: "Amani", icon: "🦒", place: "Arusha", role: "is a safari guide in Arusha" },
+    "Persian": { name: "Darya", icon: "📜", place: "Shiraz", role: "teaches poetry in Shiraz" },
+    "Urdu": { name: "Ayesha", icon: "🧵", place: "Lahore", role: "is a fashion designer in Lahore" },
+    "Bengali": { name: "Rahul", icon: "📷", place: "Kolkata", role: "is a street photographer in Kolkata" },
+    "Malay": { name: "Aisyah", icon: "🍜", place: "Penang", role: "runs a noodle stall in Penang" },
+    "Punjabi": { name: "Harpreet", icon: "🥁", place: "Amritsar", role: "drums in a bhangra group in Amritsar" }
+};
+function friendFor(language) {
+    return FRIENDS[language] || { name: "Sam", icon: "👋", place: "", role: "lives in a city where people speak this language" };
+}
+// What the app needs to show the friend on the home screen.
+function publicFriend(language) {
+    const f = friendFor(language);
+    return { name: f.name, icon: f.icon, place: f.place, role: f.role };
+}
+function cleanPromptLine(value, max) {
+    return String(value || "")
+        .replace(/[\r\n\t]+/g, " ")
+        .replace(/[\x00-\x1F\x7F]+/g, " ")
+        .trim()
+        .slice(0, max);
+}
+// Memory notes and the hook come from the client (they're the learner's
+// own data), so they're cleaned like any other untrusted prompt input.
+function buildFriendScenario(language, memory, hook) {
+    const f = friendFor(language);
+    const notes = (Array.isArray(memory) ? memory : [])
+        .map(n => cleanPromptLine(n, FRIEND_NOTE_MAX_LEN))
+        .filter(Boolean)
+        .slice(0, FRIEND_MEMORY_MAX);
+    const cleanHook = cleanPromptLine(hook, FRIEND_NOTE_MAX_LEN);
+    return {
+        tier: "Custom",
+        title: `Chat with ${f.name}`,
+        blurb: `A relaxed catch-up between two friends: you are ${f.name}, who ${f.role}, chatting with the learner about your lives.`,
+        icon: f.icon,
+        character: `${f.name}, a warm, curious friend of the learner who ${f.role}`,
+        opening: notes.length
+            ? `greet them like a friend you're happy to see again, and follow up on something you remember about them${cleanHook ? ` (you were planning to ask about this: "${cleanHook}")` : ""}`
+            : `introduce yourself warmly as ${f.name}, say one small thing about your life${f.place ? ` in ${f.place}` : ""}, and ask them about themselves`,
+        friend: { name: f.name, notes }
+    };
+}
+function friendPromptSection(scenario, nativeLanguage) {
+    const fr = scenario.friend;
+    const remembered = fr.notes.length
+        ? `What you remember from earlier chats with the learner (lines starting "Me:" are things you said about your own life — stay consistent with them):\n${fr.notes.map(n => `- ${n}`).join("\n")}`
+        : `This is the first time you and the learner are chatting.`;
+    return `\n\nYou are a recurring character: the learner comes back to chat with you on different days, like a real friend.\n${remembered}\n\n- Be a real friend, not an interviewer: react to what they say, share small, everyday things from your own life, and ask about theirs. Bring up things you remember when it's natural.\n- "memoryNotes": the complete, updated list (at most ${FRIEND_MEMORY_MAX} short notes, in ${nativeLanguage}) of lasting things worth remembering for next time — facts the learner has told you about themselves (name, where they live, work or studies, family, hobbies, upcoming plans and events) plus, prefixed with "Me:", anything you've said about your own life. Keep earlier notes unless the learner corrected them; when the list is full, drop the least useful. Only note what the learner actually said — never guess. Leave out anything sensitive (health, money, religion, politics, relationships' private details).\n- "tomorrowHook": one short, friendly sentence in ${nativeLanguage}, written in the third person, about what you'll want to ask or tell them next time, ideally following up on something they mentioned — e.g. "${fr.name} wants to hear how your job interview went." It's shown to the learner as a teaser to come back.`;
+}
+
 // Languages the model can roleplay in without any extra setup — this list
 // is just what's offered in the UI dropdown; adding another language later
 // is a one-line addition here, not new content to write (buildSystemPrompt
@@ -1388,7 +1497,37 @@ function romanizationNote(language) {
 // today's lesson. Together they're used below to keep every conversation,
 // at every tier, grounded in words the learner has actually seen rather
 // than whatever the model feels like reaching for.
-function buildSystemPrompt(language, scenario, objectives, keyPhrases, vocabHistory, nativeLanguage) {
+//
+// `feedbackMode` (optional, from the client each turn):
+//   retrying    — the previous AI turn was a "nudge" (see feedbackRules), so
+//                 this message is the learner's second try at fixing it.
+//   replayRound — this is a "Run it again, faster" repeat of a scenario the
+//                 learner just finished; keep momentum, never nudge.
+//
+// Why nudges at all: language-learning research consistently finds that
+// prompting a learner to fix their own mistake ("Almost — check the verb")
+// teaches more than simply showing them the corrected sentence, because they
+// have to retrieve the right form themselves. The answer is still one tap
+// away ("nudgeAnswer"), and the learner is never nudged twice in a row.
+function feedbackRules(language, nativeLanguage, { allowNudge, retrying, replayRound }) {
+    const shared = `\n- The learner's message will be exactly "__START__" only to signal the very start of the conversation — on that turn "feedbackType" is "none", "tip" is "" and "nudgeAnswer" is "".\n- If the learner writes in ${nativeLanguage} or seems stuck, stay in character in ${language} but simplify your reply, and use "tip" to gently suggest a phrase they could use ("feedbackType": "correction").\n- Never put coaching inside "reply" — that field is 100% in-character. "nudgeAnswer" is "" unless "feedbackType" is "nudge".`;
+
+    if (retrying) {
+        return `\n\nFeedback rules for this turn (set "feedbackType", "tip" and "nudgeAnswer" together):\n- Your previous turn nudged the learner to fix a mistake themselves, and this message is their second try. Now respond to what they said in character and move the conversation forward normally — no more asking them to repeat.\n- If they fixed the mistake (near enough counts): "feedbackType" is "fixed" and "tip" is a very short, specific bit of praise in ${nativeLanguage} naming what they got right (e.g. "Nice fix — "tengo" is exactly right!").\n- If it's still wrong: "feedbackType" is "correction" and "tip" kindly shows the correct way in at most 2 short sentences (e.g. "Close! It's "tengo hambre" — you'll nail it next time."). Never nudge twice in a row.\n- If their retry was fine but something else in it was off, you may mention that instead, as a "correction".${shared}`;
+    }
+
+    if (!allowNudge) {
+        const replayNote = replayRound
+            ? `\n- This is a REPLAY ROUND: the learner already finished this exact scenario once and is redoing it faster to build fluency. Keep your replies brisk and natural and keep the conversation moving. Only use "tip" for a real mistake, and keep it to ONE short sentence showing the right way — no hints to try again, momentum matters more here.`
+            : "";
+        return `\n\nFeedback rules (set "feedbackType", "tip" and "nudgeAnswer" together):${replayNote}\n- Look at the learner's last message (in ${language}). If anything was unnatural, grammatically off, or not how a native speaker would actually say it, put ONE short, specific, encouraging coaching note in "tip" (${nativeLanguage}, max 2 sentences) — show what they said and a more natural way to say it — and set "feedbackType" to "correction". If their message was already good, set "feedbackType" to "none" and leave "tip" as an empty string.\n- Never use "nudge" or "fixed" in this conversation. If a rule further below fills "tip" every turn, "feedbackType" is "correction" whenever "tip" isn't empty.${shared}`;
+    }
+
+    return `\n\nFeedback rules (set "feedbackType", "tip" and "nudgeAnswer" together). Look at the learner's last message (in ${language}) and sort any problem into one of two kinds:\n(a) A real MISTAKE — wrong word, wrong verb form or tense, wrong gender or agreement, word order that sounds wrong, or a missing word: something a native speaker would clearly notice as an error.\n(b) Only UNNATURAL — understandable and grammatically fine, just not how a native speaker would usually put it.\n\n- For a real MISTAKE: "feedbackType" is "nudge". Do NOT give the answer in "tip". Instead, in ${nativeLanguage} and at most 2 short sentences, point to where the problem is (quote the part to look at) and give a hint so they can fix it themselves, then invite them to try again — e.g. "Almost! Look at "yo tiene" — how does tener change when you're talking about yourself? Try again." Put the full corrected version of their whole message in "nudgeAnswer" (the learner only sees it if they tap to reveal it). Pick only the single most important mistake. In "reply", stay in character with a very short, natural reaction asking them to say it again, the way a real person who didn't quite catch it would (a natural "Sorry?" / "Pardon, what was that?" in ${language}) — do NOT answer their message or move the conversation forward on this turn.\n- For something only UNNATURAL: "feedbackType" is "correction". Reply normally in character, and in "tip" (${nativeLanguage}, max 2 sentences) show what they said and a more natural way to say it.\n- If their message was good: "feedbackType" is "none" and "tip" is "".${shared}`;
+}
+
+function buildSystemPrompt(language, scenario, objectives, keyPhrases, vocabHistory, nativeLanguage, feedbackMode) {
+    const mode = feedbackMode || {};
     const hasObjectives = Array.isArray(objectives) && objectives.length > 0;
     const objectivesSection = hasObjectives
         ? `\n\nThis conversation also has a short list of lesson objectives the learner is trying to accomplish:\n${objectives.map((o, i) => `${i}. ${o}`).join("\n")}\nAfter the learner's latest message, and considering the whole conversation so far (not just this one message), decide which of these objectives (by their 0-based index above) have now been reasonably satisfied — be a little generous about it, not a strict grader; near enough counts. Once an objective is satisfied, keep including its index in every later turn too, even if the conversation has moved on. Put the full, cumulative list of satisfied indices in "completedObjectives" (empty array if none yet).`
@@ -1441,9 +1580,14 @@ Rules for every turn:
 - Stay fully in character. Write "reply" ONLY in ${language} — short (1-3 sentences), natural, everyday phrasing a real native speaker would actually use in this situation, not textbook-formal language.
 - "replyTranslation" is a plain ${nativeLanguage} translation of exactly what you wrote in "reply", so the learner can check their understanding. Never put ${nativeLanguage} in "reply" itself.
 - "replyRomanization" is the romanization of exactly what you wrote in "reply", following the rule below — leave it as an empty string when that rule says to.${romanizationNote(language)}
-- Look at the learner's last message (in ${language}). If anything was unnatural, grammatically off, or not how a native speaker would actually say it, put ONE short, specific, encouraging coaching note in "tip" (${nativeLanguage}, max 2 sentences) — show what they said and a more natural way to say it. If their message was already good, or this is the very first turn, leave "tip" as an empty string. Never put coaching inside "reply" — that field is 100% in-character.
-- If the learner writes in ${nativeLanguage} or seems stuck, stay in character in ${language} but simplify your reply, and use "tip" to gently suggest a phrase they could use.
-- The learner's message will be exactly "__START__" only to signal the very start of the conversation — when you see that, ${scenario.opening}, as your character naturally would, and leave "tip" empty. Never mention "__START__" or break character to acknowledge it.${levelGuidance}${objectivesSection}`;
+- The learner's message will be exactly "__START__" only to signal the very start of the conversation — when you see that, ${scenario.opening}, as your character naturally would. Never mention "__START__" or break character to acknowledge it.${feedbackRules(language, nativeLanguage, {
+        // Absolute beginners (Intro tier, and the first-conversation
+        // milestone) get the answer handed to them every time — a "fix it
+        // yourself" hint only works once there's something to retrieve.
+        allowNudge: !isIntro && !isMilestone && !mode.replayRound && !mode.retrying,
+        retrying: !!mode.retrying && !isIntro && !isMilestone && !mode.replayRound,
+        replayRound: !!mode.replayRound
+    })}${levelGuidance}${objectivesSection}${scenario.friend ? friendPromptSection(scenario, nativeLanguage) : ""}`;
 }
 
 const CONVERSATION_JSON_SCHEMA = {
@@ -1457,10 +1601,33 @@ const CONVERSATION_JSON_SCHEMA = {
             replyTranslation: { type: "string" },
             replyRomanization: { type: "string" },
             tip: { type: "string" },
+            // "nudge" = learner made a real mistake and is asked to fix it
+            // themselves (answer held back in nudgeAnswer); "fixed" = they
+            // just fixed a nudged mistake; "correction" = ordinary coaching
+            // tip; "none" = no tip. See feedbackRules.
+            feedbackType: { type: "string", enum: ["none", "nudge", "fixed", "correction"] },
+            nudgeAnswer: { type: "string" },
             completedObjectives: { type: "array", items: { type: "integer" } }
         },
-        required: ["reply", "replyTranslation", "replyRomanization", "tip", "completedObjectives"],
+        required: ["reply", "replyTranslation", "replyRomanization", "tip", "feedbackType", "nudgeAnswer", "completedObjectives"],
         additionalProperties: false
+    }
+};
+
+// The friend chat returns everything a normal turn does, plus the updated
+// memory and the "next time" teaser (see friendPromptSection).
+const FRIEND_CONVERSATION_JSON_SCHEMA = {
+    type: "json_schema",
+    name: "friend_conversation_turn",
+    strict: true,
+    schema: {
+        ...CONVERSATION_JSON_SCHEMA.schema,
+        properties: {
+            ...CONVERSATION_JSON_SCHEMA.schema.properties,
+            memoryNotes: { type: "array", items: { type: "string" } },
+            tomorrowHook: { type: "string" }
+        },
+        required: [...CONVERSATION_JSON_SCHEMA.schema.required, "memoryNotes", "tomorrowHook"]
     }
 };
 
@@ -1742,7 +1909,86 @@ app.get("/scenarios", (req, res) => {
         id, tier: s.tier, title: s.title, blurb: s.blurb, icon: s.icon,
         unlockAfter: s.unlockAfter || undefined, milestone: s.milestone || undefined
     }));
-    res.json({ scenarios: list, languages: LANGUAGES, nativeLanguages: NATIVE_LANGUAGES });
+    const friends = {};
+    LANGUAGES.forEach(l => { friends[l] = publicFriend(l); });
+    res.json({ scenarios: list, languages: LANGUAGES, nativeLanguages: NATIVE_LANGUAGES, friends });
+});
+
+// ==============================
+// Landing-page demo chat
+// ==============================
+// A tiny, three-message taste of Echoly right in the landing page's hero —
+// most ad visitors leave within seconds, so the first thing they can do is
+// actually talk, without signing up or even leaving the page. Deliberately
+// cheap: short replies, at most DEMO_MAX_TURNS learner messages (the client
+// then hands off to the real app), its own per-IP cap, no accounts, and it
+// doesn't touch anyone's daily conversation allowance.
+const DEMO_MAX_TURNS = 3;
+const DEMO_MAX_MESSAGE_LEN = 200;
+const demoLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "That's the demo for now — open the app to keep talking." }
+});
+const DEMO_JSON_SCHEMA = {
+    type: "json_schema",
+    name: "demo_turn",
+    strict: true,
+    schema: {
+        type: "object",
+        properties: {
+            reply: { type: "string" },
+            replyTranslation: { type: "string" },
+            tip: { type: "string" },
+            suggestion: { type: "string" },
+            suggestionTranslation: { type: "string" }
+        },
+        required: ["reply", "replyTranslation", "tip", "suggestion", "suggestionTranslation"],
+        additionalProperties: false
+    }
+};
+function buildDemoPrompt(language, turnsLeft) {
+    return `You are a friendly barista at a small neighbourhood café, chatting with a visitor who may know almost no ${language}. This is a quick 3-message taste of practicing real conversation.
+
+- "reply": in character, ONLY in ${language}, very short and simple (at most 12 words), warm and natural — the kind of thing a real barista says. On the "__START__" message, greet them and ask what they'd like.
+- "replyTranslation": a plain English translation of "reply".
+- "tip": one short, encouraging English note (max 20 words) about the visitor's last message — praise something specific, or show a more natural way to say it. If they wrote in English, show them how to say it in ${language}. Empty on "__START__".
+- "suggestion": one short, simple ${language} phrase the visitor could say next that fits the conversation; "suggestionTranslation" is its English meaning.${turnsLeft <= 1 ? `\n- This is the visitor's last message in the demo: wrap up warmly (e.g. hand over their order and wish them a nice day) instead of asking a new question.` : ""}`;
+}
+app.post("/demo-chat", demoLimiter, async (req, res) => {
+    try {
+        const { language, history, message } = req.body || {};
+        if (!LANGUAGES.includes(language)) return res.status(400).json({ error: "Unsupported language." });
+        if (typeof message !== "string" || !message.trim()) return res.status(400).json({ error: "Message is required." });
+        if (message.length > DEMO_MAX_MESSAGE_LEN) return res.status(400).json({ error: "Keep it short for the demo." });
+        const turns = (Array.isArray(history) ? history : [])
+            .filter(t => t && typeof t.content === "string" && (t.role === "user" || t.role === "assistant"))
+            .map(t => ({ role: t.role, content: t.content.slice(0, DEMO_MAX_MESSAGE_LEN) }));
+        const learnerTurnsSoFar = turns.filter(t => t.role === "user" && t.content !== "__START__").length;
+        if (learnerTurnsSoFar >= DEMO_MAX_TURNS) {
+            return res.status(429).json({ error: "That's the demo — open the app to keep talking.", demoOver: true });
+        }
+        if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.startsWith("YOUR_")) {
+            return res.status(500).json({ error: "OPENAI_API_KEY is missing." });
+        }
+        const turnsLeft = message === "__START__" ? DEMO_MAX_TURNS : DEMO_MAX_TURNS - learnerTurnsSoFar;
+        const response = await getClient().responses.create({
+            model: MODEL,
+            input: [
+                { role: "system", content: buildDemoPrompt(language, turnsLeft) },
+                ...turns.slice(-8),
+                { role: "user", content: message }
+            ],
+            text: { format: DEMO_JSON_SCHEMA }
+        });
+        const result = JSON.parse(response.output_text);
+        res.json({ success: true, ...result, turnsLeft: message === "__START__" ? DEMO_MAX_TURNS : turnsLeft - 1 });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "The demo couldn't reply just now." });
+    }
 });
 
 // ==============================
@@ -1795,7 +2041,12 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
         }
 
         let scenario;
-        if (scenarioId === CUSTOM_SCENARIO_ID) {
+        if (scenarioId === FRIEND_SCENARIO_ID) {
+            if (!LANGUAGES.includes(language)) {
+                return res.status(400).json({ error: "Unsupported language." });
+            }
+            scenario = buildFriendScenario(language, req.body.friendMemory, req.body.friendHook);
+        } else if (scenarioId === CUSTOM_SCENARIO_ID) {
             scenario = buildCustomScenario(customTopic);
             if (!scenario) {
                 return res.status(400).json({ error: "Describe a topic to practice." });
@@ -1863,14 +2114,24 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
         const response = await getClient().responses.create({
             model: MODEL,
             input: [
-                { role: "system", content: buildSystemPrompt(language, scenario, safeObjectives, safeKeyPhrases, safeVocabHistory, nativeLanguage) },
+                { role: "system", content: buildSystemPrompt(language, scenario, safeObjectives, safeKeyPhrases, safeVocabHistory, nativeLanguage, {
+                    // Both client-supplied booleans; only ever change how
+                    // feedback is phrased, never limits or billing.
+                    retrying: req.body.retrying === true && !isNewConversation,
+                    replayRound: req.body.replayRound === true
+                }) },
                 ...historyInput,
                 { role: "user", content: message }
             ],
-            text: { format: CONVERSATION_JSON_SCHEMA }
+            text: { format: scenario.friend ? FRIEND_CONVERSATION_JSON_SCHEMA : CONVERSATION_JSON_SCHEMA }
         });
 
         const result = JSON.parse(response.output_text);
+        if (scenario.friend) {
+            result.memoryNotes = (Array.isArray(result.memoryNotes) ? result.memoryNotes : [])
+                .map(n => cleanPromptLine(n, FRIEND_NOTE_MAX_LEN)).filter(Boolean).slice(0, FRIEND_MEMORY_MAX);
+            result.tomorrowHook = cleanPromptLine(result.tomorrowHook, FRIEND_NOTE_MAX_LEN);
+        }
 
         // Only a successfully started conversation counts against the daily
         // cap — a failed call shouldn't cost the learner part of their allowance.
