@@ -1510,7 +1510,7 @@ function romanizationNote(language) {
 // have to retrieve the right form themselves. The answer is still one tap
 // away ("nudgeAnswer"), and the learner is never nudged twice in a row.
 function feedbackRules(language, nativeLanguage, { allowNudge, retrying, replayRound }) {
-    const shared = `\n- The learner's message will be exactly "__START__" only to signal the very start of the conversation — on that turn "feedbackType" is "none", "tip" is "" and "nudgeAnswer" is "".\n- If the learner writes in ${nativeLanguage} or seems stuck, stay in character in ${language} but simplify your reply, and use "tip" to gently suggest a phrase they could use ("feedbackType": "correction").\n- Never put coaching inside "reply" — that field is 100% in-character. "nudgeAnswer" is "" unless "feedbackType" is "nudge".`;
+    const shared = `\n- The learner's message will be exactly "__START__" only to signal the very start of the conversation — on that turn "feedbackType" is "none", "tip" is "" and "nudgeAnswer" is "".\n- If the learner writes in ${nativeLanguage} or seems stuck, stay in character in ${language} but simplify your reply, and use "tip" to gently suggest a phrase they could use ("feedbackType": "correction").\n- Never put coaching inside "reply" — that field is 100% in-character. "nudgeAnswer" is "" unless "feedbackType" is "nudge".\n- "correctedMessage": whenever "feedbackType" is "nudge" or "correction" because of something the learner wrote in ${language}, put their WHOLE last message rewritten correctly and naturally in ${language} (only the needed fixes, keep their meaning). Otherwise "" (also "" when they wrote in ${nativeLanguage}).`;
 
     if (retrying) {
         return `\n\nFeedback rules for this turn (set "feedbackType", "tip" and "nudgeAnswer" together):\n- Your previous turn nudged the learner to fix a mistake themselves, and this message is their second try. Now respond to what they said in character and move the conversation forward normally — no more asking them to repeat.\n- If they fixed the mistake (near enough counts): "feedbackType" is "fixed" and "tip" is a very short, specific bit of praise in ${nativeLanguage} naming what they got right (e.g. "Nice fix — "tengo" is exactly right!").\n- If it's still wrong: "feedbackType" is "correction" and "tip" kindly shows the correct way in at most 2 short sentences (e.g. "Close! It's "tengo hambre" — you'll nail it next time."). Never nudge twice in a row.\n- If their retry was fine but something else in it was off, you may mention that instead, as a "correction".${shared}`;
@@ -1524,6 +1524,28 @@ function feedbackRules(language, nativeLanguage, { allowNudge, retrying, replayR
     }
 
     return `\n\nFeedback rules (set "feedbackType", "tip" and "nudgeAnswer" together). Look at the learner's last message (in ${language}) and sort any problem into one of two kinds:\n(a) A real MISTAKE — wrong word, wrong verb form or tense, wrong gender or agreement, word order that sounds wrong, or a missing word: something a native speaker would clearly notice as an error.\n(b) Only UNNATURAL — understandable and grammatically fine, just not how a native speaker would usually put it.\n\n- For a real MISTAKE: "feedbackType" is "nudge". Do NOT give the answer in "tip". Instead, in ${nativeLanguage} and at most 2 short sentences, point to where the problem is (quote the part to look at) and give a hint so they can fix it themselves, then invite them to try again — e.g. "Almost! Look at "yo tiene" — how does tener change when you're talking about yourself? Try again." Put the full corrected version of their whole message in "nudgeAnswer" (the learner only sees it if they tap to reveal it). Pick only the single most important mistake. In "reply", stay in character with a very short, natural reaction asking them to say it again, the way a real person who didn't quite catch it would (a natural "Sorry?" / "Pardon, what was that?" in ${language}) — do NOT answer their message or move the conversation forward on this turn.\n- For something only UNNATURAL: "feedbackType" is "correction". Reply normally in character, and in "tip" (${nativeLanguage}, max 2 sentences) show what they said and a more natural way to say it.\n- If their message was good: "feedbackType" is "none" and "tip" is "".${shared}`;
+}
+
+// Review phrases: up to 3 phrases from the learner's spaced-repetition deck
+// that are due today. Research on retrieval practice says recalling a
+// phrase yourself, in a real context, beats seeing it on a flashcard — so
+// the AI quietly sets up moments where the learner needs them, and reports
+// which ones the learner actually used.
+function reviewSection(reviewPhrases, language) {
+    if (!reviewPhrases.length) {
+        return `\n\n"usedReviewPhrases": always an empty array for this conversation.`;
+    }
+    return `\n\nReview phrases — the learner learned these ${language} phrases in earlier lessons and they're due for practice today:\n${reviewPhrases.map((p, i) => `${i}. ${p.phrase} (${p.translation})`).join("\n")}\nWhere it fits the scenario naturally, steer the conversation so the learner has a reason to use one of them themselves (e.g. ask a question it answers) — at most one per turn, never quiz them or announce that you're doing it, and never say the phrase for them. "usedReviewPhrases": the cumulative 0-based indices of the review phrases the learner has used themselves so far in this conversation (near enough counts; empty array if none).`;
+}
+
+// Adaptive difficulty (aim just above the learner's current level) and, at
+// higher tiers, "pushed output": open questions that need full sentences.
+function levelAdaptSection(scenario) {
+    let s = `\n\nAdapt to the learner as you go: if their recent messages are easy for them (quick, few mistakes, full sentences), make your replies a little richer — one new useful word or a slightly longer sentence. If they're struggling (very short replies, several mistakes, switching to their own language), make your replies simpler and shorter.`;
+    if (scenario.tier === "Intermediate" || scenario.tier === "Advanced") {
+        s += ` At this level, mostly ask open questions that invite a full answer of a sentence or two (what, why, how, tell me about…) rather than yes/no questions, and when the learner gives a longer, more detailed answer, react warmly to what they said.`;
+    }
+    return s;
 }
 
 function buildSystemPrompt(language, scenario, objectives, keyPhrases, vocabHistory, nativeLanguage, feedbackMode) {
@@ -1587,7 +1609,7 @@ Rules for every turn:
         allowNudge: !isIntro && !isMilestone && !mode.replayRound && !mode.retrying,
         retrying: !!mode.retrying && !isIntro && !isMilestone && !mode.replayRound,
         replayRound: !!mode.replayRound
-    })}${levelGuidance}${objectivesSection}${scenario.friend ? friendPromptSection(scenario, nativeLanguage) : ""}`;
+    })}${levelGuidance}${objectivesSection}${(isIntro || isMilestone) ? "" : levelAdaptSection(scenario)}${mode.twist && !isIntro && !isMilestone ? `\n\nThis is a REVISIT: the learner already did this scenario a few days ago. Keep the same situation, but add one small, realistic complication early on that they have to handle (e.g. the thing they want is sold out, the price has changed, there's a mix-up with their order or booking, or someone asks an unexpected question) — and keep it at their level.` : ""}${reviewSection((isIntro || isMilestone) ? [] : (mode.reviewPhrases || []), language)}${scenario.friend ? friendPromptSection(scenario, nativeLanguage) : ""}`;
 }
 
 const CONVERSATION_JSON_SCHEMA = {
@@ -1607,9 +1629,16 @@ const CONVERSATION_JSON_SCHEMA = {
             // tip; "none" = no tip. See feedbackRules.
             feedbackType: { type: "string", enum: ["none", "nudge", "fixed", "correction"] },
             nudgeAnswer: { type: "string" },
+            // The learner's whole last message, corrected — filled whenever
+            // feedbackType is "nudge" or "correction" (the app collects these
+            // for the end-of-lesson "fix it" round). See feedbackRules.
+            correctedMessage: { type: "string" },
+            // 0-based indices into the "review phrases" list the learner has
+            // now used themselves (see reviewSection), cumulative.
+            usedReviewPhrases: { type: "array", items: { type: "integer" } },
             completedObjectives: { type: "array", items: { type: "integer" } }
         },
-        required: ["reply", "replyTranslation", "replyRomanization", "tip", "feedbackType", "nudgeAnswer", "completedObjectives"],
+        required: ["reply", "replyTranslation", "replyRomanization", "tip", "feedbackType", "nudgeAnswer", "correctedMessage", "usedReviewPhrases", "completedObjectives"],
         additionalProperties: false
     }
 };
@@ -2118,6 +2147,15 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
                 .slice(0, 100)
             : [];
 
+        // Sanitized like keyPhrases (client-supplied, goes into the prompt).
+        const safeReviewPhrases = Array.isArray(req.body.reviewPhrases)
+            ? req.body.reviewPhrases
+                .filter(p => p && typeof p.phrase === "string" && typeof p.translation === "string")
+                .slice(0, 3)
+                .map(p => ({ phrase: cleanPromptLine(p.phrase, 120), translation: cleanPromptLine(p.translation, 120) }))
+                .filter(p => p.phrase)
+            : [];
+
         const response = await getClient().responses.create({
             model: MODEL,
             input: [
@@ -2125,7 +2163,9 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
                     // Both client-supplied booleans; only ever change how
                     // feedback is phrased, never limits or billing.
                     retrying: req.body.retrying === true && !isNewConversation,
-                    replayRound: req.body.replayRound === true
+                    replayRound: req.body.replayRound === true,
+                    twist: req.body.twist === true,
+                    reviewPhrases: safeReviewPhrases
                 }) },
                 ...historyInput,
                 { role: "user", content: message }

@@ -368,6 +368,29 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     border-radius: 999px; padding: 7px 13px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
   }
   .today-chip:hover { background: rgba(255,255,255,0.16); }
+  /* "Revisit with a twist": an older situation coming back a few days later. */
+  .today-revisit {
+    display: none; width: 100%; margin-top: 14px; position: relative; z-index: 1; text-align: left; cursor: pointer;
+    background: rgba(255,255,255,0.07); color: #f7f1ec; border: 1px dashed rgba(255,255,255,0.28);
+    border-radius: 12px; padding: 10px 13px; font: inherit; font-size: 13.5px; font-weight: 600;
+  }
+  .today-revisit small { display: block; font-weight: 500; font-size: 12px; color: rgba(247,241,236,0.68); margin-top: 2px; }
+  .today-revisit:hover { background: rgba(255,255,255,0.12); }
+  /* End-of-round notes: review phrases used, revisit done. */
+  .round-note {
+    align-self: center; max-width: 460px; text-align: center; font-size: 13px; font-weight: 600; color: var(--ok-fg);
+    background: var(--ok-bg); border: 1px solid var(--ok-border); border-radius: 999px; padding: 7px 16px; margin: 4px auto;
+  }
+  /* Recap "fix it" questions: rewrite your own mistake correctly. */
+  .recap-said { display: block; margin: 6px 0 0; font-size: 16px; font-weight: 700; color: var(--accent-dark, #c9473a); text-decoration: line-through; text-decoration-thickness: 1px; }
+  .recap-fix-row { display: flex; gap: 8px; }
+  .recap-fix-input {
+    flex: 1; min-width: 0; border: 1.5px solid var(--border); border-radius: 12px; padding: 11px 13px;
+    font: inherit; font-size: 15px; color: var(--ink); background: var(--bg);
+  }
+  .recap-fix-input:focus { outline: none; border-color: var(--accent); }
+  .recap-fix-check { background: var(--accent); color: #fff; border: none; border-radius: 12px; padding: 0 16px; font: inherit; font-weight: 700; cursor: pointer; }
+  .recap-fix-check:disabled { opacity: 0.55; cursor: default; }
   @media (max-width: 520px) {
     .today-main { flex-wrap: wrap; }
     .today-go { width: 100%; }
@@ -1640,6 +1663,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         </div>
         <p class="today-quick-label" id="todayQuickLabel">Or jump straight into a real situation:</p>
         <div class="today-chips" id="todayChips"></div>
+        <button type="button" class="today-revisit" id="todayRevisitBtn"></button>
       </section>
       <section class="friend-card" id="friendCard" style="display:none">
         <span class="friend-avatar" id="friendAvatar">☕</span>
@@ -2468,6 +2492,19 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // it was "nudge", the learner's next message is their retry, and the
   // server is told so (it then moves on, and never nudges twice in a row).
   let lastFeedbackType = "none";
+
+  // Batch 1 of the research-based features:
+  //  - review phrases: up to 3 due review-deck phrases the AI quietly sets
+  //    up chances to use in this conversation (retrieval in context);
+  //  - mistakes: real errors from this conversation, offered back as "fix
+  //    it" questions in the end-of-lesson recap;
+  //  - twist: a revisit of an older lesson with a small complication.
+  let convoReviewPhrases = [];
+  let usedReviewIdx = new Set();
+  let convoMistakes = [];   // [{ said, correct }]
+  let pendingNudge = null;  // the nudged mistake awaiting the learner's retry
+  let currentTwist = false;
+  let recapAdded = false;
 
   // "Run it again, faster" (a 4/3/2-style repeat: same scenario again, with
   // fewer hints and a visible clock, which research links to more fluent
@@ -4918,8 +4955,25 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       : "Or jump straight into a real situation:";
     todayChipsEl.innerHTML = todayTopics.map((t, i) =>
       `<button type="button" class="today-chip" data-topic="${i}">${t[0]} ${escapeHtml(t[1])}</button>`).join("");
+    // An older situation due for a revisit, offered alongside the new one.
+    const revisitBtn = document.getElementById("todayRevisitBtn");
+    todayRevisitLesson = findRevisitLesson(selectedLanguage);
+    if (todayRevisitLesson) {
+      revisitBtn.innerHTML = "";
+      revisitBtn.appendChild(document.createTextNode(`🔁 Revisit "${todayRevisitLesson.title}", with a twist →`));
+      const sub = document.createElement("small");
+      sub.textContent = "You did this one a while ago. Same situation, one small surprise.";
+      revisitBtn.appendChild(sub);
+      revisitBtn.style.display = "block";
+    } else {
+      revisitBtn.style.display = "none";
+    }
     todayCardEl.style.display = "block";
   }
+  var todayRevisitLesson = null; // var: renderTodayCard may run before this line is reached
+  document.getElementById("todayRevisitBtn").addEventListener("click", () => {
+    if (todayRevisitLesson) startRevisit(todayRevisitLesson);
+  });
   document.getElementById("todayGoBtn").addEventListener("click", () => {
     if (todayNextLesson) openIntro(todayNextLesson);
   });
@@ -5925,6 +5979,14 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     userMessageCount = 0;
     customConversationCompleted = false;
     lastFeedbackType = "none";
+    currentTwist = !!startOpts.twist;
+    convoMistakes = [];
+    pendingNudge = null;
+    usedReviewIdx = new Set();
+    recapAdded = false;
+    convoReviewPhrases = (startOpts.replay || lesson.tier === "Intro" || lesson.milestone)
+      ? []
+      : pickReviewPhrases(selectedLanguage, keyPhrases || []);
     replayMode = !!startOpts.replay;
     roundEndHandled = false;
     lastAiTurnAt = 0;
@@ -5969,7 +6031,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       objectivesCardEl.classList.add("collapsed");
       culturalNoteCardEl.style.display = "none";
       grammarNoteCardEl.style.display = "none";
-      chatScenarioTitleEl.textContent = `⚡ ${lesson.title} — faster`;
+      chatScenarioTitleEl.textContent = `⚡ ${lesson.title}: faster`;
       const banner = document.createElement("div");
       banner.className = "replay-banner";
       banner.textContent = firstRoundStats && firstRoundStats.avgGap
@@ -5977,7 +6039,108 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         : "⚡ Replay round — same conversation, fewer hints. Reply as fast as you can.";
       chatLogEl.appendChild(banner);
     }
+    if (currentTwist && !replayMode) {
+      chatScenarioTitleEl.textContent = `🔁 ${lesson.title}`;
+      const banner = document.createElement("div");
+      banner.className = "replay-banner";
+      banner.textContent = "🔁 You've done this one before. This time, expect a little surprise!";
+      chatLogEl.appendChild(banner);
+    }
     sendMessage("__START__", { silent: true });
+  }
+
+  // Due review-deck phrases to weave into this conversation: missed ones
+  // first, never ones this lesson is teaching right now, at most 3.
+  function pickReviewPhrases(language, lessonPhrases) {
+    const own = new Set((lessonPhrases || []).map(p => p && p.phrase));
+    const due = getDueVocabCards(language).filter(c => c && c.phrase && c.translation && !own.has(c.phrase));
+    due.sort((a, b) => (b.fromMistake ? 1 : 0) - (a.fromMistake ? 1 : 0));
+    return due.slice(0, 3).map(c => ({ phrase: c.phrase, translation: c.translation }));
+  }
+  // The learner just used review phrases themselves: that's a successful
+  // recall, so they move along the review schedule like a remembered card.
+  function addReviewUsedNote() {
+    if (!convoReviewPhrases.length) return;
+    const used = Array.from(usedReviewIdx).map(i => convoReviewPhrases[i]).filter(Boolean);
+    if (!used.length) return;
+    used.forEach(p => gradeVocabCard(selectedLanguage, p.phrase, true));
+    syncToCloud();
+    trackEvent("review_phrases_used", { language: selectedLanguage, count: used.length, offered: convoReviewPhrases.length });
+    const div = document.createElement("div");
+    div.className = "round-note";
+    div.textContent = `✅ You used ${used.length === 1 ? "a review phrase" : used.length + " review phrases"} on your own: ${used.map(p => p.phrase).join(", ")}`;
+    chatLogEl.appendChild(div);
+    scrollToBottom();
+  }
+  // Keeps the real mistakes from this conversation for the recap's "fix
+  // it" questions. A nudged mistake the learner then fixed themselves is
+  // dropped (that's already the best kind of practice); one they still got
+  // wrong, or an ordinary correction, is kept. Newest 3, no duplicates.
+  function recordFeedbackForRecap(learnerText, data) {
+    const type = data.feedbackType || "none";
+    const corrected = (data.correctedMessage || "").trim();
+    const keep = (said, correct) => {
+      if (!said || !correct || said.trim().toLowerCase() === correct.toLowerCase()) return;
+      convoMistakes = convoMistakes.filter(m => m.correct !== correct);
+      convoMistakes.push({ said: said.trim(), correct });
+      if (convoMistakes.length > 3) convoMistakes.shift();
+    };
+    if (type === "nudge") {
+      pendingNudge = { said: learnerText, correct: corrected || (data.nudgeAnswer || "").trim() };
+      return;
+    }
+    if (type === "fixed") { pendingNudge = null; return; }
+    if (type === "correction" && corrected) {
+      keep(learnerText, corrected);
+      pendingNudge = null;
+      return;
+    }
+    if (pendingNudge) { keep(pendingNudge.said, pendingNudge.correct); pendingNudge = null; }
+  }
+
+  // ---------- Revisit with a twist ----------
+  // Spacing and mixing apply to whole situations, not just words: a lesson
+  // finished a few days ago comes back (3, then 7, 14, 30 days) as a
+  // variation with a small complication, offered on the Today card next to
+  // the new lesson. { [language]: { [lessonId]: { last, n } } }
+  const REVISIT_KEY = "echoly_revisits_v1";
+  const REVISIT_GAP_DAYS = [3, 7, 14, 30];
+  function loadRevisits() {
+    try { const o = JSON.parse(localStorage.getItem(REVISIT_KEY) || "null"); return (o && typeof o === "object") ? o : {}; }
+    catch (e) { return {}; }
+  }
+  function saveRevisits(o) {
+    try { localStorage.setItem(REVISIT_KEY, JSON.stringify(o)); } catch (e) { /* non-fatal */ }
+  }
+  function recordLessonPracticed(language, lessonId, wasRevisit) {
+    const all = loadRevisits();
+    if (!all[language]) all[language] = {};
+    const prev = all[language][lessonId] || { n: 0 };
+    all[language][lessonId] = { last: todayDateStr(), n: wasRevisit ? Math.min((prev.n || 0) + 1, REVISIT_GAP_DAYS.length - 1) : (prev.n || 0) };
+    saveRevisits(all);
+  }
+  function findRevisitLesson(language) {
+    if (!PATH.length || !language) return null;
+    const completed = getCompletedLessons(language);
+    const log = loadRevisits()[language] || {};
+    const today = todayDateStr();
+    let best = null, bestOverdue = -1;
+    PATH.forEach(l => {
+      if (l.tier === "Intro" || l.milestone || !completed.includes(l.id)) return;
+      const rec = log[l.id];
+      // Finished before revisits existed (no date): due, but after any
+      // that are properly overdue.
+      const overdue = rec && rec.last ? daysBetween(rec.last, today) - REVISIT_GAP_DAYS[rec.n || 0] : 0;
+      if (rec && rec.last && overdue < 0) return;
+      if (overdue > bestOverdue) { best = l; bestOverdue = overdue; }
+    });
+    return best;
+  }
+  function startRevisit(lesson) {
+    const all = loadAllProgress();
+    const phrases = (all[selectedLanguage] && all[selectedLanguage].keyPhrasesByLesson && all[selectedLanguage].keyPhrasesByLesson[lesson.id]) || [];
+    trackEvent("revisit_started", { language: selectedLanguage, scenario: lesson.id });
+    startConversation(lesson, [], phrases, "", "", { twist: true });
   }
 
   // ---------- Replay round ("Run it again, faster") ----------
@@ -6349,8 +6512,36 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       return { toNative, item: p, options, answer: p[key] };
     });
   }
+  // Forgiving comparison for typed "fix it" answers: case, punctuation and
+  // spacing never matter; accents and one small typo are let through (and
+  // pointed out) rather than marked wrong.
+  function normalizeAnswer(s, keepAccents) {
+    let t = (s || "").toLowerCase();
+    if (!keepAccents) t = t.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return t.replace(/[.,!?¡¿;:"'«»“”‘’。、！？…\-]/g, " ").replace(/\s+/g, " ").trim();
+  }
+  function editDistance(a, b) {
+    const dp = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+    for (let j = 1; j <= b.length; j++) dp[0][j] = j;
+    for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) {
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    return dp[a.length][b.length];
+  }
+  function gradeFix(answer, correct) {
+    if (normalizeAnswer(answer, true) === normalizeAnswer(correct, true)) return "exact";
+    const a = normalizeAnswer(answer, false), c = normalizeAnswer(correct, false);
+    if (a === c) return "accents";
+    if (c.length >= 8 && editDistance(a, c) <= Math.max(1, Math.floor(c.length * 0.08))) return "close";
+    return "wrong";
+  }
+
   function addRecapQuiz() {
-    const questions = buildRecapQuestions(currentKeyPhrases, getVocabHistory(selectedLanguage));
+    const fixQs = convoMistakes.slice(-3).map(m => ({ fix: true, said: m.said, correct: m.correct }));
+    const phraseQs = currentScenario && !currentScenario.customTopic
+      ? buildRecapQuestions(currentKeyPhrases, getVocabHistory(selectedLanguage))
+      : [];
+    const questions = fixQs.concat(phraseQs).slice(0, 3);
     if (!questions.length) return false;
     const lang = selectedLanguage;
     const lessonId = currentScenario && currentScenario.id;
@@ -6363,6 +6554,70 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     // right above the questions (and the quiz gets the screen space).
     objectivesCardEl.classList.add("collapsed");
 
+    function addNextButton() {
+      const next = document.createElement("button");
+      next.type = "button";
+      next.className = "recap-next";
+      next.textContent = index + 1 < questions.length ? "Next question →" : "See my score";
+      next.addEventListener("click", () => { index++; index < questions.length ? renderQuestion() : renderScore(); });
+      card.appendChild(next);
+      scrollToBottom();
+    }
+    // "Fix it": rewrite one of your own mistakes from this conversation.
+    // A miss goes into the review deck (as the corrected sentence) so it
+    // comes back on the spaced schedule.
+    function renderFixQuestion(q) {
+      const prompt = document.createElement("p");
+      prompt.className = "recap-q";
+      prompt.appendChild(document.createTextNode("You said this earlier. Can you fix it?"));
+      const said = document.createElement("span");
+      said.className = "recap-said";
+      said.textContent = q.said;
+      prompt.appendChild(said);
+      card.appendChild(prompt);
+      const row = document.createElement("form");
+      row.className = "recap-fix-row";
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "recap-fix-input";
+      input.placeholder = "Type the corrected sentence…";
+      input.autocomplete = "off";
+      input.value = q.said;
+      const check = document.createElement("button");
+      check.type = "submit";
+      check.className = "recap-fix-check";
+      check.textContent = "Check";
+      row.appendChild(input);
+      row.appendChild(check);
+      card.appendChild(row);
+      const feedback = document.createElement("p");
+      feedback.className = "recap-feedback";
+      card.appendChild(feedback);
+      row.addEventListener("submit", e => {
+        e.preventDefault();
+        if (!input.value.trim() || check.disabled) return;
+        input.disabled = true; check.disabled = true;
+        const result = gradeFix(input.value, q.correct);
+        const ok = result !== "wrong";
+        if (ok) score++;
+        trackEvent("fix_it_answered", { language: lang, result });
+        const okColor = getComputedStyle(document.documentElement).getPropertyValue("--ok-fg").trim();
+        if (result === "exact") feedback.textContent = "✓ Perfect fix!";
+        else if (result === "accents") feedback.textContent = `✓ Got it! Watch the accents: "${q.correct}"`;
+        else if (result === "close") feedback.textContent = `✓ Nearly perfect! Exactly: "${q.correct}"`;
+        else {
+          feedback.textContent = `Not quite. It's: "${q.correct}"`;
+          markMistake(lang, q.correct, `Instead of "${q.said}"`);
+          syncToCloud();
+        }
+        feedback.style.color = ok ? okColor : "var(--accent)";
+        speakText(q.correct, lang);
+        addNextButton();
+      });
+      scrollToBottom();
+      setTimeout(() => { try { input.focus({ preventScroll: true }); input.select(); } catch (e) {} }, 50);
+    }
+
     function renderQuestion() {
       const q = questions[index];
       card.innerHTML = "";
@@ -6370,6 +6625,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       head.className = "recap-head";
       head.innerHTML = `<span class="recap-title">⚡ Quick recap</span><span class="recap-step">${index + 1} of ${questions.length}</span>`;
       card.appendChild(head);
+      if (q.fix) { renderFixQuestion(q); return; }
       const prompt = document.createElement("p");
       prompt.className = "recap-q";
       if (q.toNative) {
@@ -6420,7 +6676,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     }
 
     function renderScore() {
-      trackEvent("recap_completed", { language: lang, scenario: lessonId, score, total: questions.length });
+      trackEvent("recap_completed", { language: lang, scenario: lessonId, score, total: questions.length, fixes: fixQs.length });
       const perfect = score === questions.length;
       card.innerHTML = "";
       const box = document.createElement("div");
@@ -6614,6 +6870,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           // Self-correction: this message is the retry after a "nudge".
           retrying: !opts.silent && lastFeedbackType === "nudge",
           replayRound: replayMode,
+          twist: currentTwist,
+          reviewPhrases: convoReviewPhrases,
           friendMemory: currentScenario.id === FRIEND_SCENARIO_ID ? friendStateFor(selectedLanguage).notes : undefined,
           friendHook: currentScenario.id === FRIEND_SCENARIO_ID ? friendStateFor(selectedLanguage).hook : undefined,
           customTopic: currentScenario.id === CUSTOM_SCENARIO_ID ? currentScenario.customTopic : undefined
@@ -6649,6 +6907,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         completedObjectiveIndices = data.completedObjectives;
         renderObjectivesCard();
       }
+
+      if (Array.isArray(data.usedReviewPhrases)) {
+        data.usedReviewPhrases.forEach(i => { if (Number.isInteger(i) && i >= 0 && i < convoReviewPhrases.length) usedReviewIdx.add(i); });
+      }
+      if (!opts.silent) recordFeedbackForRecap(text, data);
 
       // The friend remembers: save the AI's updated notes and next-time
       // teaser every turn, so leaving mid-chat loses nothing.
@@ -6725,23 +6988,44 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       lastFeedbackType = data.feedbackType || "none";
       addAiTurn(data.reply, data.replyTranslation, data.tip, data.replyRomanization, { type: lastFeedbackType, answer: data.nudgeAnswer });
       lastAiTurnAt = Date.now();
+      // End of a round: the objectives are all done or enough messages
+      // were sent (and no "try again" is waiting). Also true for lessons
+      // the learner had already completed before, which skip the banner.
+      let roundEndNow = false;
+      if (!opts.silent && !roundEndHandled && lastFeedbackType !== "nudge") {
+        const allDone = currentObjectives.length > 0 && completedObjectiveIndices.length >= currentObjectives.length;
+        roundEndNow = allDone || userMessageCount >= LESSON_COMPLETE_AFTER;
+      }
+      if (roundEndNow) roundEndHandled = true;
       if (justCompleted) addCompletionBanner(streakIncreased, streakAfter);
-      const recapShown = justCompleted && !currentScenario.customTopic ? addRecapQuiz() : false;
+      if (roundEndNow) {
+        addReviewUsedNote();
+        const isRealLesson = currentScenario.id !== CUSTOM_SCENARIO_ID && currentScenario.id !== FRIEND_SCENARIO_ID
+          && currentScenario.tier !== "Intro" && !currentScenario.milestone;
+        if (isRealLesson && !replayMode) recordLessonPracticed(selectedLanguage, currentScenario.id, currentTwist);
+        if (currentTwist && !replayMode) {
+          trackEvent("revisit_completed", { language: selectedLanguage, scenario: currentScenario.id });
+          const note = document.createElement("div");
+          note.className = "round-note";
+          note.textContent = "🔁 Revisit done! This one will come back again in a little while.";
+          chatLogEl.appendChild(note);
+        }
+      }
+      // The recap: phrase questions after a newly finished lesson, led by
+      // "fix it" questions on this conversation's own mistakes whenever
+      // there were any (any conversation except a replay round).
+      let recapShown = false;
+      const wantsRecap = (justCompleted && !currentScenario.customTopic) || (roundEndNow && !replayMode && convoMistakes.length > 0);
+      if (wantsRecap && !recapAdded) { recapAdded = true; recapShown = addRecapQuiz(); }
       if (justCompleted && currentScenario.id === FRIEND_SCENARIO_ID) addFriendByeCard();
       if (justCompleted) addShareRow();
       if (justCompleted && isGuest()) addGuestSaveCard();
       if (justCompleted && !isGuest()) maybeAddChatReminderAsk();
-      // End of a round: a replay shows its before/after; a first round
-      // offers "Run it again, faster" (inside the recap's score screen when
-      // there is one, otherwise as its own card). Also fires for lessons
-      // the learner had already completed before, which skip the banner.
-      if (!opts.silent && !roundEndHandled && lastFeedbackType !== "nudge") {
-        const allDone = currentObjectives.length > 0 && completedObjectiveIndices.length >= currentObjectives.length;
-        if (allDone || userMessageCount >= LESSON_COMPLETE_AFTER) {
-          roundEndHandled = true;
-          if (replayMode) addReplayResultsCard();
-          else if (!recapShown && canOfferReplay()) addReplayOfferCard();
-        }
+      // A replay shows its before/after; a first round offers "Run it again,
+      // faster" (inside the recap's score screen when there is one).
+      if (roundEndNow) {
+        if (replayMode) addReplayResultsCard();
+        else if (!recapShown && canOfferReplay()) addReplayOfferCard();
       }
       if (!roundEndHandled) startReplayTimer();
       // Tier-completion badges get the bigger celebration overlay; everything
