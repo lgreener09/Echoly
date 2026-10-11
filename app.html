@@ -229,6 +229,15 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     width: 100%; max-width: 380px; max-height: 90vh; overflow-y: auto;
   }
   .modal-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; font-weight: 800; margin: 0 0 6px; }
+  /* Upgrade offer, shown when a learner runs out of today's free conversations. */
+  .upgrade-modal { text-align: center; }
+  .upgrade-modal img { width: 110px; display: block; margin: -6px auto 6px; }
+  .upgrade-modal .modal-title { font-size: 22px; }
+  .upgrade-perks { list-style: none; padding: 0; margin: 4px 0 18px; text-align: left; font-size: 14px; line-height: 1.9; }
+  .upgrade-go { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 12px; padding: 14px; font: inherit; font-size: 15.5px; font-weight: 800; cursor: pointer; }
+  .upgrade-go:hover { filter: brightness(1.06); }
+  .upgrade-fine { font-size: 12px; color: var(--ink-soft); margin: 10px 0 0; line-height: 1.45; }
+  .upgrade-later { margin-top: 12px; background: none; border: none; color: var(--ink-soft); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; text-decoration: underline; }
   .modal-subtitle { font-size: 13px; color: var(--ink-soft); margin: 0 0 18px; line-height: 1.4; }
   .modal .error-banner { max-width: none; padding: 0; margin: 0 0 14px; }
   .modal-field { display: block; margin-bottom: 12px; }
@@ -4228,7 +4237,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         : `<span class="account-plan-badge">Free plan${remaining !== null ? ` · ${remaining} convo${remaining === 1 ? "" : "s"} left today` : ""}</span>`;
       const planBtn = isPremium
         ? `<button class="account-btn account-btn--ghost" id="accountManageBillingBtn">Manage subscription</button>`
-        : `<button class="account-btn" id="accountUpgradeBtn">Upgrade to Premium</button>`;
+        : `<button class="account-btn" id="accountUpgradeBtn">${trialOfferAvailable() ? `Try Premium free for ${trialDaysOffered()} days` : "Upgrade to Premium"}</button>`;
       // Shown once, right after a successful claim (see claimReferralIfPending) —
       // consumed here so it doesn't reappear on the next render.
       const claimBannerHtml = referralMessage
@@ -4316,6 +4325,68 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     renderAccountCard();
   }
 
+  // ---------- Premium price + free trial ----------
+  // The real price comes from Stripe via /billing/plan (never hand-typed);
+  // whether this learner still gets a free trial comes from /billing/status.
+  var planInfo = null; // var: renderAccountCard can run before this line
+  fetch(`${API_BASE}/billing/plan`).then(r => r.json()).then(d => { planInfo = d; renderAccountCard(); }).catch(() => {});
+  function trialOfferAvailable() {
+    return !!(billingStatus && billingStatus.trialEligible && billingStatus.trialDays > 0);
+  }
+  function trialDaysOffered() {
+    return (billingStatus && billingStatus.trialDays) || (planInfo && planInfo.trialDays) || 7;
+  }
+  function formatPlanPrice() {
+    const p = planInfo && planInfo.price;
+    if (!p || typeof p.amount !== "number") return "";
+    let money;
+    try { money = new Intl.NumberFormat(undefined, { style: "currency", currency: p.currency || "USD" }).format(p.amount / 100); }
+    catch (e) { money = `$${(p.amount / 100).toFixed(2)}`; }
+    const per = p.intervalCount > 1 ? `every ${p.intervalCount} ${p.interval}s` : `a ${p.interval}`;
+    return `${money} ${per}`;
+  }
+  // The offer itself — opened when today's free conversations run out
+  // (at most once a day, so it's never naggy), or from the banner button.
+  const UPGRADE_SEEN_KEY = "echoly_upgrade_offer_seen";
+  function maybeShowUpgradeOffer(dailyLimit, force) {
+    if (!currentUser) return;
+    if (!force) {
+      try { if (localStorage.getItem(UPGRADE_SEEN_KEY) === todayDateStr()) return; } catch (e) { /* show it */ }
+    }
+    try { localStorage.setItem(UPGRADE_SEEN_KEY, todayDateStr()); } catch (e) { /* non-fatal */ }
+    const trial = trialOfferAvailable();
+    const days = trialDaysOffered();
+    const price = formatPlanPrice();
+    trackEvent("upgrade_offer_shown", { trial: trial ? 1 : 0 });
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    overlay.innerHTML = `<div class="modal upgrade-modal" role="dialog" aria-modal="true">
+      <img src="/mascot/mascot-wave.webp" alt="Chatto">
+      <h2 class="modal-title"></h2>
+      <p class="modal-subtitle"></p>
+      <ul class="upgrade-perks">
+        <li>💬 Unlimited conversations, every day</li>
+        <li>🔥 Keep your streak going whenever you want</li>
+        <li>🌍 All 34 languages and every lesson</li>
+      </ul>
+      <button type="button" class="upgrade-go"></button>
+      <p class="upgrade-fine"></p>
+      <button type="button" class="upgrade-later">Not now, I'll come back tomorrow</button>
+    </div>`;
+    const done = typeof dailyLimit === "number" ? `You've done all ${dailyLimit} of today's free conversations.` : "You've used today's free conversations.";
+    overlay.querySelector(".modal-title").textContent = trial ? `You're on a roll! Try Premium free for ${days} days` : "You're on a roll! Keep going with Premium";
+    overlay.querySelector(".modal-subtitle").textContent = done;
+    overlay.querySelector(".upgrade-go").textContent = trial ? `Start my free ${days}-day trial` : "Upgrade to Premium";
+    overlay.querySelector(".upgrade-fine").textContent = trial
+      ? `Free for ${days} days${price ? `, then ${price}` : ""}. Cancel anytime before the trial ends and you won't be charged.`
+      : `${price ? `${price}. ` : ""}Cancel anytime from your account.`;
+    const close = () => overlay.remove();
+    overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+    overlay.querySelector(".upgrade-later").addEventListener("click", () => { trackEvent("upgrade_offer_dismissed"); close(); });
+    overlay.querySelector(".upgrade-go").addEventListener("click", () => { close(); startCheckout(); });
+    document.body.appendChild(overlay);
+  }
+
   // The account card (where Upgrade/Manage subscription live) only ever
   // appears in the home screen's sidebar, so errors from these two actions
   // go to homeErrorBanner specifically — not the generic `errorBanner`,
@@ -4327,7 +4398,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
 
   async function startCheckout() {
     if (!currentUser) return;
-    trackEvent("upgrade_clicked");
+    trackEvent("upgrade_clicked", { trial: trialOfferAvailable() ? 1 : 0 });
     try {
       const headers = await authHeaders();
       const res = await fetch(`${API_BASE}/billing/create-checkout-session`, {
@@ -6801,14 +6872,18 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   function showUpgradePrompt(dailyLimit) {
     errorBanner.innerHTML = "";
     const done = typeof dailyLimit === "number" ? `You've done your ${dailyLimit} free conversations today. ` : "You've used today's free conversations. ";
-    errorBanner.appendChild(document.createTextNode(`${done}Upgrade for unlimited, or come back tomorrow.`));
+    const trial = trialOfferAvailable();
+    errorBanner.appendChild(document.createTextNode(trial
+      ? `${done}Try Premium free for ${trialDaysOffered()} days, or come back tomorrow.`
+      : `${done}Upgrade for unlimited, or come back tomorrow.`));
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "error-banner-upgrade-btn";
-    btn.textContent = "Upgrade for unlimited";
-    btn.addEventListener("click", startCheckout);
+    btn.textContent = trial ? "Try it free" : "Upgrade for unlimited";
+    btn.addEventListener("click", () => maybeShowUpgradeOffer(dailyLimit, true));
     errorBanner.appendChild(btn);
     errorBanner.classList.add("shown");
+    maybeShowUpgradeOffer(dailyLimit, false);
   }
   function hideError() {
     errorBanner.classList.remove("shown");

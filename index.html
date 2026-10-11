@@ -681,14 +681,15 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         </div>
         <div class="plan plan-featured">
           <h3>Premium</h3>
-          <div class="plan-price">✨ <small>upgrade anytime</small></div>
-          <p>For when 5 conversations a day isn't enough.</p>
+          <div class="plan-price" id="premiumPrice">✨ <small>7 days free</small></div>
+          <p id="premiumTrialLine">Try it free for 7 days. For when 5 conversations a day isn't enough.</p>
           <ul>
             <li>Everything in Free</li>
             <li>No daily conversation cap</li>
+            <li>7-day free trial for new members</li>
             <li>Cancel anytime from your account</li>
           </ul>
-          <a class="btn btn-primary js-app-cta" href="/app.html" data-track="pricing_premium">Start free, upgrade in the app</a>
+          <a class="btn btn-primary js-app-cta" href="/app.html" data-track="pricing_premium">Start free, try Premium in the app</a>
         </div>
       </div>
       <p class="langs-note">Invite a friend and you'll both get extra free conversations every day.</p>
@@ -818,6 +819,23 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   function onScroll() { nav.classList.toggle("scrolled", window.scrollY > 8); }
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
+})();
+</script>
+<script>
+// Premium price and trial length, straight from Stripe via the server, so
+// this page never shows a stale price.
+(function () {
+  fetch("/billing/plan").then(function (r) { return r.json(); }).then(function (d) {
+    if (!d || !d.price || typeof d.price.amount !== "number") return;
+    var p = d.price, money;
+    try { money = new Intl.NumberFormat(undefined, { style: "currency", currency: p.currency || "USD", maximumFractionDigits: p.amount % 100 ? 2 : 0 }).format(p.amount / 100); }
+    catch (e) { money = "$" + (p.amount / 100).toFixed(2); }
+    var unit = p.interval === "year" ? "/yr" : p.interval === "week" ? "/wk" : "/mo";
+    var el = document.getElementById("premiumPrice");
+    if (el) { el.textContent = money; var sm = document.createElement("small"); sm.textContent = " " + unit; el.appendChild(sm); }
+    var line = document.getElementById("premiumTrialLine");
+    if (line && d.trialDays > 0) line.textContent = "Free for " + d.trialDays + " days, then " + money + unit + ". Cancel anytime.";
+  }).catch(function () {});
 })();
 </script>
 <script>

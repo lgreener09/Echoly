@@ -2384,6 +2384,57 @@ app.post("/lookup", lookupLimiter, async (req, res) => {
 // Billing — Stripe Checkout + Customer Portal + webhook
 // ==============================
 
+// ---------- Premium free trial ----------
+// New subscribers get PREMIUM_TRIAL_DAYS free (default 7; set the env var to
+// 0 to switch trials off). Card required at checkout, like Duolingo Super;
+// Stripe charges automatically when the trial ends unless they cancel. One
+// trial per customer: anyone who has ever had an Echoly subscription
+// (trialing, active or cancelled) is offered a normal upgrade instead.
+const PREMIUM_TRIAL_DAYS = (() => {
+    const n = parseInt(process.env.PREMIUM_TRIAL_DAYS, 10);
+    return Number.isInteger(n) && n >= 0 && n <= 30 ? n : 7;
+})();
+let planCache = null;
+let planCacheAt = 0;
+// The real price, read from Stripe (so the app never shows a stale,
+// hand-typed price). Cached for 10 minutes.
+async function getPlanInfo() {
+    if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_PRICE_ID) return null;
+    if (planCache && Date.now() - planCacheAt < 10 * 60 * 1000) return planCache;
+    const price = await getStripe().prices.retrieve(process.env.STRIPE_PRICE_ID);
+    planCache = {
+        amount: price.unit_amount,                       // in cents
+        currency: (price.currency || "usd").toUpperCase(),
+        interval: price.recurring ? price.recurring.interval : "month",
+        intervalCount: price.recurring ? price.recurring.interval_count : 1
+    };
+    planCacheAt = Date.now();
+    return planCache;
+}
+const trialEligibilityCache = new Map(); // customerId -> { eligible, at }
+async function isTrialEligible(customerId) {
+    if (!PREMIUM_TRIAL_DAYS) return false;
+    if (!customerId) return true;
+    const hit = trialEligibilityCache.get(customerId);
+    if (hit && Date.now() - hit.at < 10 * 60 * 1000) return hit.eligible;
+    const subs = await getStripe().subscriptions.list({ customer: customerId, status: "all", limit: 1 });
+    const eligible = subs.data.length === 0;
+    trialEligibilityCache.set(customerId, { eligible, at: Date.now() });
+    return eligible;
+}
+
+// GET /billing/plan — public: the Premium price and trial length, for the
+// landing page's pricing section and the app's upgrade prompts.
+app.get("/billing/plan", async (req, res) => {
+    try {
+        const plan = await getPlanInfo();
+        res.json({ configured: !!plan, price: plan, trialDays: PREMIUM_TRIAL_DAYS });
+    } catch (error) {
+        console.error("Couldn't load plan:", error.message);
+        res.json({ configured: false, price: null, trialDays: PREMIUM_TRIAL_DAYS });
+    }
+});
+
 // GET /billing/status — tells the frontend whether this signed-in learner is
 // premium, and if not, how many of today's free conversations are left.
 // Guests (no valid token) just get signedIn: false; the frontend treats that
@@ -2397,9 +2448,15 @@ app.get("/billing/status", attachUserIfSignedIn, async (req, res) => {
         const isPremium = record.premium;
         const used = usedTodayFromRecord(record);
         const limit = dailyLimitFromRecord(record);
+        let trialEligible = false;
+        if (!isPremium && process.env.STRIPE_SECRET_KEY) {
+            try { trialEligible = await isTrialEligible(record.stripeCustomerId); } catch (e) { trialEligible = false; }
+        }
         res.json({
             signedIn: true,
             premium: isPremium,
+            trialEligible,
+            trialDays: trialEligible ? PREMIUM_TRIAL_DAYS : 0,
             dailyLimit: limit,
             dailyUsed: isPremium ? 0 : used,
             dailyRemaining: isPremium ? null : Math.max(0, limit - used),
@@ -2478,11 +2535,24 @@ app.post("/billing/create-checkout-session", attachUserIfSignedIn, async (req, r
             await setBillingRecord(req.uid, { stripeCustomerId: customerId });
         }
         const origin = req.get("origin") || `${req.protocol}://${req.get("host")}`;
+        let withTrial = false;
+        try { withTrial = await isTrialEligible(customerId); } catch (e) { withTrial = false; }
         const session = await getStripe().checkout.sessions.create({
             mode: "subscription",
             customer: customerId,
             client_reference_id: req.uid,
             line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+            // Card collected now, first charge when the trial ends. If the
+            // card somehow isn't there at the end, cancel instead of
+            // leaving them on a free ride.
+            ...(withTrial ? {
+                payment_method_collection: "always",
+                subscription_data: {
+                    trial_period_days: PREMIUM_TRIAL_DAYS,
+                    trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
+                    metadata: { firebaseUid: req.uid }
+                }
+            } : {}),
             success_url: `${origin}/app.html?upgraded=1`,
             cancel_url: `${origin}/app.html`,
             // Managed Payments (Stripe's newer opt-out-by-default feature) requires
@@ -2491,7 +2561,9 @@ app.post("/billing/create-checkout-session", attachUserIfSignedIn, async (req, r
             // rather than forcing a tax_code onto the product.
             managed_payments: { enabled: false }
         });
-        res.json({ url: session.url });
+        // Their eligibility changes once this checkout completes.
+        trialEligibilityCache.delete(customerId);
+        res.json({ url: session.url, trial: withTrial });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Couldn't start checkout: " + (error.message || "unknown error") });
@@ -2556,6 +2628,7 @@ app.post("/webhooks/stripe", async (req, res) => {
             case "customer.subscription.created":
             case "customer.subscription.updated": {
                 const sub = event.data.object;
+                trialEligibilityCache.delete(sub.customer);
                 const uid = await uidForStripeCustomer(sub.customer);
                 if (uid) {
                     await setBillingRecord(uid, {
