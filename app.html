@@ -1511,9 +1511,9 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     </div>
     <div class="onb-hello">
       <img class="onb-mascot" src="/mascot/mascot-wave.webp" width="560" height="670" alt="Chatto, Echoly's monkey mascot, waving hello">
-      <span class="onb-bubble">Hi, I'm Chatto! Two quick questions and you'll be talking.</span>
+      <span class="onb-bubble">Hi, I'm Chatto! Pick a language and you'll be talking.</span>
     </div>
-    <div class="onb-dots"><span class="onb-dot" data-dot="1"></span><span class="onb-dot" data-dot="2"></span><span class="onb-dot" data-dot="3"></span></div>
+    <div class="onb-dots"><span class="onb-dot" data-dot="1"></span><span class="onb-dot" data-dot="3"></span></div>
 
     <div class="onb-step" id="onbStep1">
       <h2 class="onb-title">What language do you want to speak?</h2>
@@ -1541,7 +1541,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           <span><b>I'm brand new</b><span>Start from zero: learn to say hello, with a patient tutor</span></span>
         </button>
       </div>
-      <button type="button" class="onb-back" data-onb-back="2">← Back</button>
+      <button type="button" class="onb-back" data-onb-back="1">← Back</button>
     </div>
   </div>
 </div>
@@ -4939,7 +4939,10 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         <span class="onb-goal-text">${g.label}<small>${g.sub}</small></span>
       </button>`).join("");
     onbOverlayEl.classList.add("shown");
-    showOnbStep(onbLanguage ? 2 : 1);
+    // One question only: language. The "why are you learning" step (2) is
+    // no longer shown — every extra screen before the first conversation
+    // cost visitors. Goal stays null; the home screen copes without one.
+    showOnbStep(onbLanguage ? 3 : 1);
     trackEvent("onboarding_started");
   }
   function showOnbStep(n) {
@@ -4949,7 +4952,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       document.getElementById("onbStep2Title").textContent = `Why are you learning ${onbLanguage}?`;
     }
     if (n === 3) {
-      const g = GOALS[onbGoal] || GOALS.fun;
+      const g = GOALS[onbGoal] || GOALS.travel;
       const first = g.topics[0];
       document.getElementById("onbStartScenarioEmoji").textContent = first[0];
       document.getElementById("onbStartScenarioTitle").textContent = `${first[1]} in ${onbLanguage}`;
@@ -4978,7 +4981,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     const btn = e.target.closest("[data-lang]");
     if (!btn) return;
     onbLanguage = btn.dataset.lang;
-    showOnbStep(2);
+    showOnbStep(3);
   });
   onbGoalGridEl.addEventListener("click", e => {
     const btn = e.target.closest("[data-goal]");
@@ -4989,7 +4992,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   onbOverlayEl.querySelectorAll("[data-onb-back]").forEach(b => b.addEventListener("click", () => showOnbStep(Number(b.dataset.onbBack))));
   document.getElementById("onbSkipBtn").addEventListener("click", () => finishOnboarding("skipped"));
   document.getElementById("onbStartScenarioBtn").addEventListener("click", () => {
-    const g = GOALS[onbGoal] || GOALS.fun;
+    const g = GOALS[onbGoal] || GOALS.travel;
     finishOnboarding("scenario");
     startCustomConversation(g.topics[0][2], { icon: g.topics[0][0], title: g.topics[0][1] });
   });
@@ -5407,6 +5410,13 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   async function openIntro(lesson) {
     if (guestLimitReached()) return;
     const myIntroGen = ++introGen;
+    // A brand-new learner's very first lesson goes straight into the
+    // conversation: no intro page, no warm-up exercises. The goals and key
+    // phrases still load and stay visible in the chat's side panel, so
+    // beginners keep their hints. Ad visitors came for "real conversation";
+    // a minute of quiz drills first was where most of them left. From their
+    // second lesson on, the intro page and warm-up work as before.
+    const straightToChat = !hasAnyProgress();
     introLesson = lesson;
     introObjectives = [];
     introKeyPhrases = [];
@@ -5428,7 +5438,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     introBlurbEl.textContent = lesson.blurb;
     introContentEl.style.display = "none";
     introLoadingEl.style.display = "block";
-    introLoadingEl.textContent = "Preparing your lesson…";
+    introLoadingEl.textContent = straightToChat ? "Getting Chatto ready…" : "Preparing your lesson…";
     hideIntroError();
     startLessonBtn.disabled = true;
     startLessonBtn.textContent = "Start lesson";
@@ -5447,7 +5457,9 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ scenarioId: lesson.id, language: selectedLanguage, nativeLanguage: selectedNativeLanguage })
         }),
-        fetch(`${API_BASE}/lesson-practice`, {
+        // Skipped entirely on the straight-to-chat first lesson — no point
+        // waiting on (or paying for) exercises nobody will see.
+        straightToChat ? Promise.resolve(null) : fetch(`${API_BASE}/lesson-practice`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ scenarioId: lesson.id, language: selectedLanguage, nativeLanguage: selectedNativeLanguage })
@@ -5475,6 +5487,12 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       introExercises = (practiceData && practiceData.success && Array.isArray(practiceData.exercises))
         ? practiceData.exercises
         : [];
+      if (straightToChat) {
+        trackEvent("first_lesson_direct", { scenario: lesson.id, language: selectedLanguage });
+        introScreen.classList.remove("active");
+        startConversation(lesson, introObjectives, introKeyPhrases, introCulturalNote, introGrammarNote);
+        return;
+      }
       renderIntroContent(introObjectives, introKeyPhrases);
       introLoadingEl.style.display = "none";
       introContentEl.style.display = "block";

@@ -1,3 +1,8 @@
 node_modules/
 .env
 *.log
+
+# Firebase service-account keys and account exports (contain secrets / learner emails)
+serviceAccount*.json
+*-firebase-adminsdk-*.json
+accounts-*.csv

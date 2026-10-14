@@ -38,6 +38,14 @@ function getClient() {
 // unreliable in practice.
 const MODEL = "gpt-5.6-luna";
 
+// GPT-5.6 models "think" before answering, and with no setting they default
+// to medium reasoning effort — several seconds of silent thinking per chat
+// turn, which is what learners see as the long "..." before Chatto replies.
+// A conversation turn and a short lesson intro don't need that, so every
+// call here asks for low effort. If coaching tips ever get noticeably worse,
+// try "medium" on /converse only; if it's still too slow, try "none".
+const REASONING = { effort: "low" };
+
 app.use(cors());
 app.use(express.json({
     limit: "1mb",
@@ -2012,6 +2020,7 @@ app.post("/demo-chat", demoLimiter, async (req, res) => {
         const turnsLeft = message === "__START__" ? DEMO_MAX_TURNS : DEMO_MAX_TURNS - learnerTurnsSoFar;
         const response = await getClient().responses.create({
             model: MODEL,
+            reasoning: REASONING,
             input: [
                 { role: "system", content: buildDemoPrompt(language, turnsLeft) },
                 ...turns.slice(-8),
@@ -2158,6 +2167,7 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
 
         const response = await getClient().responses.create({
             model: MODEL,
+            reasoning: REASONING,
             input: [
                 { role: "system", content: buildSystemPrompt(language, scenario, safeObjectives, safeKeyPhrases, safeVocabHistory, nativeLanguage, {
                     // Both client-supplied booleans; only ever change how
@@ -2170,7 +2180,7 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
                 ...historyInput,
                 { role: "user", content: message }
             ],
-            text: { format: scenario.friend ? FRIEND_CONVERSATION_JSON_SCHEMA : CONVERSATION_JSON_SCHEMA }
+            text: { format: scenario.friend ? FRIEND_CONVERSATION_JSON_SCHEMA : CONVERSATION_JSON_SCHEMA, verbosity: "low" }
         });
 
         const result = JSON.parse(response.output_text);
@@ -2242,6 +2252,7 @@ app.post("/lesson-intro", introLimiter, async (req, res) => {
 
         const response = await getClient().responses.create({
             model: MODEL,
+            reasoning: REASONING,
             input: [
                 { role: "system", content: buildLessonIntroPrompt(language, scenario, nativeLanguage) },
                 { role: "user", content: "Generate the lesson intro." }
@@ -2296,6 +2307,7 @@ app.post("/lesson-practice", practiceLimiter, async (req, res) => {
 
         const response = await getClient().responses.create({
             model: MODEL,
+            reasoning: REASONING,
             input: [
                 { role: "system", content: buildLessonPracticePrompt(language, scenario, nativeLanguage) },
                 { role: "user", content: "Generate the practice round." }
@@ -2355,6 +2367,7 @@ app.post("/lookup", lookupLimiter, async (req, res) => {
         if (!result) {
             const response = await getClient().responses.create({
                 model: MODEL,
+                reasoning: REASONING,
                 input: [
                     { role: "system", content: buildLookupPrompt(language, nativeLanguage) },
                     { role: "user", content: trimmedPhrase }
