@@ -954,10 +954,14 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .section-complete-desc { font-size: 13.5px; color: var(--ink-soft); line-height: 1.5; margin: 0 0 20px; }
   .section-complete-close { width: auto; padding: 9px 28px; }
 
-  .typing { align-self: flex-start; display: flex; gap: 4px; padding: 14px 15px; }
-  .typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-soft); opacity: 0.4; animation: bounce 1.2s infinite; }
-  .typing span:nth-child(2) { animation-delay: 0.15s; }
-  .typing span:nth-child(3) { animation-delay: 0.3s; }
+  .typing { align-self: flex-start; display: flex; align-items: flex-end; gap: 8px; padding: 4px 0; }
+  .typing-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; object-position: top; background: var(--accent-soft, #fde7e2); flex: none; }
+  .typing-bubble { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 18px 18px 18px 6px; background: var(--surface, #fff); border: 1px solid var(--border); }
+  .typing-label { font-size: 13px; color: var(--ink-soft); }
+  .typing-dots { display: flex; gap: 4px; }
+  .typing-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-soft); opacity: 0.4; animation: bounce 1.2s infinite; }
+  .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
   @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-4px); opacity: 1; } }
 
   .composer {
@@ -5406,6 +5410,51 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // Bumped on every openIntro and whenever the learner backs out of it, so a
   // slow response for a lesson they already left can't overwrite the screen
   // of the lesson they opened next (and point "Start lesson" at the wrong one).
+  // ---------- Opening-line prefetch (first lesson only) ----------
+  // On a brand-new learner's straight-to-chat first lesson, Chatto's opening
+  // line is requested at the same time as the lesson's goals and phrases,
+  // instead of only after they arrive — so the first message is usually
+  // ready the moment the chat appears. The opener doesn't need the goals:
+  // nothing can be completed before the learner has said anything.
+  let prefetchedOpener = null; // { lessonId, language, promise }
+  function prefetchOpener(lesson) {
+    const language = selectedLanguage;
+    const promise = (async () => {
+      try {
+        const headers = await authHeaders();
+        const res = await fetch(`${API_BASE}/converse`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...headers },
+          body: JSON.stringify({
+            scenarioId: lesson.id,
+            language,
+            nativeLanguage: selectedNativeLanguage,
+            history: [],
+            message: "__START__",
+            objectives: [],
+            keyPhrases: [],
+            vocabHistory: getVocabHistory(language),
+            retrying: false,
+            replayRound: false,
+            twist: false,
+            reviewPhrases: []
+          })
+        });
+        const data = await res.json();
+        return { res, data };
+      } catch (e) {
+        return null; // fall back to the normal request when the chat opens
+      }
+    })();
+    prefetchedOpener = { lessonId: lesson.id, language, promise };
+  }
+  function takePrefetchedOpener() {
+    const p = prefetchedOpener;
+    prefetchedOpener = null;
+    if (!p || !currentScenario || p.lessonId !== currentScenario.id || p.language !== selectedLanguage) return null;
+    return p.promise;
+  }
+
   let introGen = 0;
   async function openIntro(lesson) {
     if (guestLimitReached()) return;
@@ -5417,6 +5466,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     // a minute of quiz drills first was where most of them left. From their
     // second lesson on, the intro page and warm-up work as before.
     const straightToChat = !hasAnyProgress();
+    prefetchedOpener = null;
+    if (straightToChat) prefetchOpener(lesson);
     introLesson = lesson;
     introObjectives = [];
     introKeyPhrases = [];
@@ -5443,6 +5494,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     startLessonBtn.disabled = true;
     startLessonBtn.textContent = "Start lesson";
     startLessonBtn.onclick = null;
+    // Nothing to tap on the straight-to-chat loading screen.
+    startLessonBtn.style.display = straightToChat ? "none" : "";
 
     homeScreen.classList.remove("active");
     introScreen.classList.add("active");
@@ -5524,6 +5577,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       // Don't let a flaky /lesson-intro call block practice entirely — let
       // the learner start without goals (and skip the practice round too)
       // if they'd rather not wait/retry.
+      startLessonBtn.style.display = "";
       startLessonBtn.disabled = false;
       startLessonBtn.textContent = "Start without goals";
       startLessonBtn.onclick = () => {
@@ -6868,7 +6922,10 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     const div = document.createElement("div");
     div.className = "typing";
     div.id = "typingIndicator";
-    div.innerHTML = "<span></span><span></span><span></span>";
+    div.setAttribute("role", "status");
+    div.innerHTML = `<img class="typing-avatar" src="/mascot/mascot-wave.webp" alt="" width="34" height="34">`
+      + `<div class="typing-bubble"><span class="typing-label">Chatto is typing</span>`
+      + `<span class="typing-dots"><span></span><span></span><span></span></span></div>`;
     chatLogEl.appendChild(div);
     scrollToBottom();
   }
@@ -6947,8 +7004,17 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     };
 
     try {
+      // The opening line may already have been requested while the lesson
+      // was loading (see prefetchOpener) — use that instead of asking again.
+      let res = null, data = null;
+      const prefetched = (opts.silent && text === "__START__") ? takePrefetchedOpener() : null;
+      if (prefetched) {
+        const r = await prefetched;
+        if (r) { res = r.res; data = r.data; }
+      }
+      if (!res) {
       const authHeadersForConvo = await authHeaders();
-      const res = await fetch(`${API_BASE}/converse`, {
+      res = await fetch(`${API_BASE}/converse`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeadersForConvo },
         body: JSON.stringify({
@@ -6970,7 +7036,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           customTopic: currentScenario.id === CUSTOM_SCENARIO_ID ? currentScenario.customTopic : undefined
         })
       });
-      const data = await res.json();
+      data = await res.json();
+      }
       if (myGen !== conversationGen) return; // learner left this conversation while waiting
       hideTyping();
 
