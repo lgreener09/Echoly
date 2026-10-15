@@ -68,8 +68,9 @@
   }
 </script>
 
-<!-- Ad platform pixels: page views on every visit, plus "CompleteRegistration"
-     when someone creates an account (see trackEvent below), so TikTok/Meta
+<!-- Ad platform pixels: page views on every visit, "ViewContent" when a
+     learner sends their first reply, and "CompleteRegistration" when someone
+     creates an account (see trackAdConversion below), so TikTok/Meta
      campaigns can optimize for real sign-ups instead of cheap clicks.
      META_PIXEL_ID is left empty until a Meta pixel exists; empty = Meta's
      script is never loaded. -->
@@ -94,12 +95,25 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     fbq('init', META_PIXEL_ID);
     fbq('track', 'PageView');
   }
-  // Sends the one conversion the ad platforms optimize for. Never throws —
+  // Sends conversions the ad platforms can optimize for. Never throws —
   // a blocked pixel (ad blockers are common) must not break the page.
+  //  - "sign_up"      -> CompleteRegistration (someone made an account)
+  //  - first reply    -> ViewContent (someone actually replied in a
+  //    conversation). Fired once per page load, on the learner's first
+  //    message, so accidental opens don't count. This happens far more
+  //    often than sign-ups, so small budgets get enough data to optimize on.
+  var adReplyTracked = false;
   function trackAdConversion(name) {
-    if (name !== "sign_up") return;
-    try { if (window.ttq) window.ttq.track("CompleteRegistration"); } catch (e) {}
-    try { if (window.fbq) window.fbq("track", "CompleteRegistration"); } catch (e) {}
+    if (name === "sign_up") {
+      try { if (window.ttq) window.ttq.track("CompleteRegistration"); } catch (e) {}
+      try { if (window.fbq) window.fbq("track", "CompleteRegistration"); } catch (e) {}
+      return;
+    }
+    if (name === "message_sent" && !adReplyTracked) {
+      adReplyTracked = true;
+      try { if (window.ttq) window.ttq.track("ViewContent", { content_name: "first_reply" }); } catch (e) {}
+      try { if (window.fbq) window.fbq("track", "ViewContent", { content_name: "first_reply" }); } catch (e) {}
+    }
   }
 </script>
 
