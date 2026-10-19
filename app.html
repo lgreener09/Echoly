@@ -4341,6 +4341,32 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       billingStatus = null; // offline, or the server hasn't picked up billing config yet — fail quiet
     }
     renderAccountCard();
+    return billingStatus;
+  }
+
+  // After the Stripe success redirect, only count the upgrade once the
+  // server (fed by Stripe's webhook) actually reports premium. Landing on
+  // ?upgraded=1 alone isn't proof: a reload, a bookmarked URL, or a webhook
+  // that never arrives would otherwise inflate subscription_upgraded.
+  async function confirmUpgradeAfterCheckout() {
+    const tries = 6, gapMs = 2500;
+    for (let i = 0; i < tries; i++) {
+      const status = await refreshBillingStatus();
+      if (status && status.premium) {
+        const key = "echoly_upgrade_tracked_" + (currentUser ? currentUser.uid : "anon");
+        let already = false;
+        try { already = localStorage.getItem(key) === "1"; } catch (e) { /* non-fatal */ }
+        if (!already) {
+          trackEvent("subscription_upgraded");
+          try { localStorage.setItem(key, "1"); } catch (e) { /* non-fatal */ }
+        }
+        return;
+      }
+      await new Promise(r => setTimeout(r, gapMs));
+    }
+    // Came back from Stripe but premium never showed up — either the
+    // webhook is failing or this wasn't a real completed checkout.
+    trackEvent("upgrade_return_unconfirmed");
   }
 
   // ---------- Premium price + free trial ----------
@@ -4709,14 +4735,13 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     // Checkout, the webhook that flips premium on can lag the redirect by a
     // second or two, so one short retry covers that common race without
     // polling indefinitely.
-    refreshBillingStatus();
     if (new URLSearchParams(location.search).get("upgraded") === "1") {
-      trackEvent("subscription_upgraded");
       // window.history explicitly — `history` in this scope is the chat
       // transcript array declared above, which has no replaceState.
       window.history.replaceState({}, "", location.pathname);
-      setTimeout(refreshBillingStatus, 2500);
+      confirmUpgradeAfterCheckout();
     } else {
+      refreshBillingStatus();
       claimReferralIfPending();
     }
   }
