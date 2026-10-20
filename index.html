@@ -275,6 +275,29 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   }
   .demo-done b { display: block; font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px; margin-bottom: 10px; }
   .demo-done .btn { width: 100%; }
+  .demo-composer .demo-cta { flex: 1; justify-content: center; text-align: center; animation: pop 0.4s ease both; }
+  /* Chatto plays the barista: header avatar, a small face beside each of
+     his lines, and the "listening" pose while a reply is on its way. */
+  .demo-avatar { width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); overflow: hidden; flex-shrink: 0; }
+  .demo-avatar img { width: 100%; height: 100%; object-fit: cover; object-position: center 12%; display: block; }
+  .ai-row { display: flex; align-items: flex-end; gap: 7px; align-self: flex-start; max-width: 90%; }
+  .ai-row .bubble { max-width: none; }
+  .ai-face { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); overflow: hidden; flex-shrink: 0; }
+  .ai-face img { width: 100%; height: 100%; object-fit: cover; object-position: center 12%; display: block; }
+  .ai-row .typing-dots { align-self: auto; background: var(--bg-deep); }
+  .ai-row .typing-dots i { background: var(--ink-soft); }
+  /* "Reply 1 of 3": shows the demo is short, so it feels finishable. */
+  .demo-steps { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-soft); margin-top: 3px; white-space: nowrap; }
+  .demo-steps span { margin-left: 3px; }
+  .demo-steps i { width: 14px; height: 5px; border-radius: 99px; background: var(--border); transition: background 0.3s; }
+  .demo-steps i.on { background: var(--accent); }
+  .demo-recap { text-align: left; background: rgba(255,255,255,0.08); border-radius: 12px; padding: 8px 12px; margin: 0 0 12px; font-size: 13.5px; }
+  .demo-recap ul { margin: 0; padding: 0; }
+  .demo-recap p { margin: 0 0 6px; font-size: 12px; opacity: 0.75; }
+  .demo-recap li { margin: 3px 0 0 16px; }
+  .demo-recap small { display: block; opacity: 0.7; font-style: italic; font-size: 12px; }
+  .demo-done .demo-sub { display: block; font-size: 13px; opacity: 0.8; margin: -4px 0 12px; }
+  .demo-done-face { width: 52px; height: 52px; margin: -4px auto 4px; display: block; object-fit: contain; }
   .demo .mock { transform: none; }
   /* Chatto peeks over the demo's top corner instead of covering the
      reply box; on phones he steps aside so the chat fits above the fold. */
@@ -492,8 +515,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       <div class="demo" id="demo">
         <div class="mock">
           <div class="mock-top">
-            <span class="mock-top-icon">☕</span>
-            <div><b>Try it: order a coffee</b><small>Tap a phrase or type your own</small></div>
+            <span class="demo-avatar"><img src="/mascot/mascot-wave.webp" width="40" height="40" alt="Chatto the barista"></span>
+            <div><b>Try it: order a coffee ☕</b><div class="demo-steps" id="demoSteps" aria-label="Reply 0 of 3"><i></i><i></i><i></i><span id="demoStepsText">3 replies</span></div></div>
             <select class="demo-lang" id="demoLang" aria-label="Language to practice">
               <option>Spanish</option><option>French</option><option>Italian</option>
               <option>German</option><option>Portuguese</option><option>Japanese</option>
@@ -868,10 +891,29 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   function track(name, params) { try { trackEvent(name, params); } catch (e) {} }
   function scroll() { body.scrollTop = body.scrollHeight; }
   function el(tag, cls, text) { var d = document.createElement(tag); if (cls) d.className = cls; if (text != null) d.textContent = text; return d; }
+  function face(pose) {
+    var f = el("span", "ai-face");
+    var img = el("img");
+    img.src = "/mascot/mascot-" + (pose || "wave") + ".webp"; img.alt = ""; img.width = 28; img.height = 28;
+    f.appendChild(img);
+    return f;
+  }
   function aiBubble(text, translation) {
+    var row = el("div", "ai-row");
     var b = el("div", "bubble b-ai", text);
     if (translation) b.appendChild(el("small", null, translation));
-    body.appendChild(b); scroll();
+    row.appendChild(face("wave")); row.appendChild(b);
+    body.appendChild(row); scroll();
+  }
+  // What the learner said, for the end-of-demo recap: [phrase, translation].
+  var said = [];
+  function steps() {
+    var dots = document.querySelectorAll("#demoSteps i");
+    for (var i = 0; i < dots.length; i++) dots[i].className = i < learnerTurns ? "on" : "";
+    var t = document.getElementById("demoStepsText");
+    if (t) t.textContent = learnerTurns ? ("Reply " + learnerTurns + " of " + MAX_TURNS) : (MAX_TURNS + " replies");
+    var s = document.getElementById("demoSteps");
+    if (s) s.setAttribute("aria-label", "Reply " + learnerTurns + " of " + MAX_TURNS);
   }
   function tipBubble(text) {
     var t = el("div", "b-tip");
@@ -887,15 +929,20 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       var c = el("button", "demo-chip", pair[0]);
       c.type = "button";
       if (pair[1]) c.appendChild(el("small", null, pair[1]));
-      c.addEventListener("click", function () { send(pair[0], "chip"); });
+      c.addEventListener("click", function () { send(pair[0], "chip", pair[1]); });
       wrap.appendChild(c);
     });
     body.appendChild(wrap); scroll();
   }
   function typing(on) {
     var t = body.querySelector(".typing-dots");
-    if (on && !t) { t = el("div", "typing-dots"); t.innerHTML = "<i></i><i></i><i></i>"; t.style.alignSelf = "flex-start"; body.appendChild(t); scroll(); }
-    if (!on && t) t.remove();
+    if (on && !t) {
+      var row = el("div", "ai-row typing-row");
+      t = el("div", "typing-dots"); t.innerHTML = "<i></i><i></i><i></i>";
+      row.appendChild(face("listen")); row.appendChild(t);
+      body.appendChild(row); scroll();
+    }
+    if (!on && t) t.parentNode.remove();
   }
   // The server's two "you could say…" phrases, as [phrase, translation] pairs.
   function suggestionPairs(d) {
@@ -905,25 +952,54 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       .map(function (x) { return [x.phrase, x.translation || ""]; });
   }
   function appLink() {
-    return "/app.html?lang=" + encodeURIComponent(langSel.value) + "&from=landing_demo";
+    // Straight into the full "Order a coffee" lesson in the same language
+    // (Learn step first, then the conversation) instead of onboarding.
+    return "/app.html?lang=" + encodeURIComponent(langSel.value) + "&scenario=cafe_order&from=landing_demo";
   }
   function finish(message) {
     clearChips();
     var d = el("div", "demo-done");
-    d.appendChild(el("b", null, message || ("🎉 You just had a real conversation in " + langSel.value + "!")));
-    var a = el("a", "btn btn-primary", "Keep talking, free →");
+    if (!message) {
+      var img = el("img", "demo-done-face"); img.src = "/mascot/mascot-wave.webp"; img.alt = ""; img.width = 64; img.height = 64;
+      d.appendChild(img);
+      d.appendChild(el("b", null, "☕ You just ordered coffee in " + langSel.value + "!"));
+      d.appendChild(el("span", "demo-sub", "Most apps never get you this far."));
+      if (said.length) {
+        var recap = el("div", "demo-recap");
+        recap.appendChild(el("p", null, "What you said:"));
+        var ul = el("ul");
+        said.forEach(function (s) {
+          var li = el("li", null, s[0]);
+          if (s[1]) li.appendChild(el("small", null, s[1]));
+          ul.appendChild(li);
+        });
+        recap.appendChild(ul);
+        d.appendChild(recap);
+      }
+    } else {
+      d.appendChild(el("b", null, message));
+    }
+    var a = el("a", "btn btn-primary", message ? "Keep talking, free →" : "Do the full café lesson, free →");
     a.href = appLink();
     a.setAttribute("data-track", "demo_continue");
-    d.appendChild(a);
-    body.appendChild(d); scroll();
+    // The button replaces the reply box, so it's always on screen.
+    a.classList.add("demo-cta");
+    input.style.display = "none"; sendBtn.style.display = "none";
+    form.appendChild(a);
+    body.appendChild(d);
+    // Scroll so the card's headline shows first (it's taller than the chat on phones).
+    body.scrollTop += d.getBoundingClientRect().top - body.getBoundingClientRect().top - 8;
     input.disabled = true; sendBtn.disabled = true;
     input.placeholder = "Keep going in the app ↑";
   }
   function reset() {
     gen++;
-    history = []; learnerTurns = 0; busy = false;
+    history = []; learnerTurns = 0; busy = false; said = [];
     body.innerHTML = "";
+    steps();
     input.disabled = false; sendBtn.disabled = false; input.placeholder = "Type your reply…";
+    var cta = form.querySelector(".demo-cta"); if (cta) cta.remove();
+    input.style.display = ""; sendBtn.style.display = "";
     var o = OPENERS[langSel.value];
     if (o) {
       aiBubble(o[0], o[1]);
@@ -956,10 +1032,17 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         finish("Couldn't reach the demo, but the app is ready.");
       });
   }
-  function send(text, how) {
+  function send(text, how, translation) {
     text = (text || "").trim();
     if (!text || busy || learnerTurns >= MAX_TURNS) return;
-    if (!started) { started = true; track("demo_started", { language: langSel.value, how: how || "typed" }); }
+    if (!started) {
+      started = true;
+      track("demo_started", { language: langSel.value, how: how || "typed" });
+      // Tell the ad platforms someone actually replied (same event app.html
+      // sends on a first reply), so campaigns can optimize for real engagement.
+      try { if (window.ttq) window.ttq.track("ViewContent", { content_name: "demo_reply" }); } catch (e) {}
+      try { if (window.fbq) window.fbq("track", "ViewContent", { content_name: "demo_reply" }); } catch (e) {}
+    }
     busy = true; sendBtn.disabled = true;
     clearChips();
     body.appendChild(el("div", "bubble b-me", text)); scroll();
@@ -977,11 +1060,19 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         if (!res.ok || !res.d.success) { finish(res.d && res.d.demoOver ? "That's the demo. Ready for the real thing?" : "The demo's busy right now, but the app is ready."); return; }
         var d = res.d;
         learnerTurns++;
+        said.push([text, translation || ""]);
+        steps();
         history.push({ role: "user", content: text }, { role: "assistant", content: d.reply });
         track("demo_message_sent", { language: langSel.value, turn: learnerTurns });
         if (d.tip) tipBubble(d.tip);
         aiBubble(d.reply, d.replyTranslation);
-        if (learnerTurns >= MAX_TURNS) { track("demo_completed", { language: langSel.value }); finish(); return; }
+        if (learnerTurns >= MAX_TURNS) {
+          track("demo_completed", { language: langSel.value });
+          // A beat to read the barista's last line before the finish card.
+          input.disabled = true; sendBtn.disabled = true;
+          setTimeout(function () { if (myGen === gen) finish(); }, 1400);
+          return;
+        }
         chips(suggestionPairs(d));
         input.focus({ preventScroll: true });
       })
