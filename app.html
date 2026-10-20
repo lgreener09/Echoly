@@ -2216,7 +2216,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // listed (shouldn't happen — kept in sync with the server's LANGUAGES).
   const LANGUAGE_LOCALES = {
     "Spanish": "es-ES", "French": "fr-FR", "Italian": "it-IT", "German": "de-DE",
-    "Portuguese": "pt-PT", "Japanese": "ja-JP", "Mandarin Chinese": "zh-CN", "Korean": "ko-KR",
+    "Portuguese": "pt-BR", "Japanese": "ja-JP", "Mandarin Chinese": "zh-CN", "Korean": "ko-KR",
     "Arabic": "ar-SA", "Russian": "ru-RU", "Hindi": "hi-IN", "Dutch": "nl-NL",
     "Greek": "el-GR", "Turkish": "tr-TR", "Polish": "pl-PL", "Swedish": "sv-SE",
     "Vietnamese": "vi-VN", "Thai": "th-TH", "Indonesian": "id-ID", "Hebrew": "he-IL",
@@ -2281,6 +2281,61 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   let listening = false;
   let activeRecognition = null; // the in-progress SpeechRecognition instance, if any
 
+  // In-app browsers (TikTok, Instagram, Facebook/Messenger) often expose
+  // SpeechRecognition but never let it hear anything, so the mic looks like
+  // it works and silently does nothing. Ad visitors land here a lot.
+  const inAppBrowserName = (() => {
+    const ua = navigator.userAgent || "";
+    if (/musical_ly|BytedanceWebview|TikTok/i.test(ua)) return "TikTok";
+    if (/Instagram/i.test(ua)) return "Instagram";
+    if (/FBAN|FBAV|FB_IAB|Messenger/i.test(ua)) return "Facebook";
+    return "";
+  })();
+
+  // Plain-language message for each SpeechRecognition error code, so a
+  // failed mic tap tells the learner what happened instead of doing nothing.
+  function micErrorMessage(code) {
+    if (inAppBrowserName && (code === "not-allowed" || code === "service-not-allowed" || code === "audio-capture" || code === "network")) {
+      return `Voice input doesn't work inside the ${inAppBrowserName} browser. Open getecholy.com in Chrome or Safari to use the mic, or type your reply.`;
+    }
+    switch (code) {
+      case "not-allowed":
+      case "service-not-allowed":
+        return "Echoly couldn't use your microphone. Allow microphone access for this site in your browser settings, then tap 🎤 again.";
+      case "audio-capture":
+        return "No microphone was found. Check that one is connected and not in use by another app.";
+      case "no-speech":
+        return "Didn't catch that. Tap 🎤 and start speaking right away.";
+      case "network":
+        return "Voice input couldn't reach your browser's speech service. Check your connection and try again, or type your reply.";
+      case "language-not-supported":
+        return `Your browser can't recognize ${selectedLanguage || "this language"} speech yet. Try Chrome, or type your reply.`;
+      default:
+        return "Voice input didn't work that time. Tap 🎤 to try again, or type your reply.";
+    }
+  }
+  function showMicError(msg) {
+    errorBanner.textContent = msg;
+    errorBanner.dataset.source = "mic";
+    errorBanner.classList.add("shown");
+  }
+  function clearMicError() {
+    if (errorBanner.dataset.source === "mic") {
+      errorBanner.classList.remove("shown");
+      errorBanner.textContent = "";
+      delete errorBanner.dataset.source;
+    }
+  }
+
+  // Joins every result so far (final and in-progress) into one transcript.
+  function transcriptFrom(event) {
+    let text = "";
+    for (let i = 0; i < event.results.length; i++) {
+      text += event.results[i][0].transcript;
+    }
+    return text.trim();
+  }
+
   function toggleListening() {
     if (!sttSupported) return;
     if (listening) {
@@ -2291,26 +2346,46 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     try {
       recognition = new SpeechRecognitionCtor();
     } catch (e) {
+      showMicError(micErrorMessage("start-failed"));
       return;
     }
+    // Whatever was already typed stays; speech is added after it.
+    const typedBefore = messageInput.value.trim();
+    let heard = "";
+    let errorCode = "";
     recognition.lang = getLocaleForLanguage(selectedLanguage);
     recognition.continuous = false;
-    recognition.interimResults = false;
+    // Interim results show the words in the box while the learner is still
+    // talking. They're also needed on iPhone/iPad Safari, which often never
+    // delivers a result at all when only final results are requested.
+    recognition.interimResults = true;
     recognition.maxAlternatives = 1;
     recognition.onstart = () => {
       listening = true;
+      clearMicError();
       micBtn.classList.add("listening");
+      messageInput.placeholder = "Listening…";
     };
     recognition.onresult = event => {
-      const transcript = event.results[0][0].transcript;
-      messageInput.value = transcript;
-      messageInput.focus();
+      heard = transcriptFrom(event);
+      messageInput.value = typedBefore ? `${typedBefore} ${heard}` : heard;
     };
-    recognition.onerror = () => { /* best-effort — onend still fires and resets the button */ };
+    recognition.onerror = event => {
+      errorCode = (event && event.error) || "unknown";
+    };
     recognition.onend = () => {
       listening = false;
       activeRecognition = null;
       micBtn.classList.remove("listening");
+      messageInput.placeholder = "Type your reply…";
+      if (heard) {
+        messageInput.focus();
+        trackEvent("mic_used", { language: selectedLanguage });
+      } else if (errorCode !== "aborted") {
+        const code = errorCode || "no-speech";
+        showMicError(micErrorMessage(code));
+        trackEvent("mic_error", { error: code, language: selectedLanguage, in_app: inAppBrowserName || "none" });
+      }
     };
     try {
       recognition.start();
@@ -2318,6 +2393,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     } catch (e) {
       listening = false;
       micBtn.classList.remove("listening");
+      showMicError(micErrorMessage("start-failed"));
     }
   }
 
@@ -2338,19 +2414,24 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       }
       recognition.lang = getLocaleForLanguage(language);
       recognition.continuous = false;
-      recognition.interimResults = false;
+      recognition.interimResults = true; // see toggleListening: needed for iPhone/iPad Safari
       recognition.maxAlternatives = 1;
+      let heard = "";
       let settled = false;
+      const finish = value => { if (!settled) { settled = true; resolve(value); } };
       recognition.onresult = event => {
-        settled = true;
-        resolve(event.results[0][0].transcript);
+        heard = transcriptFrom(event);
+        const last = event.results[event.results.length - 1];
+        if (last && last.isFinal) finish(heard || null);
       };
-      recognition.onerror = () => { if (!settled) { settled = true; resolve(null); } };
-      recognition.onend = () => { if (!settled) { settled = true; resolve(null); } };
+      recognition.onerror = event => {
+        trackEvent("mic_error", { error: (event && event.error) || "unknown", language, in_app: inAppBrowserName || "none", where: "exercise" });
+      };
+      recognition.onend = () => finish(heard || null);
       try {
         recognition.start();
       } catch (e) {
-        resolve(null);
+        finish(null);
       }
     });
   }
@@ -6968,12 +7049,14 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   }
 
   function showError(msg) {
+    delete errorBanner.dataset.source;
     errorBanner.textContent = msg;
     errorBanner.classList.add("shown");
   }
   // Same banner as showError, but for the one case that has its own fix
   // available right there — hitting the free daily conversation cap.
   function showUpgradePrompt(dailyLimit) {
+    delete errorBanner.dataset.source;
     errorBanner.innerHTML = "";
     const done = typeof dailyLimit === "number" ? `You've done your ${dailyLimit} free conversations today. ` : "You've used today's free conversations. ";
     const trial = trialOfferAvailable();
@@ -6990,6 +7073,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     maybeShowUpgradeOffer(dailyLimit, false);
   }
   function hideError() {
+    delete errorBanner.dataset.source;
     errorBanner.classList.remove("shown");
   }
 
