@@ -223,6 +223,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
      in TikTok/Instagram's in-app browser and mobile Safari the bottom bar
      (reply box, Start lesson) could sit off-screen with no way to scroll. */
   .screen { display: none; height: 100vh; height: 100dvh; flex-direction: column; }
+  /* iOS Safari scrolls the whole page up when the keyboard opens, which
+     pushed the chat's header up under the clock/battery and left it there.
+     --vvh (set from visualViewport in script) sizes the chat to exactly the
+     visible area so nothing needs to scroll. */
+  #chatScreen.screen { height: var(--vvh, 100dvh); }
   .screen.active { display: flex; }
 
   /* -------- Account modal: visitors can try Echoly as a guest first, so
@@ -1148,7 +1153,9 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
      target-language text. Only rendered when the phrase has one. */
   .phrase-native-col { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
   .phrase-native-col .phrase-native { flex: none; }
-  .phrase-say { font-weight: 500; color: var(--tip); font-size: 0.86em; white-space: nowrap; }
+  /* Was white-space: nowrap, so a long guide like "(bohn-ZHOOR zhuh voo-DRAY
+     uhn kah-FAY seel voo PLEH)" ran off the right edge on phones. */
+  .phrase-say { font-weight: 500; color: var(--tip); font-size: 0.86em; white-space: normal; overflow-wrap: anywhere; }
   .phrase-romanization { font-size: 11px; color: var(--ink-soft); font-style: italic; opacity: 0.85; }
   /* The "usage" teaching note under a key phrase — when/how it's actually
      used, not just its translation. Only rendered when the AI returned one. */
@@ -2781,6 +2788,21 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   const gateLoadingScreen = document.getElementById("gateLoadingScreen");
   const introScreen = document.getElementById("introScreen");
   const chatScreen = document.getElementById("chatScreen");
+  // See #chatScreen's --vvh rule in the CSS: keep the chat exactly as tall
+  // as the visible area (shrinks when the iPhone keyboard opens) and undo
+  // Safari's page scroll, so the header never slides under the status bar.
+  if (window.visualViewport) {
+    const vv = window.visualViewport;
+    const fitChatToViewport = () => {
+      document.documentElement.style.setProperty("--vvh", Math.round(vv.height) + "px");
+      if (chatScreen.classList.contains("active") && (window.scrollY || document.documentElement.scrollTop)) {
+        window.scrollTo(0, 0);
+      }
+    };
+    vv.addEventListener("resize", fitChatToViewport);
+    vv.addEventListener("scroll", fitChatToViewport);
+    fitChatToViewport();
+  }
   const accountCardEl = document.getElementById("accountCard");
   const authOverlayEl = document.getElementById("authOverlay");
   const authModalTitleEl = document.getElementById("authModalTitle");
@@ -7036,10 +7058,23 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     return "wrong";
   }
 
-  function addRecapQuiz() {
+  function addRecapQuiz(onFinished) {
     const fixQs = convoMistakes.slice(-3).map(m => ({ fix: true, said: m.said, correct: m.correct }));
+    // Quiz the phrases that actually came up in this conversation (said by
+    // the learner or by Chatto), not every phrase on the lesson's list — a
+    // phrase that was only listed on the intro screen and never used in the
+    // chat made learners fail questions on things they never practiced.
+    // Falls back to the full list when fewer than 2 came up. The rest of
+    // the list still feeds the wrong-answer options.
+    const convoText = " " + normalizeAnswer(history.map(t => t && t.content || "").join(" | "), false) + " ";
+    const usedPhrases = currentKeyPhrases.filter(p => {
+      if (!p || typeof p.phrase !== "string") return false;
+      const n = normalizeAnswer(p.phrase, false);
+      return n.length > 1 && convoText.includes(" " + n + " ");
+    });
+    const quizPhrases = usedPhrases.length >= 2 ? usedPhrases : currentKeyPhrases;
     const phraseQs = currentScenario && !currentScenario.customTopic
-      ? buildRecapQuestions(currentKeyPhrases, getVocabHistory(selectedLanguage))
+      ? buildRecapQuestions(quizPhrases, [...currentKeyPhrases, ...getVocabHistory(selectedLanguage)])
       : [];
     const questions = fixQs.concat(phraseQs).slice(0, 3);
     if (!questions.length) return false;
@@ -7206,6 +7241,9 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       home.textContent = "Back to home";
       home.addEventListener("click", goHome);
       card.appendChild(home);
+      // Badges and "Share your win" wait for the score screen instead of
+      // sitting under the questions while the learner is still answering.
+      if (typeof onFinished === "function") onFinished();
       scrollToBottom();
     }
 
@@ -7572,10 +7610,24 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       // there were any (any conversation except a replay round).
       let recapShown = false;
       const wantsRecap = (justCompleted && !currentScenario.customTopic) || (roundEndNow && !replayMode && convoMistakes.length > 0);
-      if (wantsRecap && !recapAdded) { recapAdded = true; recapShown = addRecapQuiz(); }
-      if (justCompleted && currentScenario.id === FRIEND_SCENARIO_ID) addFriendByeCard();
-      if (justCompleted) addShareRow();
-      if (justCompleted && !isGuest()) maybeAddChatReminderAsk();
+      // Everything celebratory waits until the recap quiz (if any) is done.
+      const scenarioAtEnd = currentScenario;
+      let afterRecapDone = false;
+      const afterRecap = () => {
+        if (afterRecapDone) return;
+        afterRecapDone = true;
+        if (justCompleted && scenarioAtEnd.id === FRIEND_SCENARIO_ID) addFriendByeCard();
+        if (justCompleted) addShareRow();
+        if (justCompleted && !isGuest()) maybeAddChatReminderAsk();
+        // Tier-completion badges get the bigger celebration overlay; everything
+        // else gets the small inline pill. At most one tier badge can realistically
+        // be earned per lesson completion, so showing one modal is enough.
+        const tierBadgeEarned = newlyEarnedBadges.find(b => b.tier);
+        newlyEarnedBadges.filter(b => !b.tier).forEach(addBadgeEarnedBanner);
+        if (tierBadgeEarned) showSectionCompleteModal(tierBadgeEarned);
+      };
+      if (wantsRecap && !recapAdded) { recapAdded = true; recapShown = addRecapQuiz(afterRecap); }
+      if (!recapShown) afterRecap();
       // A replay shows its before/after; a first round offers "Run it again,
       // faster" (inside the recap's score screen when there is one).
       if (roundEndNow) {
@@ -7583,12 +7635,6 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         else if (!recapShown && canOfferReplay()) addReplayOfferCard();
       }
       if (!roundEndHandled) startReplayTimer();
-      // Tier-completion badges get the bigger celebration overlay; everything
-      // else gets the small inline pill. At most one tier badge can realistically
-      // be earned per lesson completion, so showing one modal is enough.
-      const tierBadgeEarned = newlyEarnedBadges.find(b => b.tier);
-      newlyEarnedBadges.filter(b => !b.tier).forEach(addBadgeEarnedBanner);
-      if (tierBadgeEarned) showSectionCompleteModal(tierBadgeEarned);
 
     } catch (err) {
       if (myGen !== conversationGen) return;
