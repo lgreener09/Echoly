@@ -5498,15 +5498,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   async function openIntro(lesson) {
     if (guestLimitReached()) return;
     const myIntroGen = ++introGen;
-    // A brand-new learner's very first lesson goes straight into the
-    // conversation: no intro page, no warm-up exercises. The goals and key
-    // phrases still load and stay visible in the chat's side panel, so
-    // beginners keep their hints. Ad visitors came for "real conversation";
-    // a minute of quiz drills first was where most of them left. From their
-    // second lesson on, the intro page and warm-up work as before.
-    const straightToChat = !hasAnyProgress();
+    // Every lesson, including a brand-new learner's first one, starts with
+    // the Learn step (goals + key phrases, then a short warm-up) before the
+    // conversation, so learners know what they're saying before they talk.
+    // The same key phrases stay in the chat's side panel as hints.
     prefetchedOpener = null;
-    if (straightToChat) prefetchOpener(lesson);
     introLesson = lesson;
     introObjectives = [];
     introKeyPhrases = [];
@@ -5528,13 +5524,12 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     introBlurbEl.textContent = lesson.blurb;
     introContentEl.style.display = "none";
     introLoadingEl.style.display = "block";
-    introLoadingEl.textContent = straightToChat ? "Getting Chatto ready…" : "Preparing your lesson…";
+    introLoadingEl.textContent = "Preparing your lesson…";
     hideIntroError();
     startLessonBtn.disabled = true;
     startLessonBtn.textContent = "Start lesson";
     startLessonBtn.onclick = null;
-    // Nothing to tap on the straight-to-chat loading screen.
-    startLessonBtn.style.display = straightToChat ? "none" : "";
+    startLessonBtn.style.display = "";
 
     homeScreen.classList.remove("active");
     introScreen.classList.add("active");
@@ -5549,9 +5544,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ scenarioId: lesson.id, language: selectedLanguage, nativeLanguage: selectedNativeLanguage })
         }),
-        // Skipped entirely on the straight-to-chat first lesson — no point
-        // waiting on (or paying for) exercises nobody will see.
-        straightToChat ? Promise.resolve(null) : fetch(`${API_BASE}/lesson-practice`, {
+        fetch(`${API_BASE}/lesson-practice`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ scenarioId: lesson.id, language: selectedLanguage, nativeLanguage: selectedNativeLanguage })
@@ -5579,18 +5572,14 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       introExercises = (practiceData && practiceData.success && Array.isArray(practiceData.exercises))
         ? practiceData.exercises
         : [];
-      if (straightToChat) {
-        trackEvent("first_lesson_direct", { scenario: lesson.id, language: selectedLanguage });
-        introScreen.classList.remove("active");
-        startConversation(lesson, introObjectives, introKeyPhrases, introCulturalNote, introGrammarNote);
-        return;
-      }
+      trackEvent("learn_step_shown", { scenario: lesson.id, language: selectedLanguage, first_lesson: hasAnyProgress() ? 0 : 1 });
       renderIntroContent(introObjectives, introKeyPhrases);
       introLoadingEl.style.display = "none";
       introContentEl.style.display = "block";
       startLessonBtn.disabled = false;
       startLessonBtn.onclick = () => {
         introScreen.classList.remove("active");
+        trackEvent("learn_step_completed", { scenario: lesson.id, language: selectedLanguage });
         if (introExercises.length) {
           openPractice(lesson, introObjectives, introKeyPhrases, introExercises, introCulturalNote, introGrammarNote);
         } else {
@@ -5603,6 +5592,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         introSkipPracticeBtn.style.display = "block";
         introSkipPracticeBtn.onclick = () => {
           introScreen.classList.remove("active");
+          trackEvent("learn_warmup_skipped", { scenario: lesson.id, language: selectedLanguage });
           startConversation(lesson, introObjectives, introKeyPhrases, introCulturalNote, introGrammarNote);
         };
       } else {
