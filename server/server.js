@@ -498,7 +498,16 @@ app.use((req, res, next) => {
 });
 
 app.use("/server", (req, res) => res.status(404).end());
-app.use(express.static(path.join(__dirname, "..")));
+// Fonts and mascot images rarely change, so browsers may keep them for a
+// day instead of re-checking each one on every visit (pages themselves are
+// still re-checked every time, so deploys show up immediately).
+app.use(express.static(path.join(__dirname, ".."), {
+    setHeaders(res, filePath) {
+        if (/[\\/](fonts|mascot)[\\/]/.test(filePath) || /\.(woff2|webp|png|svg)$/.test(filePath)) {
+            res.setHeader("Cache-Control", "public, max-age=86400");
+        }
+    }
+}));
 
 // ==============================
 // Scenarios
