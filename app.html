@@ -5151,7 +5151,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     const ob = loadOnboarding();
     saveOnboarding({ ...ob, done: true, language: selectedLanguage });
     trackEvent("guide_topic_started", { language: selectedLanguage, topic: requestedTopicTitle || requestedTopic });
-    startCustomConversation(requestedTopic, { icon: "💬", title: requestedTopicTitle || requestedTopic });
+    const guideLesson = customLessonFor(requestedTopic, { icon: "💬", title: requestedTopicTitle || requestedTopic });
+    if (guideLesson) openIntro(guideLesson);
     return true;
   }
 
@@ -5261,7 +5262,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   document.getElementById("onbStartScenarioBtn").addEventListener("click", () => {
     const g = GOALS[onbGoal] || GOALS.travel;
     finishOnboarding("scenario");
-    startCustomConversation(g.topics[0][2], { icon: g.topics[0][0], title: g.topics[0][1] });
+    const firstLesson = customLessonFor(g.topics[0][2], { icon: g.topics[0][0], title: g.topics[0][1] });
+    if (firstLesson) openIntro(firstLesson);
   });
   document.getElementById("onbStartBasicsBtn").addEventListener("click", () => {
     finishOnboarding("basics");
@@ -5324,7 +5326,10 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     const t = todayTopics[Number(btn.dataset.topic)];
     if (t) {
       trackEvent("quick_topic_started", { topic: t[1], language: selectedLanguage });
-      startCustomConversation(t[2], { icon: t[0], title: t[1] });
+      // Same Learn step as every other lesson (goals, key phrases, warm-up)
+      // before the chat, rather than dropping straight into the conversation.
+      const lesson = customLessonFor(t[2], { icon: t[0], title: t[1] });
+      if (lesson) openIntro(lesson);
     }
   });
 
@@ -5754,7 +5759,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
             retrying: false,
             replayRound: false,
             twist: false,
-            reviewPhrases
+            reviewPhrases,
+            customTopic: lesson.id === CUSTOM_SCENARIO_ID ? lesson.customTopic : undefined
           })
         });
         const data = await res.json();
@@ -5763,17 +5769,17 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         return null; // fall back to the normal request when the chat opens
       }
     })();
-    prefetchedOpener = { lessonId: lesson.id, language, promise, reviewPhrases };
+    prefetchedOpener = { lessonId: lesson.id, customTopic: lesson.customTopic || "", language, promise, reviewPhrases };
   }
   // The review phrases a pending prefetch was made with, if it matches.
   function prefetchedReviewPhrasesFor(lesson) {
     const p = prefetchedOpener;
-    return (p && p.lessonId === lesson.id && p.language === selectedLanguage) ? p.reviewPhrases : null;
+    return (p && p.lessonId === lesson.id && p.customTopic === (lesson.customTopic || "") && p.language === selectedLanguage) ? p.reviewPhrases : null;
   }
   function takePrefetchedOpener() {
     const p = prefetchedOpener;
     prefetchedOpener = null;
-    if (!p || !currentScenario || p.lessonId !== currentScenario.id || p.language !== selectedLanguage) return null;
+    if (!p || !currentScenario || p.lessonId !== currentScenario.id || p.customTopic !== (currentScenario.customTopic || "") || p.language !== selectedLanguage) return null;
     return p.promise;
   }
 
@@ -5825,12 +5831,12 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         fetch(`${API_BASE}/lesson-intro`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scenarioId: lesson.id, language: selectedLanguage, nativeLanguage: selectedNativeLanguage })
+          body: JSON.stringify({ scenarioId: lesson.id, language: selectedLanguage, nativeLanguage: selectedNativeLanguage, customTopic: lesson.customTopic })
         }),
         fetch(`${API_BASE}/lesson-practice`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scenarioId: lesson.id, language: selectedLanguage, nativeLanguage: selectedNativeLanguage })
+          body: JSON.stringify({ scenarioId: lesson.id, language: selectedLanguage, nativeLanguage: selectedNativeLanguage, customTopic: lesson.customTopic })
         }).catch(() => null)
       ]);
       const introData = await introRes.json();
@@ -6794,15 +6800,20 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // meant to drop straight into the conversation.
   // `display` optionally gives a short title/icon for the chat header (the
   // home screen's quick-start topics) instead of the full topic text.
-  function startCustomConversation(topic, display) {
+  function customLessonFor(topic, display) {
     const clean = (topic || "").replace(/\s+/g, " ").trim().slice(0, CUSTOM_TOPIC_MAX_LEN);
-    if (!clean) return;
-    const lesson = {
+    if (!clean) return null;
+    return {
       id: CUSTOM_SCENARIO_ID, tier: "Custom",
       icon: (display && display.icon) || "✏️",
       title: (display && display.title) || clean,
+      blurb: clean.charAt(0).toUpperCase() + clean.slice(1) + ".",
       customTopic: clean
     };
+  }
+  function startCustomConversation(topic, display) {
+    const lesson = customLessonFor(topic, display);
+    if (!lesson) return;
     startConversation(lesson, [], [], "", "");
   }
 

@@ -1418,6 +1418,20 @@ function buildCustomScenario(topic) {
     };
 }
 
+// /lesson-intro and /lesson-practice serve both path lessons and custom
+// topics (the home screen's quick-start situation chips, which now get the
+// same Learn step — goals, key phrases, warm-up — as every other lesson).
+function lessonScenarioFor(scenarioId, customTopic) {
+    if (scenarioId === CUSTOM_SCENARIO_ID) return buildCustomScenario(customTopic);
+    return SCENARIOS[scenarioId] || null;
+}
+function lessonCacheKeyFor(scenarioId, scenario, language, nativeLanguage) {
+    if (scenarioId === CUSTOM_SCENARIO_ID) {
+        return scenarioCacheKey(`custom:${scenario.blurb.toLowerCase()}`, language, nativeLanguage);
+    }
+    return scenarioCacheKey(scenarioId, language, nativeLanguage);
+}
+
 // ==============================
 // "Your friend in <language>" — a recurring character who remembers you
 // ==============================
@@ -1642,7 +1656,7 @@ function buildSystemPrompt(language, scenario, objectives, keyPhrases, vocabHist
     const mode = feedbackMode || {};
     const hasObjectives = Array.isArray(objectives) && objectives.length > 0;
     const objectivesSection = hasObjectives
-        ? `\n\nThis conversation also has a short list of lesson objectives the learner is trying to accomplish:\n${objectives.map((o, i) => `${i}. ${o}`).join("\n")}\nAfter the learner's latest message, and considering the whole conversation so far (not just this one message), decide which of these objectives (by their 0-based index above) have now been reasonably satisfied — be a little generous about it, not a strict grader; near enough counts. But an objective only counts when the LEARNER did it in their own words: if an objective is for the learner to ask for something or ask a question (e.g. "Ask for the total", "Ask the price"), it is only satisfied once the learner has asked it themselves — the learner just answering "yes" to you offering it does NOT count. So don't do the learner's objectives for them: never ask on their behalf the question an objective wants them to ask (e.g. don't say "Do you want the total?" when they're supposed to ask for it); instead leave a natural opening for them to do it (e.g. "Anything else?" / "Is that everything?"). Once an objective is satisfied, keep including its index in every later turn too, even if the conversation has moved on. Put the full, cumulative list of satisfied indices in "completedObjectives" (empty array if none yet).`
+        ? `\n\nThis conversation also has a short list of lesson objectives the learner is trying to accomplish:\n${objectives.map((o, i) => `${i}. ${o}`).join("\n")}\nAfter the learner's latest message, and considering the whole conversation so far (not just this one message), decide which of these objectives (by their 0-based index above) have now been reasonably satisfied — be a little generous about it, not a strict grader; near enough counts. But an objective only counts when the LEARNER did it in their own words: if an objective is for the learner to ask for something or ask a question (e.g. "Ask for the total", "Ask the price"), it is only satisfied once the learner has asked it themselves — the learner just answering "yes" to you offering it does NOT count. So don't do the learner's objectives for them: never ask on their behalf the question an objective wants them to ask (e.g. don't say "Do you want the total?" when they're supposed to ask for it); instead leave a natural opening for them to do it (e.g. "Anything else?" / "Is that everything?"). Never repeat a question the learner has just answered: once they've closed something off (e.g. said "that's all"), move the scene forward with a new line, and if one of their objectives is still open, make that new line give them a natural reason to do it (e.g. at a counter, move on to paying: "How would you like to pay?"). Once an objective is satisfied, keep including its index in every later turn too, even if the conversation has moved on. Put the full, cumulative list of satisfied indices in "completedObjectives" (empty array if none yet).`
         : `\n\nThere are no lesson objectives being tracked for this conversation — always return an empty array for "completedObjectives".`;
 
     const safeKeyPhrases = Array.isArray(keyPhrases) ? keyPhrases : [];
@@ -1829,7 +1843,9 @@ function buildLessonPracticePrompt(language, scenario, nativeLanguage) {
     const isIntro = scenario.tier === "Intro";
     const levelNote = isIntro
         ? `The learner is an absolute beginner — keep every word and sentence extremely simple, using only vocabulary a total beginner would already have been taught for this exact topic.`
-        : `The learner already knows some ${language} — keep vocabulary and sentence complexity appropriate for a ${scenario.tier.toLowerCase()}-level learner.`;
+        : scenario.tier === "Custom"
+            ? `Keep vocabulary and sentence complexity simple and everyday — useful to a beginner, but natural rather than textbook-formal.`
+            : `The learner already knows some ${language} — keep vocabulary and sentence complexity appropriate for a ${scenario.tier.toLowerCase()}-level learner.`;
     const rz = romanizationNote(language);
 
     return `Before roleplaying this scenario in ${language}, the learner does a short warm-up practice round testing vocabulary and phrases for this topic: ${scenario.blurb}
@@ -2332,7 +2348,7 @@ app.post("/lesson-intro", introLimiter, async (req, res) => {
         const { scenarioId, language } = req.body;
         const nativeLanguage = normalizeNativeLanguage(req.body.nativeLanguage);
 
-        const scenario = SCENARIOS[scenarioId];
+        const scenario = lessonScenarioFor(scenarioId, req.body.customTopic);
         if (!scenario) {
             return res.status(400).json({ error: "Unknown scenario." });
         }
@@ -2346,7 +2362,7 @@ app.post("/lesson-intro", introLimiter, async (req, res) => {
             });
         }
 
-        const cacheKey = scenarioCacheKey(scenarioId, language, nativeLanguage);
+        const cacheKey = lessonCacheKeyFor(scenarioId, scenario, language, nativeLanguage);
         const cached = await getLessonCache("intro", lessonIntroCache, cacheKey);
         if (cached) {
             return res.json({ success: true, ...cached });
@@ -2387,7 +2403,7 @@ app.post("/lesson-practice", practiceLimiter, async (req, res) => {
         const { scenarioId, language } = req.body;
         const nativeLanguage = normalizeNativeLanguage(req.body.nativeLanguage);
 
-        const scenario = SCENARIOS[scenarioId];
+        const scenario = lessonScenarioFor(scenarioId, req.body.customTopic);
         if (!scenario) {
             return res.status(400).json({ error: "Unknown scenario." });
         }
@@ -2401,7 +2417,7 @@ app.post("/lesson-practice", practiceLimiter, async (req, res) => {
             });
         }
 
-        const cacheKey = scenarioCacheKey(scenarioId, language, nativeLanguage);
+        const cacheKey = lessonCacheKeyFor(scenarioId, scenario, language, nativeLanguage);
         const cached = await getLessonCache("practice", lessonPracticeCache, cacheKey);
         if (cached) {
             return res.json({ success: true, exercises: cached.exercises });
