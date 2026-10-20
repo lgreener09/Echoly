@@ -2520,6 +2520,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // (linked from reminder emails that mention what the friend wants to ask).
   const requestedScenario = (urlParams.get("scenario") || "").slice(0, 80);
   const requestedFriend = urlParams.get("friend") === "1";
+  // Visitors who just finished the landing-page demo already had a 3-reply
+  // conversation, so their first lesson gets a 2-question warm-up (not 5)
+  // and goes straight into the chat after it. One-time: only that lesson.
+  let shortWarmupLessonId = (urlParams.get("from") === "landing_demo" && requestedScenario) ? requestedScenario : null;
+  let practiceShort = false;
   let requestedTopicConsumed = false;
 
   // ---------- Onboarding + learner goal (first visit only) ----------
@@ -5684,6 +5689,9 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       introLoadingEl.style.display = "none";
       introContentEl.style.display = "block";
       startLessonBtn.disabled = false;
+      if (shortWarmupLessonId === lesson.id && introExercises.length > 2) {
+        startLessonBtn.textContent = "Quick warm-up (2 questions) →";
+      }
       startLessonBtn.onclick = () => {
         introScreen.classList.remove("active");
         trackEvent("learn_step_completed", { scenario: lesson.id, language: selectedLanguage });
@@ -5730,7 +5738,20 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   });
 
   // -------- Lesson practice round (mixed exercise types before the chat) --------
+  function pickShortWarmup(exercises) {
+    const want = ["multiple_choice", "word_bank"];
+    const picked = want.map(k => exercises.find(e => e && e.kind === k)).filter(Boolean);
+    return picked.length === 2 ? picked : exercises.slice(0, 2);
+  }
+
   function openPractice(lesson, objectives, keyPhrases, exercises, culturalNote, grammarNote) {
+    practiceShort = false;
+    if (shortWarmupLessonId && lesson.id === shortWarmupLessonId && exercises.length > 2) {
+      exercises = pickShortWarmup(exercises);
+      practiceShort = true;
+      shortWarmupLessonId = null;
+      trackEvent("short_warmup_started", { scenario: lesson.id, language: selectedLanguage });
+    }
     practiceLesson = lesson;
     practiceObjectivesRef = objectives;
     practiceKeyPhrasesRef = keyPhrases;
@@ -6171,7 +6192,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     if (!isCorrect) practiceFeedbackEl.querySelector("strong").textContent = correctText;
 
     practiceActionBtn.disabled = false;
-    practiceActionBtn.textContent = practiceIndex < practiceExercises.length - 1 ? "Next" : "Finish practice";
+    practiceActionBtn.textContent = practiceIndex < practiceExercises.length - 1 ? "Next" : (practiceShort ? "Start the conversation →" : "Finish practice");
     practiceActionBtn.onclick = () => advancePractice();
   }
 
@@ -6185,6 +6206,13 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   }
 
   function finishPractice() {
+    if (practiceShort) {
+      // Short warm-up (demo arrivals): skip the score screen, go talk.
+      practiceShort = false;
+      practiceScreen.classList.remove("active");
+      startConversation(practiceLesson, practiceObjectivesRef, practiceKeyPhrasesRef, practiceCulturalNoteRef, practiceGrammarNoteRef);
+      return;
+    }
     practiceProgressFillEl.style.width = "100%";
     practiceProgressLabelEl.textContent = `${practiceExercises.length} of ${practiceExercises.length}`;
     practiceInstructionEl.textContent = "";
