@@ -64,7 +64,7 @@
      script is never loaded. -->
 <script>
   var TIKTOK_PIXEL_ID = "DB3QRSRC77UA626EL2PG";
-  var META_PIXEL_ID = "1132031259208061";
+  var META_PIXEL_ID = "2064372607531110";
   if (TIKTOK_PIXEL_ID) {
     !function (w, d, t) {
       w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(
@@ -905,7 +905,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       .map(function (x) { return [x.phrase, x.translation || ""]; });
   }
   function appLink() {
-    return "/app.html?lang=" + encodeURIComponent(langSel.value) + "&utm_source=landing_demo";
+    return "/app.html?lang=" + encodeURIComponent(langSel.value) + "&from=landing_demo";
   }
   function finish(message) {
     clearChips();
