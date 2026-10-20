@@ -858,7 +858,20 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .turn { display: flex; flex-direction: column; gap: 6px; max-width: 82%; }
   .turn.ai { align-self: flex-start; align-items: flex-start; }
   .turn.user { align-self: flex-end; align-items: flex-end; }
-  .bubble { padding: 12px 15px; border-radius: 16px; font-size: 15px; line-height: 1.45; }
+  .bubble { padding: 12px 15px; border-radius: 16px; font-size: 15px; line-height: 1.45; overflow-wrap: anywhere; min-width: 0; }
+  #chatScreen { overflow-x: hidden; }
+  /* Tap-to-use answer ideas under the partner's reply (from /converse
+     "suggestions"): tapping one puts it in the reply box, ready to send or
+     tweak, so a beginner is never stuck facing an empty box. */
+  .reply-ideas { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; align-self: flex-end; max-width: 88%; }
+  .reply-ideas-label { font-size: 11.5px; color: var(--ink-soft); }
+  .reply-ideas-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+  .reply-idea {
+    font: inherit; font-size: 13.5px; text-align: left; background: var(--surface); color: var(--ink); cursor: pointer;
+    border: 1.5px dashed var(--accent); border-radius: 12px; padding: 6px 11px; line-height: 1.3; max-width: 100%;
+  }
+  .reply-idea small { display: block; font-size: 11.5px; color: var(--ink-soft); }
+  .reply-idea:hover { background: var(--accent-soft); }
   .turn.ai .bubble { background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
   .turn.user .bubble { background: var(--accent); color: var(--accent-ink); border-bottom-right-radius: 4px; }
   .bubble-row { display: flex; align-items: flex-end; gap: 6px; max-width: 100%; }
@@ -1200,8 +1213,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     display: flex; justify-content: space-between; align-items: center; gap: 8px;
     background: var(--bg); border: 1px solid var(--border); border-radius: 9px; padding: 7px 11px; font-size: 13px;
   }
-  .objectives-phrase-item .phrase-native { font-weight: 600; flex: 1; }
-  .objectives-phrase-item .phrase-en { color: var(--ink-soft); font-size: 12px; flex-shrink: 0; text-align: right; }
+  .objectives-phrase-item .phrase-native { font-weight: 600; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  /* Was flex-shrink: 0, so a long translation ("Do you have something
+     sweet?") refused to wrap and pushed the whole panel past the screen's
+     right edge, cutting off text and the learner's own chat bubbles. */
+  .objectives-phrase-item .phrase-en { color: var(--ink-soft); font-size: 12px; flex: 0 1 42%; min-width: 0; text-align: right; overflow-wrap: anywhere; }
   .objectives-phrase-item .speak-btn { padding: 2px; font-size: 12px; }
 
   /* Intro-tier only: a beginner watches this checklist fill in in real time
@@ -7180,6 +7196,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     let userBubble = null;
     const sentAt = Date.now();
     if (!opts.silent) {
+      clearReplyIdeas();
       userBubble = addUserBubble(text);
       // Freeze the replay clock on the time they took; it restarts when
       // the AI's next reply lands.
@@ -7351,6 +7368,9 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       history.push({ role: "assistant", content: data.reply });
       lastFeedbackType = data.feedbackType || "none";
       addAiTurn(data.reply, data.replyTranslation, data.tip, data.replyRomanization, { type: lastFeedbackType, answer: data.nudgeAnswer });
+      // After a "nudge" the learner should fix their own sentence, so no
+      // ready-made answers then (and none in a hint-free replay round).
+      if (!replayMode && lastFeedbackType !== "nudge") addReplyIdeas(data.suggestions);
       lastAiTurnAt = Date.now();
       // End of a round: the objectives are all done or enough messages
       // were sent (and no "try again" is waiting). Also true for lessons
@@ -7421,10 +7441,47 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // Sends what's in the box — but only clears the box once the message is
   // actually going out. Previously pressing Enter while the AI was still
   // replying cleared the box and then dropped the message.
+  function clearReplyIdeas() {
+    chatLogEl.querySelectorAll(".reply-ideas").forEach(el => el.remove());
+  }
+  function addReplyIdeas(list) {
+    clearReplyIdeas();
+    const items = (Array.isArray(list) ? list : []).filter(x => x && typeof x.phrase === "string" && x.phrase.trim()).slice(0, 2);
+    if (!items.length) return;
+    const wrap = document.createElement("div");
+    wrap.className = "reply-ideas";
+    const label = document.createElement("span");
+    label.className = "reply-ideas-label";
+    label.textContent = "Not sure what to say? Tap one:";
+    const row = document.createElement("div");
+    row.className = "reply-ideas-row";
+    items.forEach(it => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "reply-idea";
+      b.textContent = it.phrase;
+      if (it.translation) {
+        const sm = document.createElement("small");
+        sm.textContent = it.translation;
+        b.appendChild(sm);
+      }
+      b.addEventListener("click", () => {
+        messageInput.value = it.phrase;
+        messageInput.focus();
+        trackEvent("reply_idea_used", { scenario: currentScenario && currentScenario.id, language: selectedLanguage });
+      });
+      row.appendChild(b);
+    });
+    wrap.append(label, row);
+    chatLogEl.appendChild(wrap);
+    chatLogEl.scrollTop = chatLogEl.scrollHeight;
+  }
+
   function submitComposer() {
     if (sending) return;
     const text = messageInput.value;
     if (!text.trim()) return;
+    clearReplyIdeas();
     messageInput.value = "";
     sendMessage(text);
   }

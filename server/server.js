@@ -1613,6 +1613,22 @@ function levelAdaptSection(scenario) {
     return s;
 }
 
+// Learners kept getting asked things they had no words to answer ("Would
+// you like something sweet with it?" when nothing taught them how to say
+// yes, no or name a pastry), and stalled. Every turn now also returns two
+// ready-made answers, like the landing-page demo does.
+function suggestionRules(language, nativeLanguage, replayRound) {
+    if (replayRound) {
+        return `\n\n"suggestions": always return an empty array in this round — the learner is practicing without hints.`;
+    }
+    return `\n\n"suggestions": exactly 2 short things the learner could naturally say NEXT in ${language}, each with its plain ${nativeLanguage} "translation".
+- They must directly answer or respond to what you just said in "reply" (if you asked a question, give two different plausible answers, e.g. one yes and one no, or two different choices).
+- Keep them short (1-6 words when possible), simple and at the learner's level — prefer words from the phrases they've been taught, and never anything harder than your own "reply".
+- Write them as the learner would say them, never as instructions ("Say...", "Try...").
+- If the conversation is ending (you said goodbye), suggest a simple thanks / goodbye.
+- Also: whenever you ask the learner a question, make it one they can realistically answer with the phrases they've been taught plus very simple words (yes, no, this one, a number) — don't ask about things they have no vocabulary for.`;
+}
+
 function buildSystemPrompt(language, scenario, objectives, keyPhrases, vocabHistory, nativeLanguage, feedbackMode) {
     const mode = feedbackMode || {};
     const hasObjectives = Array.isArray(objectives) && objectives.length > 0;
@@ -1674,7 +1690,7 @@ Rules for every turn:
         allowNudge: !isIntro && !isMilestone && !mode.replayRound && !mode.retrying,
         retrying: !!mode.retrying && !isIntro && !isMilestone && !mode.replayRound,
         replayRound: !!mode.replayRound
-    })}${levelGuidance}${objectivesSection}${(isIntro || isMilestone) ? "" : levelAdaptSection(scenario)}${mode.twist && !isIntro && !isMilestone ? `\n\nThis is a REVISIT: the learner already did this scenario a few days ago. Keep the same situation, but add one small, realistic complication early on that they have to handle (e.g. the thing they want is sold out, the price has changed, there's a mix-up with their order or booking, or someone asks an unexpected question) — and keep it at their level.` : ""}${reviewSection((isIntro || isMilestone) ? [] : (mode.reviewPhrases || []), language)}${scenario.friend ? friendPromptSection(scenario, nativeLanguage) : ""}`;
+    })}${levelGuidance}${suggestionRules(language, nativeLanguage, !!mode.replayRound)}${objectivesSection}${(isIntro || isMilestone) ? "" : levelAdaptSection(scenario)}${mode.twist && !isIntro && !isMilestone ? `\n\nThis is a REVISIT: the learner already did this scenario a few days ago. Keep the same situation, but add one small, realistic complication early on that they have to handle (e.g. the thing they want is sold out, the price has changed, there's a mix-up with their order or booking, or someone asks an unexpected question) — and keep it at their level.` : ""}${reviewSection((isIntro || isMilestone) ? [] : (mode.reviewPhrases || []), language)}${scenario.friend ? friendPromptSection(scenario, nativeLanguage) : ""}`;
 }
 
 const CONVERSATION_JSON_SCHEMA = {
@@ -1701,9 +1717,23 @@ const CONVERSATION_JSON_SCHEMA = {
             // 0-based indices into the "review phrases" list the learner has
             // now used themselves (see reviewSection), cumulative.
             usedReviewPhrases: { type: "array", items: { type: "integer" } },
-            completedObjectives: { type: "array", items: { type: "integer" } }
+            completedObjectives: { type: "array", items: { type: "integer" } },
+            // Two short replies the learner could say next, shown as tap-to-
+            // use chips under the reply (see suggestionRules).
+            suggestions: {
+                type: "array",
+                items: {
+                    type: "object",
+                    properties: {
+                        phrase: { type: "string" },
+                        translation: { type: "string" }
+                    },
+                    required: ["phrase", "translation"],
+                    additionalProperties: false
+                }
+            }
         },
-        required: ["reply", "replyTranslation", "replyRomanization", "tip", "feedbackType", "nudgeAnswer", "correctedMessage", "usedReviewPhrases", "completedObjectives"],
+        required: ["reply", "replyTranslation", "replyRomanization", "tip", "feedbackType", "nudgeAnswer", "correctedMessage", "usedReviewPhrases", "completedObjectives", "suggestions"],
         additionalProperties: false
     }
 };
@@ -2264,6 +2294,12 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
                 console.error("Couldn't record daily conversation count:", countError.message);
             }
         }
+
+        // Keep suggestions tidy whatever the model returns.
+        result.suggestions = (Array.isArray(result.suggestions) ? result.suggestions : [])
+            .filter(x => x && typeof x.phrase === "string" && x.phrase.trim())
+            .slice(0, 2)
+            .map(x => ({ phrase: x.phrase.trim().slice(0, 120), translation: String(x.translation || "").trim().slice(0, 160) }));
 
         res.json({ success: true, ...result });
 
