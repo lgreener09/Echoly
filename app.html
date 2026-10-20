@@ -5699,15 +5699,21 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // Bumped on every openIntro and whenever the learner backs out of it, so a
   // slow response for a lesson they already left can't overwrite the screen
   // of the lesson they opened next (and point "Start lesson" at the wrong one).
-  // ---------- Opening-line prefetch (first lesson only) ----------
-  // On a brand-new learner's straight-to-chat first lesson, Chatto's opening
-  // line is requested at the same time as the lesson's goals and phrases,
-  // instead of only after they arrive — so the first message is usually
-  // ready the moment the chat appears. The opener doesn't need the goals:
-  // nothing can be completed before the learner has said anything.
-  let prefetchedOpener = null; // { lessonId, language, promise }
-  function prefetchOpener(lesson) {
+  // ---------- Opening-line prefetch ----------
+  // Chatto's opening line is requested the moment the learner starts the
+  // warm-up, so it is generated while they do the exercises (~30s) instead
+  // of after — the first message is usually ready the instant the chat
+  // appears, rather than a 3-4s "Chatto is typing" wait. It is only fired
+  // once the learner has committed to the lesson (tapped into the warm-up),
+  // not when the intro screen opens, so browsing lessons doesn't use up a
+  // free conversation. The review phrases picked here are reused by
+  // startConversation so the opener and the rest of the chat agree.
+  let prefetchedOpener = null; // { lessonId, language, promise, reviewPhrases }
+  function prefetchOpener(lesson, objectives, keyPhrases) {
     const language = selectedLanguage;
+    const reviewPhrases = (lesson.tier === "Intro" || lesson.milestone)
+      ? []
+      : pickReviewPhrases(language, keyPhrases || []);
     const promise = (async () => {
       try {
         const headers = await authHeaders();
@@ -5720,13 +5726,13 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
             nativeLanguage: selectedNativeLanguage,
             history: [],
             message: "__START__",
-            objectives: [],
-            keyPhrases: [],
+            objectives: objectives || [],
+            keyPhrases: keyPhrases || [],
             vocabHistory: getVocabHistory(language),
             retrying: false,
             replayRound: false,
             twist: false,
-            reviewPhrases: []
+            reviewPhrases
           })
         });
         const data = await res.json();
@@ -5735,7 +5741,12 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         return null; // fall back to the normal request when the chat opens
       }
     })();
-    prefetchedOpener = { lessonId: lesson.id, language, promise };
+    prefetchedOpener = { lessonId: lesson.id, language, promise, reviewPhrases };
+  }
+  // The review phrases a pending prefetch was made with, if it matches.
+  function prefetchedReviewPhrasesFor(lesson) {
+    const p = prefetchedOpener;
+    return (p && p.lessonId === lesson.id && p.language === selectedLanguage) ? p.reviewPhrases : null;
   }
   function takePrefetchedOpener() {
     const p = prefetchedOpener;
@@ -5834,6 +5845,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         introScreen.classList.remove("active");
         trackEvent("learn_step_completed", { scenario: lesson.id, language: selectedLanguage });
         if (introExercises.length) {
+          if (!guestLimitReached()) prefetchOpener(lesson, introObjectives, introKeyPhrases);
           openPractice(lesson, introObjectives, introKeyPhrases, introExercises, introCulturalNote, introGrammarNote);
         } else {
           startConversation(lesson, introObjectives, introKeyPhrases, introCulturalNote, introGrammarNote);
@@ -5870,6 +5882,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   }
 
   practiceBackBtn.addEventListener("click", () => {
+    prefetchedOpener = null; // learner left the lesson; don't reuse its opener later
     practiceScreen.classList.remove("active");
     homeScreen.classList.add("active");
     renderHome();
@@ -6467,9 +6480,13 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     pendingNudge = null;
     usedReviewIdx = new Set();
     recapAdded = false;
-    convoReviewPhrases = (startOpts.replay || lesson.tier === "Intro" || lesson.milestone)
-      ? []
-      : pickReviewPhrases(selectedLanguage, keyPhrases || []);
+    const prefetchedReview = (startOpts.replay || startOpts.twist) ? null : prefetchedReviewPhrasesFor(lesson);
+    if (startOpts.replay || startOpts.twist) prefetchedOpener = null; // a prefetched plain opener doesn't fit these
+    convoReviewPhrases = prefetchedReview
+      ? prefetchedReview
+      : (startOpts.replay || lesson.tier === "Intro" || lesson.milestone)
+        ? []
+        : pickReviewPhrases(selectedLanguage, keyPhrases || []);
     replayMode = !!startOpts.replay;
     roundEndHandled = false;
     lastAiTurnAt = 0;
