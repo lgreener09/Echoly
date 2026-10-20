@@ -535,9 +535,20 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .recap-score span { font-size: 14px; color: var(--ink-soft); }
 
   .guest-save-card {
-    align-self: center; max-width: 420px; text-align: center; background: var(--surface);
-    border: 1.5px solid var(--accent); border-radius: 14px; padding: 14px 16px; margin: 6px auto;
+    align-self: center; max-width: 420px; width: 100%; text-align: center; background: var(--surface);
+    border: 1.5px solid var(--accent); border-radius: 16px; padding: 16px 16px 14px; margin: 6px auto;
+    box-shadow: 0 10px 24px -16px rgba(50,34,52,0.4);
   }
+  .guest-save-card img { width: 72px; height: 72px; object-fit: contain; display: block; margin: -4px auto 4px; }
+  .practice-done-mascot { display: block; width: 96px; height: 96px; object-fit: contain; margin: 0 auto 4px; }
+  .guest-save-card h3 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px; margin: 0 0 4px; color: var(--ink); }
+  .guest-save-stats { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+  .guest-save-stats span { background: var(--bg); border: 1px solid var(--border); border-radius: 99px; padding: 3px 10px; font-size: 12.5px; font-weight: 600; color: var(--ink); }
+  .guest-save-card .guest-save-btns { display: flex; flex-direction: column; gap: 8px; }
+  .guest-save-card .guest-save-google { background: #fff; color: var(--ink); border: 1.5px solid var(--border); display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+  .guest-save-card .guest-save-note { font-size: 11.5px; color: var(--ink-soft); margin: 8px 0 0; }
+  .guest-save-card button { width: 100%; padding: 11px 16px; font-size: 14px; }
+  .modal-inapp-note { font-size: 12.5px; color: var(--ink-soft); background: var(--bg); border-radius: 10px; padding: 8px 10px; margin: 10px 0 0; text-align: left; }
   .guest-save-card p { margin: 0 0 10px; font-size: 13.5px; color: var(--ink); }
   .guest-save-card button {
     background: var(--accent); color: #fff; border: none; border-radius: 9px; padding: 9px 16px;
@@ -2502,6 +2513,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // A guest gets a few full conversations before being asked to create a
   // (free) account. This count is client-side only — it's a nudge, not a
   // security boundary; the server's IP rate limiter still caps real cost.
+  // TikTok, Instagram, Facebook and Snapchat open links in their own
+  // built-in browser, where Google sign-in is blocked.
+  const IN_APP_BROWSER = /TikTok|musical_ly|Bytedance|BytedanceWebview|Instagram|FBAN|FBAV|FB_IAB|Snapchat/i.test(navigator.userAgent || "");
+  const GOOGLE_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 01-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.87 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 009 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 013.68 9c0-.59.1-1.17.27-1.7V4.97H.98A9 9 0 000 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 00.98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>';
+  let lessonFinishedThisVisit = false;
   const GUEST_FREE_CONVERSATIONS = 3;
   const GUEST_CONVOS_KEY = "echoly_guest_convos_v1";
   function loadGuestConvoCount() {
@@ -4676,6 +4692,21 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   }
 
   function updateAuthModalMode() {
+    // Google blocks its sign-in inside TikTok/Instagram/Facebook's built-in
+    // browsers ("disallowed_useragent"), so there it only leads to an error.
+    // Hide it there and say why; email sign-up works everywhere.
+    if (IN_APP_BROWSER) {
+      authGoogleBtn.style.display = "none";
+      const divider = authGoogleBtn.previousElementSibling;
+      if (divider && divider.classList.contains("modal-divider")) divider.style.display = "none";
+      if (!document.getElementById("authInAppNote")) {
+        const note = document.createElement("p");
+        note.className = "modal-inapp-note";
+        note.id = "authInAppNote";
+        note.textContent = "Google sign-in doesn't work inside TikTok or Instagram. Use your email here, or open getecholy.com in your phone's browser to use Google.";
+        authGoogleBtn.insertAdjacentElement("afterend", note);
+      }
+    }
     if (authMode === "signup") {
       authModalTitleEl.textContent = "Create your account";
       authModalSubtitleEl.textContent = "Free to join, takes about 10 seconds. Anything you've practiced as a guest comes with you.";
@@ -5453,7 +5484,9 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   }
 
   function goHome() {
-    if (chatScreen.classList.contains("active")) leaveConversation();
+    const wasInChat = chatScreen.classList.contains("active");
+    if (wasInChat) leaveConversation();
+    if (wasInChat) setTimeout(maybeGuestLeavePrompt, 0);
     introGen++; // a lesson intro still loading shouldn't pop back up later
     chatScreen.classList.remove("active");
     introScreen.classList.remove("active");
@@ -5527,6 +5560,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     homeScreen.classList.add("active");
     resetCustomTopicForm();
     renderHome(); // reflect any lesson just completed / newly unlocked
+    maybeGuestLeavePrompt();
   });
 
   // -------- Lesson intro screen (goal + key phrases, shown before the chat) --------
@@ -6234,6 +6268,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     practiceInstructionEl.textContent = "";
     const total = practiceExercises.length;
     practiceExerciseAreaEl.innerHTML = `
+      <img class="practice-done-mascot" src="/mascot/mascot-${practiceCorrectCount === total ? "celebrate" : "thumbsup"}.webp" alt="" width="96" height="96">
       <p class="practice-prompt">🎉 ${practiceCorrectCount}/${total} correct!</p>
       <p style="text-align:center; color:var(--ink-soft); font-size:14px; margin:0;">Nice warm-up — now let's put it into practice.</p>`;
     practiceFeedbackEl.style.display = "none";
@@ -6772,7 +6807,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     cheer.className = "completion-cheer";
     const mascot = document.createElement("img");
     mascot.className = "completion-mascot";
-    mascot.src = "/mascot/mascot-wave.webp";
+    mascot.src = "/mascot/mascot-celebrate.webp";
     mascot.alt = "Chatto";
     mascot.width = 84;
     const bubble = document.createElement("span");
@@ -7041,7 +7076,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       card.innerHTML = "";
       const box = document.createElement("div");
       box.className = "recap-score";
-      box.innerHTML = `<img src="/mascot/mascot-wave.webp" alt="Chatto"><b>${score} / ${questions.length}</b><span></span>`;
+      box.innerHTML = `<img src="/mascot/mascot-${perfect ? "trophy" : "thumbsup"}.webp" alt="Chatto"><b>${score} / ${questions.length}</b><span></span>`;
       box.querySelector("span").textContent = perfect
         ? "Perfect! Chatto's impressed."
         : "Good effort! These phrases will come back in your review deck.";
@@ -7123,16 +7158,46 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
 
   // Shown to guests right after they finish a conversation — the moment
   // they've just had a win and have something worth saving.
+  // Right after a finished lesson (the moment a guest feels best about it),
+  // offer to save the progress. Shows what they'd keep, and leads with the
+  // quickest sign-up that actually works in their browser.
   function addGuestSaveCard() {
     const div = document.createElement("div");
     div.className = "guest-save-card";
-    div.innerHTML = `<p>🎉 You just had a real conversation in ${escapeHtml(selectedLanguage)}. Create a free account to save it and keep your streak going.</p><button type="button">Save my progress</button>`;
-    div.querySelector("button").addEventListener("click", () => {
-      trackEvent("guest_save_clicked");
-      openAuthModal("signup");
-    });
+    const streak = getDisplayStreakData().currentStreak || 1;
+    const phrases = ((loadVocabBank()[selectedLanguage]) || []).length;
+    const lessons = getCompletedLessons(selectedLanguage).length;
+    const stats = [`🔥 ${streak}-day streak`];
+    if (phrases) stats.push(`💬 ${phrases} phrase${phrases === 1 ? "" : "s"} learned`);
+    if (lessons > 1) stats.push(`✅ ${lessons} lessons`);
+    div.innerHTML = `
+      <img src="/mascot/mascot-thumbsup.webp" alt="" width="64" height="64">
+      <h3>Don't lose today's progress</h3>
+      <div class="guest-save-stats">${stats.map(t => `<span>${escapeHtml(t)}</span>`).join("")}</div>
+      <div class="guest-save-btns">
+        ${IN_APP_BROWSER ? "" : `<button type="button" class="guest-save-google" data-act="google">${GOOGLE_ICON_SVG} Save with Google</button>`}
+        <button type="button" data-act="email">${IN_APP_BROWSER ? "Save my progress, free" : "Use my email instead"}</button>
+      </div>
+      <p class="guest-save-note">Free forever. Takes about 10 seconds.</p>`;
+    if (!IN_APP_BROWSER) div.querySelector('[data-act="email"]').classList.add("guest-save-email");
+    div.querySelectorAll("button").forEach(btn => btn.addEventListener("click", () => {
+      trackEvent("guest_save_clicked", { method: btn.dataset.act, in_app: IN_APP_BROWSER ? 1 : 0 });
+      if (btn.dataset.act === "google") authGoogleBtn.click();
+      else openAuthModal("signup", "Save your streak and phrases. Free, takes about 10 seconds.");
+    }));
     chatLogEl.appendChild(div);
+    trackEvent("guest_save_shown", { language: selectedLanguage, in_app: IN_APP_BROWSER ? 1 : 0 });
     scrollToBottom();
+  }
+  let guestLeavePromptShown = (() => { try { return localStorage.getItem("echoly_guest_leave_prompt_v1") === "1"; } catch (e) { return false; } })();
+  // One gentle reminder, once ever: a guest who finished a lesson and is
+  // leaving the chat without saving.
+  function maybeGuestLeavePrompt() {
+    if (guestLeavePromptShown || !isGuest() || !lessonFinishedThisVisit) return;
+    guestLeavePromptShown = true;
+    try { localStorage.setItem("echoly_guest_leave_prompt_v1", "1"); } catch (e) { /* non-fatal */ }
+    trackEvent("guest_leave_prompt_shown");
+    setTimeout(() => openAuthModal("signup", "Before you go: save your streak and the phrases you just learned. Free, takes about 10 seconds."), 350);
   }
 
   function showTyping() {
@@ -7382,6 +7447,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       }
       if (roundEndNow) roundEndHandled = true;
       if (justCompleted) addCompletionBanner(streakIncreased, streakAfter);
+      if (justCompleted) lessonFinishedThisVisit = true;
+      if (justCompleted && isGuest()) addGuestSaveCard();
       if (roundEndNow) {
         addReviewUsedNote();
         const isRealLesson = currentScenario.id !== CUSTOM_SCENARIO_ID && currentScenario.id !== FRIEND_SCENARIO_ID
@@ -7403,7 +7470,6 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       if (wantsRecap && !recapAdded) { recapAdded = true; recapShown = addRecapQuiz(); }
       if (justCompleted && currentScenario.id === FRIEND_SCENARIO_ID) addFriendByeCard();
       if (justCompleted) addShareRow();
-      if (justCompleted && isGuest()) addGuestSaveCard();
       if (justCompleted && !isGuest()) maybeAddChatReminderAsk();
       // A replay shows its before/after; a first round offers "Run it again,
       // faster" (inside the recap's score screen when there is one).

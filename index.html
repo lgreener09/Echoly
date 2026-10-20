@@ -343,6 +343,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-bottom: 18px;
   }
   .step h3 { font-size: 20px; margin-bottom: 8px; }
+  /* Chatto acts out each step in the corner of its card. */
+  .step-mascot { position: absolute; top: 12px; right: 14px; width: 84px; height: 84px; object-fit: contain; pointer-events: none; }
+  .step h3, .step p { position: relative; }
+  .step p { padding-right: 0; }
+  .step h3 { padding-right: 70px; }
   .step p { margin: 0; color: var(--ink-soft); font-size: 15px; }
   @media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
 
@@ -583,16 +588,19 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       </div>
       <div class="steps">
         <div class="step">
+          <img class="step-mascot" src="/mascot/mascot-thinking.webp" width="84" height="84" alt="" loading="lazy">
           <div class="step-num">1</div>
           <h3>Pick a situation</h3>
           <p>Choose from 106 guided lessons, from "say hello" to "negotiate a salary," or type any situation you're nervous about.</p>
         </div>
         <div class="step">
+          <img class="step-mascot" src="/mascot/mascot-reading2.webp" width="84" height="84" alt="" loading="lazy">
           <div class="step-num">2</div>
           <h3>Learn the key phrases</h3>
           <p>Each lesson starts with the phrases you'll actually need, with audio and a quick warm-up, so you know what you're saying before you say it.</p>
         </div>
         <div class="step">
+          <img class="step-mascot" src="/mascot/mascot-microphone.webp" width="84" height="84" alt="" loading="lazy">
           <div class="step-num">3</div>
           <h3>Have the conversation</h3>
           <p>Your AI partner plays the barista, the landlord or the in-laws. Use what you just learned, type it or say it out loud, and get a quick tip when your phrasing isn't quite natural.</p>
@@ -673,7 +681,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           <h2>34 languages. Pick one and start talking.</h2>
           <p>Echoly also explains everything in the language you already speak, not only English.</p>
         </div>
-        <img class="langs-mascot" src="/mascot/mascot-listen.webp" width="640" height="635" alt="Chatto listening on headphones" loading="lazy">
+        <img class="langs-mascot" src="/mascot/mascot-globe.webp" width="330" height="330" alt="Chatto holding a globe" loading="lazy">
       </div>
       <div class="langs" id="langList"></div>
       <p class="langs-note">Non-Latin scripts like Japanese, Arabic and Hindi come with romanization, so you can read along from day one.</p>
@@ -960,7 +968,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     clearChips();
     var d = el("div", "demo-done");
     if (!message) {
-      var img = el("img", "demo-done-face"); img.src = "/mascot/mascot-wave.webp"; img.alt = ""; img.width = 64; img.height = 64;
+      var img = el("img", "demo-done-face"); img.src = "/mascot/mascot-celebrate.webp"; img.alt = ""; img.width = 64; img.height = 64;
       d.appendChild(img);
       d.appendChild(el("b", null, "☕ You just ordered coffee in " + langSel.value + "!"));
       d.appendChild(el("span", "demo-sub", "Most apps never get you this far."));
