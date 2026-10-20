@@ -319,6 +319,49 @@ const lessonIntroCache = new Map();
 const lessonPracticeCache = new Map();
 const lookupCache = new Map();
 
+// Second tier: Firestore. The server is now on an always-on paid instance,
+// but every deploy still restarts the process and wiped the Map above, so
+// the first learner after each deploy waited ~5-8s for a fresh AI
+// generation of the lesson. Lesson intros/practice rounds are now also
+// saved to Firestore (collection "lessonCache") and read back on a Map
+// miss, so they survive deploys. Falls back to Map-only when Firestore
+// isn't configured. Never throws: a Firestore hiccup just means a cache miss.
+const LESSON_CACHE_COLLECTION = "lessonCache";
+function lessonCacheDocId(kind, key) {
+    return `${kind}::${key}`.replace(/\//g, "_").slice(0, 700);
+}
+async function getLessonCache(kind, map, key) {
+    const hit = map.get(key);
+    if (hit) return hit;
+    if (!db) return null;
+    try {
+        const snap = await db.collection(LESSON_CACHE_COLLECTION).doc(lessonCacheDocId(kind, key)).get();
+        if (!snap.exists) return null;
+        // Stored as a JSON string: Firestore can't hold some shapes (e.g.
+        // arrays of arrays) that the AI output might contain.
+        const raw = snap.data() && snap.data().json;
+        const data = raw ? JSON.parse(raw) : null;
+        if (data) map.set(key, data);
+        return data || null;
+    } catch (e) {
+        console.error("lessonCache read failed:", e.message);
+        return null;
+    }
+}
+function setLessonCache(kind, map, key, result) {
+    map.set(key, result);
+    if (!db) return;
+    db.collection(LESSON_CACHE_COLLECTION).doc(lessonCacheDocId(kind, key))
+        .set({ json: JSON.stringify(result), createdAt: FieldValue.serverTimestamp() })
+        .catch(e => console.error("lessonCache write failed:", e.message));
+}
+function deleteLessonCache(kind, map, key) {
+    map.delete(key);
+    if (!db) return;
+    db.collection(LESSON_CACHE_COLLECTION).doc(lessonCacheDocId(kind, key)).delete()
+        .catch(e => console.error("lessonCache delete failed:", e.message));
+}
+
 function scenarioCacheKey(scenarioId, language, nativeLanguage) {
     return `${scenarioId}::${language}::${nativeLanguage}`;
 }
@@ -331,7 +374,7 @@ function lookupCacheKey(phrase, language, nativeLanguage) {
 // redeploying. Protected by a shared secret rather than left open, since
 // it's a public server. Set ADMIN_SECRET in the environment to use this;
 // without it set, the endpoint refuses every request.
-app.post("/admin/cache/clear", (req, res) => {
+app.post("/admin/cache/clear", async (req, res) => {
     const providedSecret = req.get("X-Admin-Secret");
     if (!process.env.ADMIN_SECRET || providedSecret !== process.env.ADMIN_SECRET) {
         return res.status(404).json({ error: "Not found." }); // 404, not 401 — don't confirm this endpoint exists
@@ -352,8 +395,8 @@ app.post("/admin/cache/clear", (req, res) => {
     if (scenarioId && language) {
         nativeLanguages.forEach(n => {
             const key = scenarioCacheKey(scenarioId, language, n);
-            lessonIntroCache.delete(key);
-            lessonPracticeCache.delete(key);
+            deleteLessonCache("intro", lessonIntroCache, key);
+            deleteLessonCache("practice", lessonPracticeCache, key);
         });
         return res.json({ success: true, cleared: "lesson", scenarioId, language });
     }
@@ -361,6 +404,20 @@ app.post("/admin/cache/clear", (req, res) => {
         lessonIntroCache.clear();
         lessonPracticeCache.clear();
         lookupCache.clear();
+        // Also empty the Firestore copy, or cleared lessons would come back.
+        if (db) {
+            try {
+                const snap = await db.collection(LESSON_CACHE_COLLECTION).get();
+                let batch = db.batch(), n = 0;
+                for (const d of snap.docs) {
+                    batch.delete(d.ref);
+                    if (++n % 400 === 0) { await batch.commit(); batch = db.batch(); }
+                }
+                await batch.commit();
+            } catch (e) {
+                console.error("lessonCache clearAll failed:", e.message);
+            }
+        }
         return res.json({ success: true, cleared: "all" });
     }
     return res.status(400).json({ error: "Provide scenarioId+language, phrase+language, or clearAll: true." });
@@ -2245,7 +2302,7 @@ app.post("/lesson-intro", introLimiter, async (req, res) => {
         }
 
         const cacheKey = scenarioCacheKey(scenarioId, language, nativeLanguage);
-        const cached = lessonIntroCache.get(cacheKey);
+        const cached = await getLessonCache("intro", lessonIntroCache, cacheKey);
         if (cached) {
             return res.json({ success: true, ...cached });
         }
@@ -2261,7 +2318,7 @@ app.post("/lesson-intro", introLimiter, async (req, res) => {
         });
 
         const result = JSON.parse(response.output_text);
-        lessonIntroCache.set(cacheKey, result);
+        setLessonCache("intro", lessonIntroCache, cacheKey, result);
         res.json({ success: true, ...result });
 
     } catch (error) {
@@ -2300,7 +2357,7 @@ app.post("/lesson-practice", practiceLimiter, async (req, res) => {
         }
 
         const cacheKey = scenarioCacheKey(scenarioId, language, nativeLanguage);
-        const cached = lessonPracticeCache.get(cacheKey);
+        const cached = await getLessonCache("practice", lessonPracticeCache, cacheKey);
         if (cached) {
             return res.json({ success: true, exercises: cached.exercises });
         }
@@ -2316,7 +2373,7 @@ app.post("/lesson-practice", practiceLimiter, async (req, res) => {
         });
 
         const result = JSON.parse(response.output_text);
-        lessonPracticeCache.set(cacheKey, result);
+        setLessonCache("practice", lessonPracticeCache, cacheKey, result);
         res.json({ success: true, exercises: result.exercises });
 
     } catch (error) {

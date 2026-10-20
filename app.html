@@ -215,10 +215,14 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   body {
     margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: var(--bg); color: var(--ink); -webkit-font-smoothing: antialiased; line-height: 1.5;
-    height: 100vh; overflow: hidden;
+    height: 100vh; height: 100dvh; overflow: hidden;
   }
   .display { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; }
-  .screen { display: none; height: 100vh; flex-direction: column; }
+  /* 100dvh (with 100vh as the fallback) = the height actually visible on a
+     phone. Plain 100vh includes the area behind the browser's toolbars, so
+     in TikTok/Instagram's in-app browser and mobile Safari the bottom bar
+     (reply box, Start lesson) could sit off-screen with no way to scroll. */
+  .screen { display: none; height: 100vh; height: 100dvh; flex-direction: column; }
   .screen.active { display: flex; }
 
   /* -------- Account modal: visitors can try Echoly as a guest first, so
@@ -1044,6 +1048,12 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .intro-body.intro-warm { background: linear-gradient(180deg, var(--tip-bg) 0%, var(--bg) 220px); }
   .intro-body .error-banner { max-width: none; padding: 0 0 14px; }
   .intro-loading { color: var(--ink-soft); font-size: 14px; padding: 8px 0; }
+  .intro-loading--chatto { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 48px 0 24px; gap: 4px; }
+  .intro-loading--chatto img { width: 96px; height: auto; animation: chattoBob 1.6s ease-in-out infinite; }
+  .intro-loading--chatto b { font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px; color: var(--ink); margin-top: 8px; }
+  .intro-loading--chatto span { font-size: 13.5px; }
+  @keyframes chattoBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  @media (prefers-reduced-motion: reduce) { .intro-loading--chatto img { animation: none; } }
 
   .intro-hero { display: flex; flex-direction: column; align-items: center; text-align: center; margin: 4px 0 24px; }
   .intro-hero-badge {
@@ -1175,6 +1185,12 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--border); padding-top: 12px;
   }
   .objectives-card.collapsed .objectives-phrases { display: none; }
+  /* On phones the goals + phrase list could fill most of the screen and
+     squeeze the chat into a sliver. Cap it; it scrolls on its own. */
+  @media (max-width: 700px) {
+    .objectives-card:not(.collapsed) { max-height: 32vh; max-height: 32dvh; overflow-y: auto; overscroll-behavior: contain; }
+    .objectives-card-header { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+  }
   .objectives-phrases:empty { display: none; border-top: none; padding-top: 0; }
   .objectives-phrases-label {
     font-family: 'Bricolage Grotesque', sans-serif; font-size: 11px; font-weight: 700; color: var(--ink-soft);
@@ -1236,6 +1252,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
 
   .practice-fill-sentence { font-size: 18px; text-align: center; line-height: 1.7; margin: 0 0 8px; }
   .practice-fill-translation { font-size: 13px; color: var(--ink-soft); font-style: italic; text-align: center; margin: 0 0 18px; }
+  .practice-hint-btn {
+    display: block; margin: -6px auto 14px; background: none; border: 1.5px dashed var(--border); border-radius: 99px;
+    padding: 6px 14px; font: inherit; font-size: 13px; color: var(--ink-soft); cursor: pointer;
+  }
+  .practice-hint-btn:hover { border-color: var(--accent); color: var(--ink); }
   .practice-romanization { font-size: 14px; color: var(--ink-soft); font-style: italic; text-align: center; margin: -12px 0 18px; opacity: 0.85; }
   .practice-fill-input {
     border: none; border-bottom: 2px solid var(--accent); text-align: center; font-family: inherit;
@@ -2187,6 +2208,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     } catch (e) {
       // Accounts just aren't available for this page load — the rest of the
       // app (lessons, streaks, local vocab review) keeps working normally.
+      // Nothing will ever call onAuthStateChanged now, so let the visitor in
+      // as a guest instead of leaving them on the loading screen (this
+      // happens with some ad blockers and privacy browsers).
+      trackEvent("firebase_unavailable");
+      if (!authResolved) handleSignedOut();
     }
   }
 
@@ -5604,8 +5630,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     introLanguageLabelEl.textContent = `Practicing ${selectedLanguage}`;
     introBlurbEl.textContent = lesson.blurb;
     introContentEl.style.display = "none";
-    introLoadingEl.style.display = "block";
-    introLoadingEl.textContent = "Preparing your lesson…";
+    introLoadingEl.style.display = "flex";
+    showIntroLoading(lesson);
     hideIntroError();
     startLessonBtn.disabled = true;
     startLessonBtn.textContent = "Start lesson";
@@ -5778,7 +5804,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     practiceExerciseAreaEl.innerHTML = `
       <p class="practice-fill-sentence"></p>
       <p class="practice-romanization" id="fillBlankRomanization" style="display:none"></p>
-      <p class="practice-fill-translation"></p>`;
+      <p class="practice-fill-translation"></p>
+      <button type="button" class="practice-hint-btn" id="fillBlankHintBtn">💡 Hint</button>`;
     const sentenceEl = practiceExerciseAreaEl.querySelector(".practice-fill-sentence");
     sentenceEl.appendChild(document.createTextNode(before));
     const input = document.createElement("input");
@@ -5794,6 +5821,24 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     });
     input.addEventListener("keydown", e => {
       if (e.key === "Enter" && !practiceActionBtn.disabled) practiceActionBtn.click();
+    });
+    // Beginners can get stuck with an empty box and nothing to go on.
+    // First tap shows the first letter and length; second fills it in.
+    let hintLevel = 0;
+    const hintBtn = document.getElementById("fillBlankHintBtn");
+    hintBtn.addEventListener("click", () => {
+      const ans = String(ex.correctAnswer || "");
+      hintLevel++;
+      if (hintLevel === 1 && ans.length > 1) {
+        input.placeholder = ans[0] + ans.slice(1).replace(/[^\s]/g, "_");
+        hintBtn.textContent = "💡 Show answer";
+      } else {
+        input.value = ans;
+        practiceActionBtn.disabled = false;
+        hintBtn.remove();
+      }
+      trackEvent("practice_hint_used", { level: hintLevel });
+      input.focus();
     });
     setTimeout(() => input.focus(), 50);
   }
@@ -5866,6 +5911,20 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     }
   }
 
+  // Lesson prep can take a few seconds the first time a lesson is opened in
+  // a language, so show Chatto getting things ready rather than a bare line.
+  function showIntroLoading(lesson) {
+    introLoadingEl.className = "intro-loading intro-loading--chatto";
+    introLoadingEl.innerHTML = "";
+    const img = document.createElement("img");
+    img.src = "/mascot/mascot-reading.webp"; img.alt = ""; img.width = 96; img.height = 101;
+    const b = document.createElement("b");
+    b.textContent = "Chatto is getting your lesson ready…";
+    const sp = document.createElement("span");
+    sp.textContent = `Picking the ${selectedLanguage} phrases you'll need${lesson && lesson.title ? " for “" + lesson.title + "”" : ""}.`;
+    introLoadingEl.append(img, b, sp);
+  }
+
   function renderWordBank(ex) {
     wordBankOrder = [];
     practiceExerciseAreaEl.innerHTML = `
@@ -5879,7 +5938,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // word without hinting at the correct ORDER, so unlike fill_blank's
   // sentence-level romanization it's safe to show from the start.
   function wordChipHtml(ex, i, extraClass, disabled) {
-    const rz = (Array.isArray(ex.wordsRomanization) && ex.wordsRomanization[i]) ? ex.wordsRomanization[i] : "";
+    let rz = (Array.isArray(ex.wordsRomanization) && ex.wordsRomanization[i]) ? ex.wordsRomanization[i] : "";
+    if (rz && stripDiacritics(String(rz).trim().toLowerCase()) === stripDiacritics(String(ex.words[i]).trim().toLowerCase())) rz = "";
     return `<button class="practice-word-chip${extraClass}" data-index="${i}"${disabled ? " disabled" : ""}>
       <span class="practice-word-chip-text">${ex.words[i]}</span>
       ${rz ? `<span class="practice-word-chip-rz">${rz}</span>` : ""}
@@ -6030,8 +6090,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       reviewRomanization = ex.promptRomanization || "";
     } else if (ex.kind === "fill_blank") {
       const input = document.getElementById("fillBlankInput");
-      const given = stripDiacritics((input.value || "").trim().toLowerCase());
-      isCorrect = given === stripDiacritics(ex.correctAnswer.trim().toLowerCase());
+      // Ignores accents, case and stray punctuation ("cuesta?" = "cuesta").
+      const clean = v => stripDiacritics(String(v || "").trim().toLowerCase()).replace(/[.,!?¿¡;:"'«»“”‘’。、！？]/g, "").replace(/\s+/g, " ").trim();
+      isCorrect = clean(input.value) === clean(ex.correctAnswer);
+      const hintBtn = document.getElementById("fillBlankHintBtn");
+      if (hintBtn) hintBtn.remove();
       input.disabled = true;
       input.style.borderBottomColor = getComputedStyle(document.documentElement).getPropertyValue(isCorrect ? "--ok-border" : "--err-border").trim();
       correctText = ex.correctAnswer; // translation is already shown under the sentence, no need to repeat it here
