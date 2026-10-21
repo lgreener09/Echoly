@@ -765,7 +765,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   }
   .lesson-row.completed .lesson-row-icon { background: var(--accent); border-color: var(--accent); color: #fff; }
   .lesson-row-text { flex: 1; min-width: 0; }
-  .lesson-row-title { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 14.5px; }
+  .lesson-row-title { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 14.5px; color: var(--ink); }
   .lesson-row-blurb { font-size: 12.5px; color: var(--ink-soft); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .lesson-row-status { font-size: 11.5px; font-weight: 700; color: var(--ink-soft); flex-shrink: 0; }
   .lesson-row.completed .lesson-row-status { color: var(--accent); }
@@ -813,43 +813,183 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .custom-topic-btn--primary:disabled { opacity: 0.5; cursor: default; }
   .custom-topic-btn--ghost { background: var(--bg); color: var(--ink-soft); border: 1.5px solid var(--border); }
 
-  .m-topbar, .m-tier-tabs { display: none; }
   .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  @media (max-width: 720px) {
-    .m-topbar {
-      display: flex; align-items: center; gap: 8px; margin: -22px -20px 18px; padding: 12px 16px;
-      background: var(--plum); color: #fff; position: sticky; top: 0; z-index: 5;
-    }
-    .m-brand { display: inline-flex; align-items: center; gap: 6px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 16px; margin-right: auto; }
-    .m-lang select {
-      font: inherit; font-size: 13px; font-weight: 700; color: #fff; background: rgba(255,255,255,0.12);
-      border: 1px solid rgba(255,255,255,0.18); border-radius: 9px; padding: 6px 8px; max-width: 118px;
-    }
-    .m-lang select option { color: #222; }
-    .m-streak { font-size: 13px; font-weight: 800; background: rgba(255,255,255,0.12); border-radius: 9px; padding: 6px 9px; white-space: nowrap; }
-    .m-account { font: inherit; font-size: 13px; font-weight: 700; color: #fff; background: var(--accent); border: none; border-radius: 9px; padding: 7px 11px; cursor: pointer; white-space: nowrap; }
-    .m-account.m-account--ghost { background: rgba(255,255,255,0.12); }
-    .m-tier-tabs {
-      display: flex; gap: 6px; overflow-x: auto; margin: 4px -20px 12px; padding: 2px 20px 4px; scrollbar-width: none;
-    }
-    .m-tier-tabs::-webkit-scrollbar { display: none; }
-    .m-tier-tab {
-      flex-shrink: 0; font: inherit; font-size: 13px; font-weight: 700; color: var(--ink); background: var(--surface);
-      border: 1.5px solid var(--border); border-radius: 99px; padding: 7px 13px; cursor: pointer; white-space: nowrap;
-    }
-    .m-tier-tab small { font-weight: 600; color: var(--ink-soft); margin-left: 4px; }
-    .m-tier-tab.selected { background: var(--ink); color: #fff; border-color: var(--ink); }
-    .m-tier-tab.selected small { color: rgba(255,255,255,0.7); }
+  [hidden] { display: none !important; }
+
+  /* ======== Home (redesign): Chatto's welcome + journey map ========
+     The sidebar is now a slide-out menu at every size; the top bar holds
+     language, streak, account and the menu button. */
+  .home-shell { flex: 1; display: block; min-height: 0; position: relative; }
+  .home-main { height: 100%; overflow-y: auto; padding: 0; min-width: 0; }
+  .home-hidden { display: none !important; }
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 60; width: min(320px, 88vw);
+    padding-top: max(22px, calc(env(safe-area-inset-top, 0px) + 14px));
+    padding-bottom: max(22px, env(safe-area-inset-bottom, 0px));
+    padding-left: max(18px, env(safe-area-inset-left, 0px));
+    transform: translateX(-104%); visibility: hidden;
+    transition: transform 0.25s ease, visibility 0s linear 0.25s;
+    box-shadow: 12px 0 40px rgba(20,12,24,0.28);
   }
-  @media (max-width: 720px) {
-    .home-shell { flex-direction: column; overflow-y: auto; }
-    /* Lessons are what a returning learner opens the app for — show them
-       first on a phone, with the streak/account/language controls reachable
-       by scrolling down rather than pushing lessons below the fold. */
-    .home-main { order: -1; overflow-y: visible; padding: 22px 20px 28px; }
-    .sidebar { width: 100%; overflow-y: visible; border-top: 1px solid rgba(255,255,255,0.08); }
-    .lesson-row-blurb { white-space: normal; }
+  .drawer-open .sidebar { transform: none; visibility: visible; transition: transform 0.25s ease, visibility 0s; }
+  .drawer-backdrop {
+    position: fixed; inset: 0; z-index: 55; background: rgba(20,12,24,0.42);
+    opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0s linear 0.25s;
   }
+  .drawer-open .drawer-backdrop { opacity: 1; visibility: visible; transition: opacity 0.25s ease, visibility 0s; }
+  .sidebar-top-actions { display: flex; gap: 8px; }
+  @media (prefers-reduced-motion: reduce) { .sidebar, .drawer-backdrop { transition: none !important; } }
+
+  .m-topbar {
+    position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 8px;
+    padding: 12px max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px));
+    background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border); color: var(--ink);
+  }
+  .m-brand { display: inline-flex; align-items: center; gap: 7px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 19px; margin-right: auto; color: var(--ink); }
+  .m-lang select, .m-streak, .m-signin, .m-menu {
+    font: inherit; font-size: 14px; font-weight: 600; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 999px; min-height: 40px;
+  }
+  .m-lang select { padding: 0 12px; max-width: 132px; cursor: pointer; }
+  .m-streak { display: inline-flex; align-items: center; gap: 5px; padding: 0 12px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .m-streak svg { color: var(--accent); }
+  .m-signin { padding: 0 14px; cursor: pointer; border-radius: 10px; display: none; }
+  .m-account { font: inherit; font-size: 14px; font-weight: 700; color: #fff; background: var(--plum); border: none; border-radius: 10px; min-height: 40px; padding: 0 14px; cursor: pointer; white-space: nowrap; }
+  .m-account.m-account--ghost { background: var(--surface); color: var(--ink); border: 1px solid var(--border); }
+  .m-menu { width: 40px; padding: 0; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 10px; }
+  .m-lang select:hover, .m-signin:hover, .m-menu:hover { border-color: var(--ink-soft); }
+  @media (min-width: 721px) { .m-topbar { padding-left: 28px; padding-right: 28px; } .m-signin.shown { display: inline-flex; align-items: center; } }
+  @media (max-width: 430px) { .m-brand-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .m-topbar { gap: 6px; } .m-lang select { max-width: 120px; } }
+  @media (max-width: 350px) { .m-lang select { max-width: 96px; padding: 0 8px; } .m-account { padding: 0 10px; } }
+
+  .home-wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 30px; padding-block: 26px 48px; padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
+  .home-wrap .error-banner { margin: 0; padding: 0; max-width: none; }
+  .home-wrap .error-banner:empty { display: none; }
+  .home-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 30px; align-items: start; }
+  .home-grid--bottom { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+  .home-grid--bottom.home-grid--solo { grid-template-columns: minmax(0, 1fr); }
+  .home-grid--solo .home-others { max-width: 720px; }
+  @media (max-width: 860px) { .home-grid, .home-grid--bottom { grid-template-columns: minmax(0, 1fr); } }
+  @media (min-width: 861px) { .home-wrap { padding-left: 36px; padding-right: 36px; padding-top: 34px; } }
+
+  .home-hero { display: flex; flex-direction: column; gap: 18px; align-items: stretch; }
+  .home-hero-greet { display: flex; flex-direction: column-reverse; align-items: center; gap: 12px; }
+  .home-chatto { width: 150px; height: 150px; object-fit: contain; max-width: 100%; }
+  .home-bubble { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 22px; padding: 18px 20px; box-shadow: 0 6px 20px rgba(50,34,52,0.06); text-align: center; }
+  .home-bubble p { margin: 0; }
+  .home-bubble-hi { font-size: 14.5px; font-weight: 600; color: var(--ink-soft); }
+  .home-bubble-title { margin-top: 4px !important; font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px; font-weight: 700; line-height: 1.15; text-wrap: balance; color: var(--ink); }
+  .home-bubble-meta { margin-top: 8px !important; font-size: 14.5px; line-height: 1.45; color: var(--ink-soft); }
+  .home-start {
+    width: 100%; min-height: 58px; border: none; border-radius: 16px; background: #cf4334; color: #fff;
+    font: inherit; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;
+    cursor: pointer; box-shadow: 0 6px 18px rgba(207,67,52,0.28);
+  }
+  .home-start:hover { background: #b83a2c; }
+  .home-guest { margin: 0; text-align: center; font-size: 14px; color: var(--ink-soft); line-height: 1.45; }
+  .home-guest strong { color: var(--ink); }
+  .home-guest button { font: inherit; font-weight: 700; color: var(--accent); background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline; }
+  .home-hero .today-revisit {
+    margin-top: 0; background: var(--surface); color: var(--ink); border: 1.5px dashed var(--border); text-align: left;
+  }
+  .home-hero .today-revisit small { color: var(--ink-soft); }
+  .home-hero .today-revisit:hover { background: var(--accent-soft); }
+  @media (min-width: 861px) {
+    .home-hero { background: var(--surface); border: 1px solid var(--border); border-radius: 28px; padding: 30px; }
+    .home-hero-greet { flex-direction: row; align-items: flex-end; gap: 18px; }
+    .home-chatto { width: 140px; height: 140px; flex-shrink: 0; }
+    .home-bubble { text-align: left; background: var(--accent-soft); border-color: transparent; box-shadow: none; }
+    .home-bubble-title { font-size: 28px; }
+    .home-start { width: auto; align-self: flex-start; padding: 0 30px; }
+    .home-guest { text-align: left; }
+  }
+
+  .home-journey { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .journey-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; border-radius: 16px; background: var(--plum); color: #fff; }
+  .journey-head-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .journey-eyebrow { font-size: 12.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #f4a497; }
+  .journey-unit { margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 700; }
+  .journey-count { font-size: 14px; font-weight: 600; color: #e6dbe8; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .journey-trail { list-style: none; margin: 0; padding: 32px 0 8px; display: flex; flex-direction: column; gap: 26px; }
+  .journey-stop { display: flex; align-items: center; gap: 14px; position: relative; }
+  .journey-stop.is-today:not(:first-child) { margin-top: 18px; }
+  .journey-stop:nth-child(5n+1) { margin-left: 7%; }
+  .journey-stop:nth-child(5n+2) { margin-left: 25%; }
+  .journey-stop:nth-child(5n+3) { margin-left: 12%; }
+  .journey-stop:nth-child(5n+4) { margin-left: 0; }
+  .journey-stop:nth-child(5n+5) { margin-left: 15%; }
+  .journey-node {
+    width: 60px; height: 60px; border-radius: 50%; flex-shrink: 0; border: none; padding: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 26px; font-family: inherit; color: #fff;
+  }
+  .journey-node.done { background: #14733f; box-shadow: 0 5px 0 #0d5a30; }
+  .journey-node.open { background: #cf4334; box-shadow: 0 5px 0 #a5312c; }
+  .journey-node.locked { background: var(--border); box-shadow: 0 5px 0 rgba(0,0,0,0.12); color: var(--ink-soft); cursor: default; }
+  .journey-node.today { width: 78px; height: 78px; font-size: 32px; box-shadow: 0 6px 0 #a5312c, 0 0 0 8px var(--accent-soft); }
+  .journey-node:not(.locked):hover { filter: brightness(1.06); }
+  .journey-node:not(.locked):active { transform: translateY(3px); }
+  .journey-flag { position: absolute; top: -40px; left: 4px; padding: 6px 11px; border-radius: 10px; background: var(--plum); color: #fff; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+  .journey-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .journey-name { font-size: 15.5px; font-weight: 600; color: var(--ink-soft); }
+  .journey-stop.is-today .journey-name, .journey-stop.is-open .journey-name { font-size: 16px; font-weight: 700; color: var(--ink); }
+  .journey-sub { font-size: 13px; color: var(--ink-soft); }
+  .journey-sub--done { color: var(--ok-fg); font-weight: 600; }
+  .journey-all {
+    align-self: center; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px;
+    font: inherit; font-size: 14.5px; font-weight: 600; color: var(--accent); background: none; border: none; cursor: pointer;
+  }
+  .journey-all[aria-expanded="true"] .home-row-chev { transform: rotate(90deg); }
+  @media (prefers-reduced-motion: no-preference) {
+    .journey-node.today { animation: journeyPulse 2.4s ease-in-out infinite; }
+    @keyframes journeyPulse { 0%,100% { box-shadow: 0 6px 0 #a5312c, 0 0 0 8px var(--accent-soft); } 50% { box-shadow: 0 6px 0 #a5312c, 0 0 0 13px var(--accent-soft); } }
+  }
+
+  .all-lessons { display: flex; flex-direction: column; }
+  .all-lessons .m-tier-tabs { display: flex; gap: 6px; overflow-x: auto; margin: 0 0 14px; padding: 2px 0 4px; scrollbar-width: none; }
+  .all-lessons .m-tier-tabs::-webkit-scrollbar { display: none; }
+  .m-tier-tab {
+    flex-shrink: 0; font: inherit; font-size: 13.5px; font-weight: 700; color: var(--ink); background: var(--surface);
+    border: 1.5px solid var(--border); border-radius: 99px; padding: 8px 14px; cursor: pointer; white-space: nowrap;
+  }
+  .m-tier-tab small { font-weight: 600; color: var(--ink-soft); margin-left: 4px; }
+  .m-tier-tab.selected { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .m-tier-tab.selected small { color: inherit; opacity: 0.75; }
+  .all-lessons .lesson-rows, .all-lessons .main-header { max-width: none; }
+  .lesson-row-blurb { white-space: normal; }
+
+  .home-label { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-soft); }
+  .home-others, .home-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .home-list { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; }
+  .home-row {
+    display: flex; align-items: center; gap: 14px; min-height: 66px; padding: 10px 16px; width: 100%;
+    background: none; border: none; border-top: 1px solid var(--border); color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+  }
+  .home-row.is-first { border-top: none; }
+  .home-row:hover { background: var(--bg); }
+  .home-row-ico { width: 38px; height: 38px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; }
+  .home-row-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .home-row-text b { font-size: 15.5px; color: var(--ink); }
+  .home-row-text span { font-size: 13.5px; color: var(--ink-soft); line-height: 1.35; }
+  .home-row-chev { color: var(--ink-soft); flex-shrink: 0; transition: transform 0.15s ease; }
+  .home-row[aria-expanded="true"] .home-row-chev { transform: rotate(90deg); }
+  .home-panel { padding: 4px 16px 16px; }
+  .home-panel--topic { padding: 0; }
+  .home-panel--topic .custom-topic-form.shown { margin: 4px 16px 16px; }
+  .home-panel .today-chips { gap: 8px; }
+  .home-panel .today-chip { background: var(--bg); color: var(--ink); border: 1.5px solid var(--border); min-height: 40px; padding: 8px 14px; font-size: 14px; }
+  .home-panel .today-chip:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .home-panel .games-card { background: none; padding: 0; margin: 0; color: var(--ink); }
+  .home-panel .games-card-top { display: none; }
+  .home-panel .games-card-btns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .home-panel .games-card-btn { background: var(--bg); color: var(--ink); border: 1.5px solid var(--border); min-height: 46px; font-size: 13.5px; }
+  .home-panel .games-card-btn:hover { background: var(--accent-soft); border-color: var(--accent); }
+
+  .home-review { display: flex; align-items: center; gap: 14px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; }
+  .home-review-ico { width: 44px; height: 44px; border-radius: 13px; background: var(--tip-bg); color: var(--tip); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .home-review-btn { min-height: 44px; padding: 0 16px; border-radius: 10px; border: none; background: #cf4334; color: #fff; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+  .home-review-btn:disabled { background: var(--bg); color: var(--ink-soft); border: 1px solid var(--border); cursor: default; }
+  .home-side .reminder-prompt, .home-side .install-card { margin: 0; }
 
   /* -------- Chat screen -------- */
   .lookup-panel {
@@ -1650,7 +1790,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
 
 <div id="homeScreen" class="screen">
   <div class="home-shell">
-    <aside class="sidebar">
+    <div class="drawer-backdrop" id="drawerBackdrop"></div>
+    <aside class="sidebar" id="homeDrawer" aria-label="Menu">
       <div class="sidebar-top-row">
         <button type="button" class="sidebar-brand" id="sidebarBrandBtn" aria-label="Go to home">
           <svg class="brand-mark" width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -1661,7 +1802,12 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           </svg>
           Echoly
         </button>
-        <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle dark mode">🌙</button>
+        <span class="sidebar-top-actions">
+          <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle dark mode">🌙</button>
+          <button type="button" class="theme-toggle-btn drawer-close" id="drawerCloseBtn" aria-label="Close menu">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </span>
       </div>
       <p class="sidebar-tagline">Learn the phrases you'll actually use.</p>
 
@@ -1721,10 +1867,112 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       <p class="sidebar-nav-label">Your path</p>
       <div class="tier-nav" id="tierNav"></div>
 
-      <!-- Games sits below the core language/path nav rather than above it —
-           it's a bonus practice tool, not primary navigation, so it shouldn't
-           push "I speak" / "Language" / "Your path" below the fold. -->
-      <div class="games-card" id="gamesCard" style="display:none">
+      <div class="sidebar-footer">
+        <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
+        <a href="/tos.html" target="_blank" rel="noopener">Terms of Service</a>
+      </div>
+    </aside>
+
+    <main class="home-main" id="homeMain">
+      <!-- Top bar (every screen size): logo, language, streak, account, menu.
+           Everything else that used to sit in the sidebar is in the menu. -->
+      <div class="m-topbar" id="mTopbar">
+        <span class="m-brand">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/><circle cx="8.5" cy="10" r="1.3" fill="#fff"/><circle cx="12" cy="10" r="1.3" fill="#fff"/><circle cx="15.5" cy="10" r="1.3" fill="#fff"/></svg>
+          <span class="m-brand-word">Echoly</span>
+        </span>
+        <label class="m-lang"><span class="sr-only">Language</span><select id="mLangSelect" aria-label="Language to practice"></select></label>
+        <span class="m-streak" id="mStreak" title="Day streak">0</span>
+        <button type="button" class="m-signin" id="topSignInBtn">Sign in</button>
+        <button type="button" class="m-account" id="mAccountBtn">Sign up</button>
+        <button type="button" class="m-menu" id="menuBtn" aria-label="Open menu" aria-controls="homeDrawer" aria-expanded="false">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+      </div>
+      <div class="home-wrap">
+      <div class="error-banner" id="homeErrorBanner"></div>
+
+      <div class="home-grid">
+        <!-- Chatto's welcome: today's lesson and the one big button. -->
+        <section class="home-hero" id="homeHero" aria-label="Today's conversation">
+          <div class="home-hero-greet">
+            <img class="home-chatto" src="/mascot/mascot-wave.webp" alt="Chatto the monkey waving" width="150" height="150">
+            <div class="home-bubble">
+              <p class="home-bubble-hi" id="heroGreet">Hi! Today's conversation</p>
+              <p class="home-bubble-title" id="heroTitle">Loading…</p>
+              <p class="home-bubble-meta" id="heroMeta"></p>
+            </div>
+          </div>
+          <button type="button" class="home-start" id="heroStartBtn">
+            <span id="heroStartLabel">Start talking with Chatto</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+          <p class="home-guest" id="heroGuest" hidden></p>
+          <button type="button" class="today-revisit" id="todayRevisitBtn"></button>
+        </section>
+
+        <!-- Journey: the current unit (5 lessons) as a trail. -->
+        <section class="home-journey" id="homeJourney" aria-labelledby="journeyUnit" hidden>
+          <div class="journey-head">
+            <span class="journey-head-text">
+              <span class="journey-eyebrow" id="journeyTier"></span>
+              <h2 class="journey-unit" id="journeyUnit"></h2>
+            </span>
+            <span class="journey-count" id="journeyCount"></span>
+          </div>
+          <ol class="journey-trail" id="journeyTrail" aria-label="Lessons in this unit"></ol>
+          <button type="button" class="journey-all" id="seeAllBtn" aria-expanded="false" aria-controls="allLessons">See all lessons <svg class="home-row-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+        </section>
+      </div>
+
+      <section class="all-lessons" id="allLessons" hidden>
+        <div class="m-tier-tabs" id="mTierTabs" role="tablist" aria-label="Level"></div>
+        <div class="main-header">
+          <h2 class="main-tier-title" id="mainTierTitle">Loading…</h2>
+          <span class="main-tier-frac" id="mainTierFrac"></span>
+        </div>
+        <p class="main-tier-subtitle" id="mainTierSubtitle" style="display:none">New here? Start with the basics 👋</p>
+        <div class="lesson-rows" id="lessonRows"></div>
+      </section>
+
+      <div class="home-grid home-grid--bottom">
+        <section class="home-others" aria-labelledby="othersHeading">
+          <h2 class="home-label" id="othersHeading">Or talk about something else</h2>
+          <div class="home-list">
+            <button type="button" class="home-row" id="rowFriend" hidden>
+              <span class="home-row-ico" id="rowFriendIcon" aria-hidden="true">☕</span>
+              <span class="home-row-text"><b id="rowFriendTitle">Chat with your friend</b><span id="rowFriendSub"></span></span>
+              <svg class="home-row-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
+            <button type="button" class="home-row" id="rowQuick" aria-expanded="false" aria-controls="quickPanel" hidden>
+              <span class="home-row-ico" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></span>
+              <span class="home-row-text"><b>Quick situation</b><span id="rowQuickSub">Jump straight into a real situation</span></span>
+              <svg class="home-row-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
+            <div class="home-panel" id="quickPanel" hidden>
+              <div class="today-chips" id="todayChips"></div>
+            </div>
+            <button type="button" class="home-row" id="rowTopic" aria-controls="customTopicForm">
+              <span class="home-row-ico" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></span>
+              <span class="home-row-text"><b>Your own topic</b><span>Describe any situation</span></span>
+              <svg class="home-row-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
+            <div class="home-panel home-panel--topic">
+      <div class="custom-topic-form" id="customTopicForm">
+        <textarea class="custom-topic-input" id="customTopicInput" rows="2" maxlength="200" placeholder="e.g. ordering food at a Vietnamese restaurant, a job interview, asking for directions…"></textarea>
+        <div class="custom-topic-form-actions">
+          <button type="button" class="custom-topic-btn custom-topic-btn--ghost" id="customTopicCancelBtn">Cancel</button>
+          <button type="button" class="custom-topic-btn custom-topic-btn--primary" id="customTopicStartBtn" disabled>Start conversation</button>
+        </div>
+      </div>
+            </div>
+            <button type="button" class="home-row" id="rowGames" aria-expanded="false" aria-controls="gamesPanel" hidden>
+              <span class="home-row-ico" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="11" rx="4"/><path d="M8 11v3M6.5 12.5h3M15 12h.01M17.5 13.5h.01"/></svg></span>
+              <span class="home-row-text"><b>Word games</b><span>Practice with your saved words</span></span>
+              <svg class="home-row-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
+            <div class="home-panel" id="gamesPanel" hidden>
+              <div class="games-card" id="gamesCard" style="display:none">
         <div class="games-card-top">
           <span class="games-card-icon">🎮</span>
           <div class="games-card-text">
@@ -1741,31 +1989,17 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           <button type="button" class="games-card-btn" id="speedRoundBtn">⏱️ Speed Round</button>
         </div>
       </div>
+            </div>
+          </div>
+        </section>
 
-      <div class="sidebar-footer">
-        <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
-        <a href="/tos.html" target="_blank" rel="noopener">Terms of Service</a>
-      </div>
-    </aside>
-
-    <main class="home-main" id="homeMain">
-      <!-- Phone-only top bar. On phones the sidebar stacks under the whole
-           lesson list, which buried sign-up, the streak, the language picker
-           and the other levels ~1,900px down. This brings the essentials up. -->
-      <div class="m-topbar" id="mTopbar">
-        <span class="m-brand">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 5.5C3 4.12 4.12 3 5.5 3h13A2.5 2.5 0 0121 5.5v9A2.5 2.5 0 0118.5 17H10l-4.5 4v-4h-.5A2.5 2.5 0 013 14.5v-9z" fill="#e85d4c"/><circle cx="8.5" cy="10" r="1.3" fill="#fff"/><circle cx="12" cy="10" r="1.3" fill="#fff"/><circle cx="15.5" cy="10" r="1.3" fill="#fff"/></svg>
-          Echoly
-        </span>
-        <label class="m-lang"><span class="sr-only">Language</span><select id="mLangSelect" aria-label="Language to practice"></select></label>
-        <span class="m-streak" id="mStreak" title="Day streak">🔥 0</span>
-        <button type="button" class="m-account" id="mAccountBtn">Sign up</button>
-      </div>
-      <div class="error-banner" id="homeErrorBanner"></div>
-      <div class="streak-nudge-banner" id="streakNudgeBanner" style="display:none">
-        <span class="streak-nudge-text" id="streakNudgeText"></span>
-        <button type="button" class="streak-nudge-dismiss" id="streakNudgeDismissBtn" aria-label="Dismiss">✕</button>
-      </div>
+        <section class="home-side" id="homeSide" aria-label="Keep it fresh">
+          <h2 class="home-label">Keep it fresh</h2>
+          <div class="home-review" id="homeReview" hidden>
+            <span class="home-review-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h11a3 3 0 013 3v11H7a3 3 0 01-3-3z"/><path d="M8 9h6M8 13h4"/></svg></span>
+            <span class="home-row-text"><b id="homeReviewTitle">Phrases to review</b><span id="homeReviewSub">A couple of minutes keeps them fresh</span></span>
+            <button type="button" class="home-review-btn" id="homeReviewBtn">Review</button>
+          </div>
       <div class="reminder-prompt" id="reminderPrompt">
         <span style="font-size:22px">📬</span>
         <span class="reminder-prompt-text"><b>Want a nudge each evening?</b>Get one short email with your next conversation, only on days you haven't practiced yet.</span>
@@ -1774,6 +2008,20 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           <button type="button" class="reminder-no" id="reminderNoBtn">No thanks</button>
         </span>
       </div>
+      <div class="install-card" id="installCard" style="display:none">
+        <img src="/icon-192.png" alt="">
+        <span class="install-text"><b>Put Echoly on your home screen</b><span id="installHow">One tap to your next conversation, like any other app.</span></span>
+        <span class="install-actions">
+          <button type="button" class="reminder-yes" id="installYesBtn">Add it</button>
+          <button type="button" class="reminder-no" id="installNoBtn">Not now</button>
+        </span>
+      </div>
+        </section>
+      </div>
+
+      <!-- Kept for the code that fills them in; their content now shows in
+           the hero, the journey and the "something else" list above. -->
+      <div class="home-hidden" hidden>
       <section class="today-card" id="todayCard" style="display:none">
         <p class="today-eyebrow" id="todayEyebrow">Today's conversation</p>
         <div class="today-main">
@@ -1784,9 +2032,6 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           </div>
           <button type="button" class="today-go" id="todayGoBtn">Start talking →</button>
         </div>
-        <p class="today-quick-label" id="todayQuickLabel">Or jump straight into a real situation:</p>
-        <div class="today-chips" id="todayChips"></div>
-        <button type="button" class="today-revisit" id="todayRevisitBtn"></button>
       </section>
       <section class="friend-card" id="friendCard" style="display:none">
         <span class="friend-avatar" id="friendAvatar">☕</span>
@@ -1804,20 +2049,10 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         <ul class="cando-list" id="candoList"></ul>
         <p class="cando-more" id="candoMore"></p>
       </section>
-      <div class="install-card" id="installCard" style="display:none">
-        <img src="/icon-192.png" alt="">
-        <span class="install-text"><b>Put Echoly on your home screen</b><span id="installHow">One tap to your next conversation, like any other app.</span></span>
-        <span class="install-actions">
-          <button type="button" class="reminder-yes" id="installYesBtn">Add it</button>
-          <button type="button" class="reminder-no" id="installNoBtn">Not now</button>
-        </span>
+      <div class="streak-nudge-banner" id="streakNudgeBanner" style="display:none">
+        <span class="streak-nudge-text" id="streakNudgeText"></span>
+        <button type="button" class="streak-nudge-dismiss" id="streakNudgeDismissBtn" aria-label="Dismiss">✕</button>
       </div>
-      <div class="m-tier-tabs" id="mTierTabs" role="tablist" aria-label="Level"></div>
-      <div class="main-header">
-        <h1 class="main-tier-title" id="mainTierTitle">Loading…</h1>
-        <span class="main-tier-frac" id="mainTierFrac"></span>
-      </div>
-      <p class="main-tier-subtitle" id="mainTierSubtitle" style="display:none">New here? Start with the basics 👋</p>
       <button type="button" class="custom-topic-card" id="customTopicCard">
         <span class="custom-topic-icon">✏️</span>
         <span>
@@ -1825,14 +2060,9 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           <span class="custom-topic-sub">Describe any situation and jump straight into a conversation</span>
         </span>
       </button>
-      <div class="custom-topic-form" id="customTopicForm">
-        <textarea class="custom-topic-input" id="customTopicInput" rows="2" maxlength="200" placeholder="e.g. ordering food at a Vietnamese restaurant, a job interview, asking for directions…"></textarea>
-        <div class="custom-topic-form-actions">
-          <button type="button" class="custom-topic-btn custom-topic-btn--ghost" id="customTopicCancelBtn">Cancel</button>
-          <button type="button" class="custom-topic-btn custom-topic-btn--primary" id="customTopicStartBtn" disabled>Start conversation</button>
-        </div>
+        <p class="today-quick-label" id="todayQuickLabel">Or jump straight into a real situation:</p>
       </div>
-      <div class="lesson-rows" id="lessonRows"></div>
+      </div>
     </main>
   </div>
 </div>
@@ -5555,12 +5785,15 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     if (mLangSelectEl.options.length !== langSelectEl.options.length) mLangSelectEl.innerHTML = langSelectEl.innerHTML;
     mLangSelectEl.value = selectedLanguage;
     const st = getDisplayStreakData().currentStreak || 0;
-    mStreakEl.textContent = `🔥 ${st}`;
+    mStreakEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 01-10 0c0-2.5 1.5-4 2.5-5 .3 2 1.5 3 2.5 3 0-3-1.5-5.5 0-8z"/></svg>${st}`;
     mStreakEl.title = `${st}-day streak`;
+    mStreakEl.setAttribute("aria-label", `${st}-day streak`);
     const guest = isGuest();
     mAccountBtn.style.display = (guest || currentUser) ? "" : "none";
     mAccountBtn.textContent = guest ? "Sign up" : "Account";
     mAccountBtn.classList.toggle("m-account--ghost", !guest);
+    const topSignIn = document.getElementById("topSignInBtn");
+    if (topSignIn) topSignIn.classList.toggle("shown", !!(accountsEnabled && guest));
     if (PATH.length) {
       const completed = getCompletedLessons(selectedLanguage);
       mTierTabsEl.innerHTML = getTiersInOrder().map(tier => {
@@ -5578,13 +5811,14 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     });
     mAccountBtn.addEventListener("click", () => {
       if (isGuest()) { trackEvent("mobile_signup_clicked"); openAuthModal("signup"); }
-      else accountCardEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      else openDrawer();
     });
     mTierTabsEl.addEventListener("click", e => {
       const btn = e.target.closest(".m-tier-tab");
       if (!btn) return;
       selectedTier = btn.dataset.tier;
       renderHome();
+      setAllLessonsOpen(true);
     });
   }
 
@@ -5601,6 +5835,217 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     renderTipsCard();
     renderGamesCard();
     renderStreakNudge();
+    try { renderHomeV2(); } catch (e) { console.error("Home render failed:", e); }
+  }
+
+  // ======== Home (redesign): Chatto's welcome, journey, "something else" ========
+  const homeDrawerEl = document.getElementById("homeDrawer");
+  const menuBtnEl = document.getElementById("menuBtn");
+  const allLessonsEl = document.getElementById("allLessons");
+  const seeAllBtnEl = document.getElementById("seeAllBtn");
+  const quickPanelEl = document.getElementById("quickPanel");
+  const gamesPanelEl = document.getElementById("gamesPanel");
+  const HOME_HELLO = {
+    Spanish: "¡Hola!", French: "Bonjour !", Italian: "Ciao!", German: "Hallo!", Portuguese: "Olá!",
+    Dutch: "Hallo!", Swedish: "Hej!", Norwegian: "Hei!", Danish: "Hej!", Finnish: "Hei!", Polish: "Cześć!",
+    Czech: "Ahoj!", Romanian: "Salut!", Hungarian: "Szia!", Greek: "Γεια!", Turkish: "Merhaba!",
+    Russian: "Привет!", Ukrainian: "Привіт!", Japanese: "こんにちは!", Korean: "안녕하세요!",
+    "Mandarin Chinese": "你好!", Arabic: "مرحبا!", Hebrew: "שלום!", Hindi: "नमस्ते!", Indonesian: "Halo!",
+    Malay: "Hai!", Filipino: "Kumusta!", Vietnamese: "Xin chào!", Thai: "สวัสดี!", Swahili: "Jambo!"
+  };
+  const UNIT_SIZE = 5;
+
+  function openDrawer() {
+    document.body.classList.add("drawer-open");
+    menuBtnEl.setAttribute("aria-expanded", "true");
+    setTimeout(() => { try { document.getElementById("drawerCloseBtn").focus({ preventScroll: true }); } catch (e) {} }, 60);
+    trackEvent("home_menu_opened");
+  }
+  function closeDrawer() {
+    if (!document.body.classList.contains("drawer-open")) return;
+    document.body.classList.remove("drawer-open");
+    menuBtnEl.setAttribute("aria-expanded", "false");
+  }
+  menuBtnEl.addEventListener("click", openDrawer);
+  document.getElementById("drawerCloseBtn").addEventListener("click", () => { closeDrawer(); menuBtnEl.focus(); });
+  document.getElementById("drawerBackdrop").addEventListener("click", closeDrawer);
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && document.body.classList.contains("drawer-open")) { closeDrawer(); menuBtnEl.focus(); }
+  });
+
+  function setAllLessonsOpen(open) {
+    allLessonsEl.hidden = !open;
+    seeAllBtnEl.setAttribute("aria-expanded", String(open));
+    seeAllBtnEl.firstChild.textContent = open ? "Hide the full lesson list " : `See all ${PATH.length || ""} lessons `.replace("  ", " ");
+    if (open) setTimeout(() => allLessonsEl.scrollIntoView({ behavior: "smooth", block: "start" }), 30);
+  }
+  seeAllBtnEl.addEventListener("click", () => {
+    const open = allLessonsEl.hidden;
+    setAllLessonsOpen(open);
+    if (open) trackEvent("home_all_lessons_opened");
+  });
+  tierNavEl.addEventListener("click", e => {
+    if (!e.target.closest(".tier-item")) return;
+    closeDrawer();
+    setAllLessonsOpen(true);
+  });
+
+  function togglePanel(rowId, panelEl) {
+    const row = document.getElementById(rowId);
+    const open = panelEl.hidden;
+    panelEl.hidden = !open;
+    row.setAttribute("aria-expanded", String(open));
+  }
+
+  document.getElementById("heroStartBtn").addEventListener("click", () => {
+    trackEvent("home_start_clicked", { has_lesson: todayNextLesson ? 1 : 0 });
+    if (todayNextLesson) { openIntro(todayNextLesson); return; }
+    if (quickPanelEl.hidden) togglePanel("rowQuick", quickPanelEl);
+    quickPanelEl.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+  document.getElementById("heroGuest").addEventListener("click", e => {
+    if (e.target.closest("button")) openAuthModal("signup");
+  });
+  document.getElementById("journeyTrail").addEventListener("click", e => {
+    const btn = e.target.closest("button[data-lesson]");
+    if (!btn || btn.disabled) return;
+    const lesson = PATH.find(l => l.id === btn.dataset.lesson);
+    if (lesson) { trackEvent("journey_lesson_opened", { scenario: lesson.id }); openIntro(lesson); }
+  });
+  document.getElementById("rowFriend").addEventListener("click", () => document.getElementById("friendGoBtn").click());
+  document.getElementById("rowQuick").addEventListener("click", () => togglePanel("rowQuick", quickPanelEl));
+  document.getElementById("rowGames").addEventListener("click", () => togglePanel("rowGames", gamesPanelEl));
+  document.getElementById("rowTopic").addEventListener("click", () => {
+    if (customTopicFormEl.classList.contains("shown")) { resetCustomTopicForm(); return; }
+    customTopicCardEl.click();
+  });
+  document.getElementById("homeReviewBtn").addEventListener("click", () => reviewCardBtn.click());
+
+  function renderHomeV2() {
+    const heroGreetEl = document.getElementById("heroGreet");
+    if (!heroGreetEl) return;
+    const hello = HOME_HELLO[selectedLanguage] || "Hi!";
+    const lesson = todayNextLesson;
+    const heroTitleEl = document.getElementById("heroTitle");
+    const heroMetaEl = document.getElementById("heroMeta");
+    const startLabelEl = document.getElementById("heroStartLabel");
+    if (!PATH.length) {
+      heroGreetEl.textContent = `${hello} Getting your lessons ready…`;
+      heroTitleEl.textContent = "Loading…";
+      heroMetaEl.textContent = "";
+    } else if (lesson) {
+      heroGreetEl.textContent = `${hello} Today's ${selectedLanguage} conversation`;
+      heroTitleEl.textContent = lesson.title;
+      heroMetaEl.textContent = lesson.blurb || "";
+      startLabelEl.textContent = "Start talking with Chatto";
+    } else {
+      heroGreetEl.textContent = `${hello} You've finished the whole path.`;
+      heroTitleEl.textContent = "Keep it fresh with a real situation";
+      heroMetaEl.textContent = "Pick a quick situation, chat with your friend, or practice your own topic.";
+      startLabelEl.textContent = "Pick a quick situation";
+    }
+
+    // Guest / plan line under the button.
+    const guestEl = document.getElementById("heroGuest");
+    if (accountsEnabled && isGuest()) {
+      const left = Math.max(0, GUEST_FREE_CONVERSATIONS - loadGuestConvoCount());
+      guestEl.innerHTML = `<strong>${left} free conversation${left === 1 ? "" : "s"} left</strong> · <button type="button">save your streak</button>`;
+      guestEl.hidden = false;
+    } else if (currentUser && billingStatus && !billingStatus.premium && typeof billingStatus.dailyRemaining === "number") {
+      const n = billingStatus.dailyRemaining;
+      guestEl.textContent = `${n} free conversation${n === 1 ? "" : "s"} left today`;
+      guestEl.hidden = false;
+    } else {
+      guestEl.hidden = true;
+    }
+
+    renderJourney();
+
+    // "Or talk about something else"
+    const friendCardEl = document.getElementById("friendCard");
+    const rowFriend = document.getElementById("rowFriend");
+    const f = selectedLanguage && FRIENDS[selectedLanguage];
+    if (f && friendCardEl.style.display !== "none") {
+      document.getElementById("rowFriendIcon").textContent = f.icon;
+      document.getElementById("rowFriendTitle").textContent = document.getElementById("friendGoBtn").textContent.replace(/\s*→\s*$/, "");
+      document.getElementById("rowFriendSub").textContent = document.getElementById("friendHook").textContent;
+      rowFriend.hidden = false;
+    } else {
+      rowFriend.hidden = true;
+    }
+    const rowQuick = document.getElementById("rowQuick");
+    rowQuick.hidden = !(Array.isArray(todayTopics) && todayTopics.length);
+    if (!rowQuick.hidden) document.getElementById("rowQuickSub").textContent = todayTopics.slice(0, 3).map(t => t[1]).join(", ");
+    if (rowQuick.hidden) quickPanelEl.hidden = true;
+    const rowGames = document.getElementById("rowGames");
+    rowGames.hidden = gamesCardEl.style.display === "none";
+    if (rowGames.hidden) gamesPanelEl.hidden = true;
+    let first = true;
+    document.querySelectorAll(".home-list > .home-row").forEach(r => {
+      r.classList.toggle("is-first", first && !r.hidden);
+      if (!r.hidden) first = false;
+    });
+
+    // Review card
+    const reviewEl = document.getElementById("homeReview");
+    const total = selectedLanguage ? getVocabCards(selectedLanguage).length : 0;
+    if (total > 0) {
+      const due = getDueVocabCards(selectedLanguage).length;
+      document.getElementById("homeReviewTitle").textContent = due === 0
+        ? "All caught up"
+        : `${due} phrase${due === 1 ? "" : "s"} to review`;
+      document.getElementById("homeReviewSub").textContent = due === 0
+        ? "Nothing due right now. New ones arrive as you practice."
+        : "A couple of minutes keeps them fresh";
+      const btn = document.getElementById("homeReviewBtn");
+      btn.disabled = due === 0;
+      btn.textContent = due === 0 ? "Done" : "Review";
+      reviewEl.hidden = false;
+    } else {
+      reviewEl.hidden = true;
+    }
+    const sideShown = !reviewEl.hidden
+      || document.getElementById("reminderPrompt").classList.contains("shown")
+      || document.getElementById("installCard").style.display === "flex";
+    document.getElementById("homeSide").hidden = !sideShown;
+    document.querySelector(".home-grid--bottom").classList.toggle("home-grid--solo", !sideShown);
+    if (!allLessonsEl.hidden) seeAllBtnEl.firstChild.textContent = "Hide the full lesson list ";
+    else seeAllBtnEl.firstChild.textContent = `See all ${PATH.length} lessons `;
+  }
+
+  function renderJourney() {
+    const box = document.getElementById("homeJourney");
+    if (!PATH.length || !selectedLanguage) { box.hidden = true; return; }
+    const completed = getCompletedLessons(selectedLanguage);
+    const next = findNextLesson(selectedLanguage);
+    const anchor = next || PATH[PATH.length - 1];
+    const inTier = PATH.filter(l => l.tier === anchor.tier);
+    const unitIdx = Math.floor(inTier.indexOf(anchor) / UNIT_SIZE);
+    const unit = inTier.slice(unitIdx * UNIT_SIZE, unitIdx * UNIT_SIZE + UNIT_SIZE);
+    const unitCount = Math.ceil(inTier.length / UNIT_SIZE);
+    const doneInUnit = unit.filter(l => completed.includes(l.id)).length;
+    document.getElementById("journeyTier").textContent = `${anchor.tier} · ${unitCount > 1 ? `unit ${unitIdx + 1} of ${unitCount}` : "your path"}`;
+    document.getElementById("journeyUnit").textContent = `Unit ${unitIdx + 1}`;
+    document.getElementById("journeyCount").textContent = `${doneInUnit} of ${unit.length} done`;
+    const check = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
+    const lock = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>`;
+    document.getElementById("journeyTrail").innerHTML = unit.map(l => {
+      const state = getNodeState(PATH.indexOf(l), completed);
+      const isToday = next && l.id === next.id;
+      const title = escapeHtml(l.title);
+      if (state === "completed") {
+        return `<li class="journey-stop is-done"><button type="button" class="journey-node done" data-lesson="${escapeHtml(l.id)}" aria-label="Practice ${title} again">${check}</button>
+          <span class="journey-text"><span class="journey-name">${title}</span><span class="journey-sub journey-sub--done">Done · practice again</span></span></li>`;
+      }
+      if (state === "locked") {
+        return `<li class="journey-stop is-locked"><button type="button" class="journey-node locked" disabled aria-label="${title} (locked)">${lock}</button>
+          <span class="journey-text"><span class="journey-name">${title}</span></span></li>`;
+      }
+      return `<li class="journey-stop ${isToday ? "is-today" : "is-open"}">${isToday ? `<span class="journey-flag">Today</span>` : ""}
+          <button type="button" class="journey-node open${isToday ? " today" : ""}" data-lesson="${escapeHtml(l.id)}" aria-label="Start ${title}">${escapeHtml(l.icon || "")}</button>
+          <span class="journey-text"><span class="journey-name">${title}</span><span class="journey-sub">${isToday ? "Up next" : "Ready when you are"}</span></span></li>`;
+    }).join("");
+    box.hidden = false;
   }
 
   langSelectEl.addEventListener("change", () => {
@@ -5652,6 +6097,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     homeScreen.classList.add("active");
     selectedTier = pickDefaultTier(selectedLanguage);
     resetCustomTopicForm();
+    closeDrawer();
+    setAllLessonsOpen(false);
     renderHome();
     homeMainEl.scrollTo({ top: 0, behavior: "smooth" });
   }
