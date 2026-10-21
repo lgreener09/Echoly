@@ -2837,30 +2837,6 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     new MutationObserver(() => { if (chatScreen.classList.contains("active")) resetNow(); })
       .observe(chatScreen, { attributes: true, attributeFilter: ["class"] });
     setAppH();
-
-    // Hidden diagnostic readout: open the app with ?debug=1 (it then stays
-    // on for that browser tab) to see the live viewport numbers on screen.
-    let debugOn = false;
-    try {
-      if (new URLSearchParams(location.search).get("debug") === "1") sessionStorage.setItem("echoly_debug_vv", "1");
-      debugOn = sessionStorage.getItem("echoly_debug_vv") === "1";
-    } catch (e) {}
-    if (debugOn) {
-      const box = document.createElement("div");
-      box.style.cssText = "position:fixed;left:6px;top:50%;z-index:99999;background:rgba(0,0,0,.78);color:#0f0;font:11px/1.35 monospace;padding:6px 8px;border-radius:6px;pointer-events:none;white-space:pre";
-      document.body.appendChild(box);
-      const r = n => Math.round(n * 10) / 10;
-      setInterval(() => {
-        const se = document.scrollingElement || document.documentElement;
-        const top = chatScreen.getBoundingClientRect().top;
-        box.textContent =
-          "scrollY " + r(window.scrollY) + "  seTop " + r(se.scrollTop) + "\n" +
-          "innerH " + window.innerHeight + "  docH " + se.scrollHeight + "\n" +
-          (vv ? "vvH " + r(vv.height) + "  vvTop " + r(vv.offsetTop) + "  vvPageTop " + r(vv.pageTop) + "\n" : "no vv\n") +
-          "appH " + (root.style.getPropertyValue("--appH") || "-") + "\n" +
-          "chatTop " + r(top) + "  focus " + ((document.activeElement && document.activeElement.id === "messageInput") ? "input" : "-");
-      }, 200);
-    }
   })();
   const accountCardEl = document.getElementById("accountCard");
   const authOverlayEl = document.getElementById("authOverlay");
