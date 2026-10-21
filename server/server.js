@@ -2531,18 +2531,31 @@ const PREMIUM_TRIAL_DAYS = (() => {
 })();
 let planCache = null;
 let planCacheAt = 0;
-// The real price, read from Stripe (so the app never shows a stale,
-// hand-typed price). Cached for 10 minutes.
-async function getPlanInfo() {
-    if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_PRICE_ID) return null;
-    if (planCache && Date.now() - planCacheAt < 10 * 60 * 1000) return planCache;
-    const price = await getStripe().prices.retrieve(process.env.STRIPE_PRICE_ID);
-    planCache = {
+// The real prices, read from Stripe (so the app never shows a stale,
+// hand-typed price). Cached for 10 minutes. STRIPE_PRICE_ID is the monthly
+// plan; STRIPE_PRICE_ID_YEARLY (optional) adds a yearly plan. The monthly
+// fields stay at the top level so older pages keep working.
+function describeStripePrice(price) {
+    return {
         amount: price.unit_amount,                       // in cents
         currency: (price.currency || "usd").toUpperCase(),
         interval: price.recurring ? price.recurring.interval : "month",
         intervalCount: price.recurring ? price.recurring.interval_count : 1
     };
+}
+async function getPlanInfo() {
+    if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_PRICE_ID) return null;
+    if (planCache && Date.now() - planCacheAt < 10 * 60 * 1000) return planCache;
+    const monthly = await getStripe().prices.retrieve(process.env.STRIPE_PRICE_ID);
+    let yearly = null;
+    if (process.env.STRIPE_PRICE_ID_YEARLY) {
+        try {
+            yearly = describeStripePrice(await getStripe().prices.retrieve(process.env.STRIPE_PRICE_ID_YEARLY));
+        } catch (e) {
+            console.error("Couldn't load the yearly price:", e.message);
+        }
+    }
+    planCache = { ...describeStripePrice(monthly), yearly };
     planCacheAt = Date.now();
     return planCache;
 }
@@ -2672,11 +2685,15 @@ app.post("/billing/create-checkout-session", attachUserIfSignedIn, async (req, r
         const origin = req.get("origin") || `${req.protocol}://${req.get("host")}`;
         let withTrial = false;
         try { withTrial = await isTrialEligible(customerId); } catch (e) { withTrial = false; }
+        // "yearly" uses the yearly price when one is set up; anything else
+        // (or no yearly price configured) is the monthly plan.
+        const wantsYearly = req.body?.plan === "yearly" && !!process.env.STRIPE_PRICE_ID_YEARLY;
+        const priceId = wantsYearly ? process.env.STRIPE_PRICE_ID_YEARLY : process.env.STRIPE_PRICE_ID;
         const session = await getStripe().checkout.sessions.create({
             mode: "subscription",
             customer: customerId,
             client_reference_id: req.uid,
-            line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+            line_items: [{ price: priceId, quantity: 1 }],
             // Card collected now, first charge when the trial ends. If the
             // card somehow isn't there at the end, cancel instead of
             // leaving them on a free ride.
@@ -2698,7 +2715,7 @@ app.post("/billing/create-checkout-session", attachUserIfSignedIn, async (req, r
         });
         // Their eligibility changes once this checkout completes.
         trialEligibilityCache.delete(customerId);
-        res.json({ url: session.url, trial: withTrial });
+        res.json({ url: session.url, trial: withTrial, plan: wantsYearly ? "yearly" : "monthly" });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Couldn't start checkout: " + (error.message || "unknown error") });

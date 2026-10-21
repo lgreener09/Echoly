@@ -2057,6 +2057,24 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .modal-field input:focus { border-color: var(--ink-soft); }
   .modal-submit { background: var(--ink); color: var(--bg); border-radius: 999px; min-height: 48px; font-weight: 600; font-size: 15px; }
   .modal-link { color: var(--ink); font-weight: 600; text-decoration: underline; }
+
+  /* ======== Upgrade: yearly / monthly choice ======== */
+  .upgrade-modal .modal-title { font-family: inherit; font-weight: 600; }
+  .upgrade-perks { line-height: 1.8; }
+  .upgrade-plans { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 14px; text-align: left; }
+  .upgrade-plans[hidden] { display: none; }
+  .upgrade-plan {
+    display: flex; flex-direction: column; gap: 3px; padding: 13px 14px; border-radius: 18px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink); font: inherit; text-align: left;
+  }
+  .upgrade-plan.selected { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+  .upgrade-plan-name { font-size: 13px; font-weight: 600; color: var(--ink-soft); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .upgrade-plan-name em { font-style: normal; font-size: 11px; font-weight: 700; color: #fff; background: #cf4334; border-radius: 999px; padding: 2px 8px; }
+  .upgrade-plan-price { font-size: 13px; color: var(--ink-soft); }
+  .upgrade-plan-price b { font-size: 19px; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
+  .upgrade-plan-sub { font-size: 12px; color: var(--ink-soft); }
+  .upgrade-go { background: var(--ink); color: var(--bg); border-radius: 999px; min-height: 52px; font-weight: 600; }
+  .upgrade-go:hover { filter: none; opacity: 0.92; }
 </style>
 </head>
 <body>
@@ -5279,14 +5297,27 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   function trialDaysOffered() {
     return (billingStatus && billingStatus.trialDays) || (planInfo && planInfo.trialDays) || 7;
   }
-  function formatPlanPrice() {
-    const p = planInfo && planInfo.price;
+  function formatMoney(cents, currency) {
+    try { return new Intl.NumberFormat(undefined, { style: "currency", currency: currency || "USD" }).format(cents / 100); }
+    catch (e) { return `$${(cents / 100).toFixed(2)}`; }
+  }
+  function formatPlanPrice(which) {
+    const base = planInfo && planInfo.price;
+    const p = which === "yearly" ? (base && base.yearly) : base;
     if (!p || typeof p.amount !== "number") return "";
-    let money;
-    try { money = new Intl.NumberFormat(undefined, { style: "currency", currency: p.currency || "USD" }).format(p.amount / 100); }
-    catch (e) { money = `$${(p.amount / 100).toFixed(2)}`; }
     const per = p.intervalCount > 1 ? `every ${p.intervalCount} ${p.interval}s` : `a ${p.interval}`;
-    return `${money} ${per}`;
+    return `${formatMoney(p.amount, p.currency)} ${per}`;
+  }
+  // The yearly plan, when Stripe has one: its monthly equivalent and how
+  // much it saves against paying monthly for a year.
+  function yearlyPlanInfo() {
+    const m = planInfo && planInfo.price;
+    const y = m && m.yearly;
+    if (!y || typeof y.amount !== "number" || y.interval !== "year" || y.intervalCount !== 1) return null;
+    const perMonth = formatMoney(Math.floor(y.amount / 12), y.currency);
+    const save = (m.interval === "month" && m.intervalCount === 1 && m.amount > 0)
+      ? Math.round((1 - y.amount / (m.amount * 12)) * 100) : 0;
+    return { perMonth, save };
   }
   // The offer itself — opened when today's free conversations run out
   // (at most once a day, so it's never naggy), or from the banner button.
@@ -5312,6 +5343,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         <li>🔥 Keep your streak going whenever you want</li>
         <li>🌍 All 34 languages and every lesson</li>
       </ul>
+      <div class="upgrade-plans" role="radiogroup" aria-label="Choose a plan" hidden></div>
       <button type="button" class="upgrade-go"></button>
       <p class="upgrade-fine"></p>
       <button type="button" class="upgrade-later">Not now, I'll come back tomorrow</button>
@@ -5320,13 +5352,47 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     overlay.querySelector(".modal-title").textContent = trial ? `You're on a roll! Try Premium free for ${days} days` : "You're on a roll! Keep going with Premium";
     overlay.querySelector(".modal-subtitle").textContent = done;
     overlay.querySelector(".upgrade-go").textContent = trial ? `Start my free ${days}-day trial` : "Upgrade to Premium";
-    overlay.querySelector(".upgrade-fine").textContent = trial
-      ? `Free for ${days} days${price ? `, then ${price}` : ""}. Cancel anytime before the trial ends and you won't be charged.`
-      : `${price ? `${price}. ` : ""}Cancel anytime from your account.`;
+    // Yearly (preselected, best value) vs monthly, when both exist.
+    const yearly = yearlyPlanInfo();
+    let chosenPlan = yearly ? "yearly" : "monthly";
+    const fineEl = overlay.querySelector(".upgrade-fine");
+    const setFine = () => {
+      const pr = formatPlanPrice(chosenPlan) || price;
+      fineEl.textContent = trial
+        ? `Free for ${days} days${pr ? `, then ${pr}` : ""}. Cancel anytime before the trial ends and you won't be charged.`
+        : `${pr ? `${pr}. ` : ""}Cancel anytime from your account.`;
+    };
+    if (yearly) {
+      const plansEl = overlay.querySelector(".upgrade-plans");
+      plansEl.hidden = false;
+      plansEl.innerHTML = `
+        <button type="button" class="upgrade-plan selected" role="radio" aria-checked="true" data-plan="yearly">
+          <span class="upgrade-plan-name">Yearly${yearly.save > 0 ? ` <em>Save ${yearly.save}%</em>` : ""}</span>
+          <span class="upgrade-plan-price"><b>${escapeHtml(yearly.perMonth)}</b> a month</span>
+          <span class="upgrade-plan-sub">${escapeHtml(formatPlanPrice("yearly"))}</span>
+        </button>
+        <button type="button" class="upgrade-plan" role="radio" aria-checked="false" data-plan="monthly">
+          <span class="upgrade-plan-name">Monthly</span>
+          <span class="upgrade-plan-price"><b>${escapeHtml(formatMoney(planInfo.price.amount, planInfo.price.currency))}</b> a month</span>
+          <span class="upgrade-plan-sub">Billed monthly</span>
+        </button>`;
+      plansEl.addEventListener("click", e => {
+        const b = e.target.closest("[data-plan]");
+        if (!b) return;
+        chosenPlan = b.dataset.plan;
+        plansEl.querySelectorAll("[data-plan]").forEach(x => {
+          const on = x === b;
+          x.classList.toggle("selected", on);
+          x.setAttribute("aria-checked", String(on));
+        });
+        setFine();
+      });
+    }
+    setFine();
     const close = () => overlay.remove();
     overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
     overlay.querySelector(".upgrade-later").addEventListener("click", () => { trackEvent("upgrade_offer_dismissed"); close(); });
-    overlay.querySelector(".upgrade-go").addEventListener("click", () => { close(); startCheckout(); });
+    overlay.querySelector(".upgrade-go").addEventListener("click", () => { close(); startCheckout(chosenPlan); });
     document.body.appendChild(overlay);
   }
 
@@ -5339,15 +5405,16 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     homeErrorBanner.classList.add("shown");
   }
 
-  async function startCheckout() {
+  async function startCheckout(plan) {
     if (!currentUser) return;
-    trackEvent("upgrade_clicked", { trial: trialOfferAvailable() ? 1 : 0 });
+    plan = plan === "yearly" ? "yearly" : "monthly";
+    trackEvent("upgrade_clicked", { trial: trialOfferAvailable() ? 1 : 0, plan });
     try {
       const headers = await authHeaders();
       const res = await fetch(`${API_BASE}/billing/create-checkout-session`, {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ email: currentUser.email || undefined })
+        body: JSON.stringify({ email: currentUser.email || undefined, plan })
       });
       const data = await res.json();
       if (res.ok && data.url) {

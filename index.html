@@ -401,6 +401,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .plan-featured { border: 2px solid var(--accent); }
   .plan h3 { font-size: 22px; }
   .plan-price { font-family: 'Bricolage Grotesque', sans-serif; font-size: 40px; font-weight: 800; margin: 10px 0 2px; letter-spacing: -0.02em; }
+  .plan-yearly { margin: 0 0 8px; font-size: 14px; font-weight: 600; color: var(--ink-soft); }
   .plan-price small { font-size: 15px; font-weight: 600; color: var(--ink-soft); font-family: 'Inter', sans-serif; letter-spacing: 0; }
   .plan > p { color: var(--ink-soft); margin: 0 0 18px; font-size: 14.5px; }
   .plan ul { list-style: none; padding: 0; margin: 0 0 24px; display: flex; flex-direction: column; gap: 10px; font-size: 15px; flex: 1; }
@@ -694,7 +695,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       <div class="section-head">
         <span class="eyebrow">Pricing</span>
         <h2>Free to start. Seriously.</h2>
-        <p>Try a few conversations as a guest, no account needed. When you're hooked, a free account keeps your progress.</p>
+        <p>Try your first lesson as a guest, no account needed. When you're hooked, a free account keeps your progress.</p>
       </div>
       <div class="plans">
         <div class="plan">
@@ -866,6 +867,18 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     if (el) { el.textContent = money; var sm = document.createElement("small"); sm.textContent = " " + unit; el.appendChild(sm); }
     var line = document.getElementById("premiumTrialLine");
     if (line && d.trialDays > 0) line.textContent = "Free for " + d.trialDays + " days, then " + money + unit + ". Cancel anytime.";
+    // Yearly plan, when there is one: "or $49.99/yr (save 58%)".
+    var y = p.yearly;
+    if (el && y && typeof y.amount === "number" && y.interval === "year") {
+      var ym;
+      try { ym = new Intl.NumberFormat(undefined, { style: "currency", currency: y.currency || "USD", maximumFractionDigits: y.amount % 100 ? 2 : 0 }).format(y.amount / 100); }
+      catch (e) { ym = "$" + (y.amount / 100).toFixed(2); }
+      var save = (p.interval === "month" && p.amount > 0) ? Math.round((1 - y.amount / (p.amount * 12)) * 100) : 0;
+      var yl = document.createElement("p");
+      yl.className = "plan-yearly";
+      yl.textContent = "or " + ym + "/yr" + (save > 0 ? " (save " + save + "%)" : "");
+      el.insertAdjacentElement("afterend", yl);
+    }
   }).catch(function () {});
 })();
 </script>
