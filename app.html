@@ -7685,7 +7685,10 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       if (myGen === conversationGen) {
         sending = false;
         sendBtn.disabled = false;
-        messageInput.focus();
+        // On phones, focusing the box pops the keyboard up on its own and
+        // covers the reply box and the tap-to-reply ideas (seen on iPhone
+        // when the chat opened). Learners tap the box when they want to type.
+        if (!window.matchMedia || !window.matchMedia("(pointer: coarse)").matches) messageInput.focus();
       }
     }
   }
