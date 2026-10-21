@@ -1178,6 +1178,19 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .home-review-btn { border-radius: 999px; background: var(--ink); color: var(--bg); font-weight: 600; padding: 0 18px; }
   .home-review-btn:disabled { background: var(--bg); color: var(--ink-soft); }
 
+  /* ======== Computer = phone layout: one centred column ======== */
+  .home-wrap { max-width: 640px; }
+  .home-grid, .home-grid--bottom { grid-template-columns: minmax(0, 1fr) !important; gap: 40px; }
+  .home-grid--solo .home-others { max-width: none; }
+  @media (min-width: 861px) {
+    .home-wrap { padding-left: 24px; padding-right: 24px; padding-top: 40px; gap: 44px; }
+    .home-hero { padding: 28px; border-radius: 30px; gap: 20px; }
+    .home-chatto { width: 104px; height: 104px; padding: 6px; }
+    .home-bubble-title { font-size: 30px; }
+    .home-start { width: 100%; min-width: 0; align-self: stretch; }
+    .home-guest { text-align: left; }
+  }
+
   /* -------- Chat screen -------- */
   .lookup-panel {
     display: none; border-bottom: 1px solid var(--border); background: var(--accent-soft);
