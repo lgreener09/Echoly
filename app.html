@@ -906,12 +906,21 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   }
 
   .home-journey { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-  .journey-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; border-radius: 16px; background: var(--plum); color: #fff; }
+  .journey-head { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; border-radius: 18px; background: var(--plum); color: #fff; }
+  .journey-head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .journey-steps { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 5px; }
+  .journey-steps i { display: block; height: 7px; border-radius: 4px; background: rgba(255,255,255,0.16); }
+  .journey-steps i.done { background: #3ccf7f; }
+  .journey-steps i.now { background: #f4a497; }
   .journey-head-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .journey-eyebrow { font-size: 12.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #f4a497; }
-  .journey-unit { margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 700; }
+  .journey-unit { margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 21px; font-weight: 700; line-height: 1.2; text-wrap: balance; }
   .journey-count { font-size: 14px; font-weight: 600; color: #e6dbe8; white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .journey-trail { list-style: none; margin: 0; padding: 32px 0 8px; display: flex; flex-direction: column; gap: 26px; }
+  .journey-map { position: relative; }
+  .journey-line { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+  .journey-line .walked { fill: none; stroke: #14733f; stroke-width: 7; stroke-linecap: round; opacity: 0.55; }
+  .journey-line .ahead { fill: none; stroke: var(--ink-soft); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 0.1 14; opacity: 0.45; }
+  .journey-trail { list-style: none; margin: 0; padding: 34px 0 10px; display: flex; flex-direction: column; gap: 30px; position: relative; z-index: 1; }
   .journey-stop { display: flex; align-items: center; gap: 14px; position: relative; }
   .journey-stop.is-today:not(:first-child) { margin-top: 18px; }
   .journey-stop:nth-child(5n+1) { margin-left: 7%; }
@@ -920,12 +929,33 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .journey-stop:nth-child(5n+4) { margin-left: 0; }
   .journey-stop:nth-child(5n+5) { margin-left: 15%; }
   .journey-node {
+    position: relative;
     width: 60px; height: 60px; border-radius: 50%; flex-shrink: 0; border: none; padding: 0; cursor: pointer;
     display: flex; align-items: center; justify-content: center; font-size: 26px; font-family: inherit; color: #fff;
   }
-  .journey-node.done { background: #14733f; box-shadow: 0 5px 0 #0d5a30; }
   .journey-node.open { background: #cf4334; box-shadow: 0 5px 0 #a5312c; }
-  .journey-node.locked { background: var(--border); box-shadow: 0 5px 0 rgba(0,0,0,0.12); color: var(--ink-soft); cursor: default; }
+  .journey-node.locked { background: var(--border); box-shadow: 0 5px 0 rgba(0,0,0,0.12); color: var(--ink-soft); }
+  .journey-node.locked .journey-emoji { filter: grayscale(1); opacity: 0.45; }
+  .journey-node .journey-emoji { line-height: 1; }
+  .journey-badge {
+    position: absolute; right: -3px; bottom: -3px; width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; border: 2.5px solid var(--bg); color: #fff;
+  }
+  .journey-badge.ok { background: #14733f; }
+  .journey-badge.lock { background: var(--ink-soft); }
+  .journey-node.done { background: #e3f5ea; box-shadow: 0 5px 0 #b9dfc8; }
+  :root[data-theme="dark"] .journey-node.done { background: #1d3b2a; box-shadow: 0 5px 0 #12271b; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .journey-node.done { background: #1d3b2a; box-shadow: 0 5px 0 #12271b; } }
+  .journey-stop.is-locked .journey-sub.hint { color: var(--accent); font-weight: 600; }
+  @keyframes journeyNudge { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+  @media (prefers-reduced-motion: no-preference) { .journey-node.nudge { animation: journeyNudge 0.3s ease 2; } }
+  .journey-next {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px; padding: 13px 16px;
+    border: 1.5px dashed var(--border); border-radius: 16px; color: var(--ink-soft);
+  }
+  .journey-next-label { font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; }
+  .journey-next-name { font-size: 15px; font-weight: 700; color: var(--ink); flex: 1; min-width: 0; }
+  .journey-next-icons { display: flex; gap: 4px; font-size: 17px; filter: grayscale(0.6); opacity: 0.8; }
   .journey-node.today { width: 78px; height: 78px; font-size: 32px; box-shadow: 0 6px 0 #a5312c, 0 0 0 8px var(--accent-soft); }
   .journey-node:not(.locked):hover { filter: brightness(1.06); }
   .journey-node:not(.locked):active { transform: translateY(3px); }
@@ -990,6 +1020,80 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .home-review-btn { min-height: 44px; padding: 0 16px; border-radius: 10px; border: none; background: #cf4334; color: #fff; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
   .home-review-btn:disabled { background: var(--bg); color: var(--ink-soft); border: 1px solid var(--border); cursor: default; }
   .home-side .reminder-prompt, .home-side .install-card { margin: 0; }
+
+  /* ======== Home polish: calmer, more consistent ======== */
+  /* Hero: one card at every size, Chatto beside the bubble. */
+  .home-hero { background: var(--surface); border: 1px solid var(--border); border-radius: 22px; padding: 18px; gap: 16px; box-shadow: 0 1px 2px rgba(34,24,37,0.04); }
+  .home-hero-greet { flex-direction: row; align-items: center; gap: 14px; }
+  .home-chatto { width: 84px; height: 84px; flex-shrink: 0; }
+  .home-bubble { text-align: left; background: var(--accent-soft); border: none; box-shadow: none; border-radius: 16px; padding: 14px 16px; }
+  .home-bubble-hi { font-size: 13px; font-weight: 600; letter-spacing: 0.01em; }
+  .home-bubble-title { font-size: 22px; letter-spacing: -0.01em; }
+  .home-bubble-meta { font-size: 14px; margin-top: 4px !important; }
+  .home-start { min-height: 54px; border-radius: 14px; font-size: 17px; box-shadow: none; }
+  .home-guest { text-align: left; font-size: 13.5px; }
+  .home-guest button { text-decoration: none; }
+  .home-guest button:hover { text-decoration: underline; }
+  .home-hero .today-revisit {
+    display: flex !important; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px;
+    border: 1px solid var(--border); background: var(--bg); font-size: 14px;
+  }
+  .home-hero .today-revisit[style*="none"] { display: none !important; }
+  .home-hero .today-revisit::before {
+    content: ""; width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; background-color: var(--surface);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23cf4334' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 12a9 9 0 0115.5-6.2L21 8'/%3E%3Cpath d='M21 3v5h-5'/%3E%3Cpath d='M21 12a9 9 0 01-15.5 6.2L3 16'/%3E%3Cpath d='M3 21v-5h5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: center; border: 1px solid var(--border);
+  }
+  .home-hero .today-revisit small { margin-top: 1px; }
+  .today-revisit-text { display: flex; flex-direction: column; min-width: 0; }
+  @media (min-width: 861px) {
+    .home-hero { padding: 28px; border-radius: 24px; gap: 20px; }
+    .home-chatto { width: 120px; height: 120px; }
+    .home-bubble { padding: 18px 20px; }
+    .home-bubble-title { font-size: 28px; }
+  }
+
+  /* Top bar: a styled language picker. */
+  .m-lang select {
+    appearance: none; -webkit-appearance: none; padding-right: 30px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b5f6e' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+  }
+
+  /* Journey: smaller stops, gentler zigzag, no emoji. */
+  .journey-head { border-radius: 18px; }
+  .journey-trail { gap: 26px; padding-top: 26px; }
+  .journey-stop:nth-child(5n+1) { margin-left: 6%; }
+  .journey-stop:nth-child(5n+2) { margin-left: 18%; }
+  .journey-stop:nth-child(5n+3) { margin-left: 10%; }
+  .journey-stop:nth-child(5n+4) { margin-left: 2%; }
+  .journey-stop:nth-child(5n+5) { margin-left: 14%; }
+  .journey-stop.is-today:not(:first-child) { margin-top: 0; }
+  .journey-node { width: 52px; height: 52px; font-size: 17px; font-weight: 700; }
+  .journey-node.done { background: #14733f; box-shadow: 0 4px 0 #0d5a30; color: #fff; }
+  :root[data-theme="dark"] .journey-node.done { background: #14733f; box-shadow: 0 4px 0 #0b4a28; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .journey-node.done { background: #14733f; box-shadow: 0 4px 0 #0b4a28; } }
+  .journey-node.open { box-shadow: 0 4px 0 #a5312c; }
+  .journey-node.locked { box-shadow: 0 4px 0 rgba(0,0,0,0.10); }
+  .journey-node.today { width: 64px; height: 64px; box-shadow: 0 5px 0 #a5312c, 0 0 0 7px var(--accent-soft); }
+  @media (prefers-reduced-motion: no-preference) {
+    .journey-node.today { animation: journeyPulse2 2.6s ease-in-out infinite; }
+    @keyframes journeyPulse2 { 0%,100% { box-shadow: 0 5px 0 #a5312c, 0 0 0 7px var(--accent-soft); } 50% { box-shadow: 0 5px 0 #a5312c, 0 0 0 11px var(--accent-soft); } }
+  }
+  .journey-flag { display: none; }
+  .journey-today-pill { display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; margin-top: 2px; }
+  .journey-line .walked { stroke-width: 5; opacity: 0.5; }
+  .journey-line .ahead { stroke-width: 4; stroke-dasharray: 0.1 11; opacity: 0.4; }
+  .journey-next { border-style: solid; background: var(--surface); padding: 12px 16px; }
+  .journey-next-count { font-size: 13px; color: var(--ink-soft); }
+
+  /* Lists: square icon tiles, quieter dividers. */
+  .home-list { border-radius: 18px; }
+  .home-row { min-height: 64px; }
+  .home-row-ico { border-radius: 11px; width: 38px; height: 38px; }
+  .home-row-ico.avatar { background: var(--plum); color: #fff; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 16px; }
+  .home-review-ico { border-radius: 11px; width: 38px; height: 38px; }
+  .home-label { font-size: 12.5px; letter-spacing: 0.08em; }
 
   /* -------- Chat screen -------- */
   .lookup-panel {
@@ -1914,13 +2018,24 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         <!-- Journey: the current unit (5 lessons) as a trail. -->
         <section class="home-journey" id="homeJourney" aria-labelledby="journeyUnit" hidden>
           <div class="journey-head">
-            <span class="journey-head-text">
-              <span class="journey-eyebrow" id="journeyTier"></span>
-              <h2 class="journey-unit" id="journeyUnit"></h2>
-            </span>
-            <span class="journey-count" id="journeyCount"></span>
+            <div class="journey-head-row">
+              <span class="journey-head-text">
+                <span class="journey-eyebrow" id="journeyTier"></span>
+                <h2 class="journey-unit" id="journeyUnit"></h2>
+              </span>
+              <span class="journey-count" id="journeyCount"></span>
+            </div>
+            <div class="journey-steps" id="journeySteps" aria-hidden="true"></div>
           </div>
-          <ol class="journey-trail" id="journeyTrail" aria-label="Lessons in this unit"></ol>
+          <div class="journey-map">
+            <svg class="journey-line" id="journeyLine" aria-hidden="true"></svg>
+            <ol class="journey-trail" id="journeyTrail" aria-label="Lessons in this unit"></ol>
+          </div>
+          <div class="journey-next" id="journeyNext" hidden>
+            <span class="journey-next-label">Next unit</span>
+            <span class="journey-next-name" id="journeyNextName"></span>
+            <span class="journey-next-count" id="journeyNextIcons"></span>
+          </div>
           <button type="button" class="journey-all" id="seeAllBtn" aria-expanded="false" aria-controls="allLessons">See all lessons <svg class="home-row-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         </section>
       </div>
@@ -1940,7 +2055,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           <h2 class="home-label" id="othersHeading">Or talk about something else</h2>
           <div class="home-list">
             <button type="button" class="home-row" id="rowFriend" hidden>
-              <span class="home-row-ico" id="rowFriendIcon" aria-hidden="true">☕</span>
+              <span class="home-row-ico avatar" id="rowFriendIcon" aria-hidden="true">L</span>
               <span class="home-row-text"><b id="rowFriendTitle">Chat with your friend</b><span id="rowFriendSub"></span></span>
               <svg class="home-row-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
             </button>
@@ -5568,10 +5683,13 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     todayRevisitLesson = findRevisitLesson(selectedLanguage);
     if (todayRevisitLesson) {
       revisitBtn.innerHTML = "";
-      revisitBtn.appendChild(document.createTextNode(`🔁 Revisit "${todayRevisitLesson.title}", with a twist →`));
+      const wrap = document.createElement("span");
+      wrap.className = "today-revisit-text";
+      wrap.appendChild(document.createTextNode(`Revisit “${todayRevisitLesson.title}” with a twist`));
       const sub = document.createElement("small");
       sub.textContent = "You did this one a while ago. Same situation, one small surprise.";
-      revisitBtn.appendChild(sub);
+      wrap.appendChild(sub);
+      revisitBtn.appendChild(wrap);
       revisitBtn.style.display = "block";
     } else {
       revisitBtn.style.display = "none";
@@ -5934,7 +6052,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       heroTitleEl.textContent = "Loading…";
       heroMetaEl.textContent = "";
     } else if (lesson) {
-      heroGreetEl.textContent = `${hello} Today's ${selectedLanguage} conversation`;
+      heroGreetEl.textContent = `${hello} Today's lesson`;
       heroTitleEl.textContent = lesson.title;
       heroMetaEl.textContent = lesson.blurb || "";
       startLabelEl.textContent = "Start talking with Chatto";
@@ -5966,7 +6084,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     const rowFriend = document.getElementById("rowFriend");
     const f = selectedLanguage && FRIENDS[selectedLanguage];
     if (f && friendCardEl.style.display !== "none") {
-      document.getElementById("rowFriendIcon").textContent = f.icon;
+      document.getElementById("rowFriendIcon").textContent = (f.name || "?").charAt(0);
       document.getElementById("rowFriendTitle").textContent = document.getElementById("friendGoBtn").textContent.replace(/\s*→\s*$/, "");
       document.getElementById("rowFriendSub").textContent = document.getElementById("friendHook").textContent;
       rowFriend.hidden = false;
@@ -6013,6 +6131,20 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     else seeAllBtnEl.firstChild.textContent = `See all ${PATH.length} lessons `;
   }
 
+  // Names for each group of 5 lessons, keyed by the unit's first lesson.
+  // Units without a name here fall back to "Unit N".
+  const UNIT_NAMES = {
+    greetings_farewells: "First words", question_words_basics: "Everyday basics",
+    how_do_you_say_basics: "Getting by", first_conversation: "Your first real conversation",
+    cafe_order: "Getting around town", ice_cream_order: "Out and about", return_library_book: "Running errands",
+    ask_store_hours: "Shops and services", ask_photo: "Asking favors", ask_parking: "Plans and pickups",
+    hotel_checkin: "Settling in", weekend_plans: "Weekends and errands", travel_agent: "Getting things sorted",
+    new_acquaintance_hobbies: "Life admin", plan_birthday_party: "Plans and people", barber_haircut: "Out with friends",
+    doctor_visit: "Big conversations", work_presentation_qa: "Making your case", explain_tech_problem: "Hard conversations",
+    negotiate_used_car: "Persuade and advise", discuss_diet_plan: "Big decisions", sports_strategy_coach: "Leading the room"
+  };
+  function unitName(unit, idx) { return (unit[0] && UNIT_NAMES[unit[0].id]) || `Unit ${idx + 1}`; }
+
   function renderJourney() {
     const box = document.getElementById("homeJourney");
     if (!PATH.length || !selectedLanguage) { box.hidden = true; return; }
@@ -6024,29 +6156,86 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     const unit = inTier.slice(unitIdx * UNIT_SIZE, unitIdx * UNIT_SIZE + UNIT_SIZE);
     const unitCount = Math.ceil(inTier.length / UNIT_SIZE);
     const doneInUnit = unit.filter(l => completed.includes(l.id)).length;
-    document.getElementById("journeyTier").textContent = `${anchor.tier} · ${unitCount > 1 ? `unit ${unitIdx + 1} of ${unitCount}` : "your path"}`;
-    document.getElementById("journeyUnit").textContent = `Unit ${unitIdx + 1}`;
+    document.getElementById("journeyTier").textContent = `${anchor.tier} · Unit ${unitIdx + 1} of ${unitCount}`;
+    document.getElementById("journeyUnit").textContent = unitName(unit, unitIdx);
     document.getElementById("journeyCount").textContent = `${doneInUnit} of ${unit.length} done`;
-    const check = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
-    const lock = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>`;
+    document.getElementById("journeySteps").innerHTML = unit.map(l =>
+      `<i class="${completed.includes(l.id) ? "done" : (next && l.id === next.id ? "now" : "")}"></i>`).join("");
+
+    const check = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
+    const lock = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>`;
+    const play = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 001.5.86l10.5-6.5a1 1 0 000-1.72L9.5 4.64A1 1 0 008 5.5z"/></svg>`;
+    const step = l => `<span aria-hidden="true">${inTier.indexOf(l) + 1}</span>`;
     document.getElementById("journeyTrail").innerHTML = unit.map(l => {
       const state = getNodeState(PATH.indexOf(l), completed);
       const isToday = next && l.id === next.id;
       const title = escapeHtml(l.title);
+      const id = escapeHtml(l.id);
       if (state === "completed") {
-        return `<li class="journey-stop is-done"><button type="button" class="journey-node done" data-lesson="${escapeHtml(l.id)}" aria-label="Practice ${title} again">${check}</button>
+        return `<li class="journey-stop is-done"><button type="button" class="journey-node done" data-lesson="${id}" aria-label="Practice ${title} again">${check}</button>
           <span class="journey-text"><span class="journey-name">${title}</span><span class="journey-sub journey-sub--done">Done · practice again</span></span></li>`;
       }
       if (state === "locked") {
-        return `<li class="journey-stop is-locked"><button type="button" class="journey-node locked" disabled aria-label="${title} (locked)">${lock}</button>
-          <span class="journey-text"><span class="journey-name">${title}</span></span></li>`;
+        return `<li class="journey-stop is-locked"><button type="button" class="journey-node locked" data-locked="${id}" aria-disabled="true" aria-label="${title} (locked)">${lock}</button>
+          <span class="journey-text"><span class="journey-name">${title}</span><span class="journey-sub"></span></span></li>`;
       }
       return `<li class="journey-stop ${isToday ? "is-today" : "is-open"}">${isToday ? `<span class="journey-flag">Today</span>` : ""}
-          <button type="button" class="journey-node open${isToday ? " today" : ""}" data-lesson="${escapeHtml(l.id)}" aria-label="Start ${title}">${escapeHtml(l.icon || "")}</button>
-          <span class="journey-text"><span class="journey-name">${title}</span><span class="journey-sub">${isToday ? "Up next" : "Ready when you are"}</span></span></li>`;
+          <button type="button" class="journey-node open${isToday ? " today" : ""}" data-lesson="${id}" aria-label="Start ${title}">${isToday ? play : step(l)}</button>
+          <span class="journey-text"><span class="journey-name">${title}</span>${isToday ? `<span class="journey-today-pill">Today</span>` : `<span class="journey-sub">Ready when you are</span>`}</span></li>`;
     }).join("");
+
+    // A peek at the next unit, so there's always something ahead.
+    const nextUnit = inTier.slice((unitIdx + 1) * UNIT_SIZE, (unitIdx + 2) * UNIT_SIZE);
+    const nextEl = document.getElementById("journeyNext");
+    if (nextUnit.length) {
+      document.getElementById("journeyNextName").textContent = unitName(nextUnit, unitIdx + 1);
+      document.getElementById("journeyNextIcons").textContent = `${nextUnit.length} lesson${nextUnit.length === 1 ? "" : "s"}`;
+      nextEl.hidden = false;
+    } else {
+      nextEl.hidden = true;
+    }
     box.hidden = false;
+    requestAnimationFrame(drawJourneyLine);
   }
+
+  // The winding line behind the stops: solid where you've walked, dotted ahead.
+  function drawJourneyLine() {
+    const svg = document.getElementById("journeyLine");
+    const trail = document.getElementById("journeyTrail");
+    if (!svg || !trail || trail.offsetParent === null) return;
+    const base = svg.getBoundingClientRect();
+    const stops = [...trail.querySelectorAll(".journey-stop")];
+    const pts = stops.map(li => {
+      const r = li.querySelector(".journey-node").getBoundingClientRect();
+      return { x: r.left - base.left + r.width / 2, y: r.top - base.top + r.height / 2, done: li.classList.contains("is-done") };
+    });
+    let paths = "";
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1], dy = (b.y - a.y) / 2;
+      const d = `M${a.x.toFixed(1)} ${a.y.toFixed(1)} C${a.x.toFixed(1)} ${(a.y + dy).toFixed(1)} ${b.x.toFixed(1)} ${(b.y - dy).toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
+      paths += `<path class="${a.done ? "walked" : "ahead"}" d="${d}"/>`;
+    }
+    svg.innerHTML = paths;
+  }
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(() => requestAnimationFrame(drawJourneyLine));
+    ro.observe(document.getElementById("journeyTrail"));
+  }
+  window.addEventListener("resize", () => requestAnimationFrame(drawJourneyLine));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => requestAnimationFrame(drawJourneyLine));
+
+  // Tapping a locked stop says what unlocks it instead of doing nothing.
+  document.getElementById("journeyTrail").addEventListener("click", e => {
+    const btn = e.target.closest("button[data-locked]");
+    if (!btn) return;
+    const sub = btn.parentElement.querySelector(".journey-sub");
+    const nxt = findNextLesson(selectedLanguage);
+    sub.textContent = nxt ? `Finish “${nxt.title}” to unlock` : "Finish the lessons before this one to unlock";
+    sub.classList.add("hint");
+    btn.classList.remove("nudge"); void btn.offsetWidth; btn.classList.add("nudge");
+    clearTimeout(btn._hintTimer);
+    btn._hintTimer = setTimeout(() => { sub.textContent = ""; sub.classList.remove("hint"); }, 2800);
+  });
 
   langSelectEl.addEventListener("change", () => {
     selectedLanguage = langSelectEl.value;
