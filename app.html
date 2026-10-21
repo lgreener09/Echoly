@@ -223,19 +223,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
      in TikTok/Instagram's in-app browser and mobile Safari the bottom bar
      (reply box, Start lesson) could sit off-screen with no way to scroll. */
   .screen { display: none; height: 100vh; height: 100dvh; flex-direction: column; }
-  /* iOS Safari pans the page when the keyboard opens, which pushed the
-     chat's header up under the clock/battery (and a plain height change
-     left a blank white screen while the keyboard was up). So while the chat
-     is open it is pinned to exactly the visible area: fixed, as tall as the
-     visible viewport (--vvh, never taller than 100dvh), and moved down by
-     however far Safari has panned (--vvtop). Both are set from
-     visualViewport in script; the page itself can't scroll meanwhile. */
-  html.chat-open, html.chat-open body { overflow: hidden; overscroll-behavior: none; }
-  #chatScreen.screen.active {
-    position: fixed; top: 0; left: 0; right: 0;
-    height: 100dvh; height: min(var(--vvh, 100dvh), 100dvh);
-    transform: translateY(var(--vvtop, 0px));
-  }
+  /* The chat stays in normal page flow (no fixed/transform pinning: on
+     iPhone that made taps land in the wrong place after the keyboard
+     closed, so the recap quiz couldn't be answered). The header-under-the-
+     clock problem is handled in script instead, by scrolling the page back
+     to the top once the keyboard closes. */
   .screen.active { display: flex; }
 
   /* -------- Account modal: visitors can try Echoly as a guest first, so
@@ -2796,32 +2788,25 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   const gateLoadingScreen = document.getElementById("gateLoadingScreen");
   const introScreen = document.getElementById("introScreen");
   const chatScreen = document.getElementById("chatScreen");
-  // See #chatScreen's rule in the CSS: while the chat is open it is pinned
-  // to the part of the screen that's actually visible — above the iPhone
-  // keyboard, and following Safari when it pans — so the header never
-  // slides under the status bar and the screen never shows blank white.
-  (function pinChatToVisibleArea() {
-    const root = document.documentElement;
+  // iPhone Safari scrolls the page up to show the reply box while the
+  // keyboard is open, and then leaves it scrolled after the keyboard closes,
+  // so the chat's header sat under the clock/battery. Once the keyboard is
+  // gone (the visible area is full height again), scroll back to the top.
+  (function resetScrollAfterKeyboard() {
     const vv = window.visualViewport;
-    const fit = () => {
-      if (!vv) return;
-      root.style.setProperty("--vvh", Math.round(vv.height) + "px");
-      root.style.setProperty("--vvtop", Math.max(0, Math.round(vv.offsetTop)) + "px");
+    let timer = null;
+    const keyboardOpen = () => vv && vv.height < window.innerHeight - 80;
+    const settle = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (!chatScreen.classList.contains("active") || keyboardOpen()) return;
+        if (window.scrollY || document.documentElement.scrollTop || (vv && vv.offsetTop)) window.scrollTo(0, 0);
+      }, 250);
     };
-    const syncOpen = () => {
-      const open = chatScreen.classList.contains("active");
-      if (open !== root.classList.contains("chat-open")) {
-        root.classList.toggle("chat-open", open);
-        if (open) window.scrollTo(0, 0);
-      }
-      fit();
-    };
-    if (vv) {
-      vv.addEventListener("resize", fit);
-      vv.addEventListener("scroll", fit);
-    }
-    new MutationObserver(syncOpen).observe(chatScreen, { attributes: true, attributeFilter: ["class"] });
-    syncOpen();
+    if (vv) vv.addEventListener("resize", settle);
+    document.addEventListener("focusout", settle);
+    new MutationObserver(() => { if (chatScreen.classList.contains("active")) window.scrollTo(0, 0); })
+      .observe(chatScreen, { attributes: true, attributeFilter: ["class"] });
   })();
   const accountCardEl = document.getElementById("accountCard");
   const authOverlayEl = document.getElementById("authOverlay");
