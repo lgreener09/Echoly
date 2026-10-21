@@ -1095,6 +1095,89 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .home-review-ico { border-radius: 11px; width: 38px; height: 38px; }
   .home-label { font-size: 12.5px; letter-spacing: 0.08em; }
 
+  /* ======== Elegant pass: flat, refined, more air ======== */
+  .home-wrap { gap: 40px; }
+  .home-hero, .home-list, .home-review, .journey-next {
+    box-shadow: 0 1px 2px rgba(34,24,37,0.04), 0 14px 34px -18px rgba(50,34,52,0.18);
+  }
+  .home-hero { border-radius: 28px; padding: 22px; gap: 18px; }
+  .home-hero-greet { gap: 16px; }
+  .home-chatto { border-radius: 50%; background: var(--accent-soft); padding: 6px; width: 92px; height: 92px; box-sizing: border-box; }
+  .home-bubble { background: none; padding: 0; border-radius: 0; }
+  .home-bubble-hi { text-transform: uppercase; letter-spacing: 0.12em; font-size: 11.5px; font-weight: 700; color: var(--accent); }
+  .home-bubble-title { font-weight: 600; font-size: 25px; letter-spacing: -0.02em; margin-top: 6px !important; }
+  .home-bubble-meta { font-size: 14.5px; margin-top: 6px !important; }
+  .home-start {
+    border-radius: 999px; min-height: 54px; background: var(--ink); color: var(--bg); font-size: 16.5px; font-weight: 600;
+    letter-spacing: 0.005em; justify-content: space-between; padding: 0 8px 0 24px;
+  }
+  .home-start:hover { background: var(--ink); opacity: 0.9; }
+  .home-start svg { width: 38px; height: 38px; padding: 10px; box-sizing: border-box; border-radius: 50%; background: #cf4334; color: #fff; }
+  .home-guest { font-size: 13.5px; }
+  .home-guest strong { font-weight: 600; }
+  .home-hero .today-revisit { border-radius: 16px; background: var(--bg); border-color: transparent; }
+  @media (min-width: 861px) {
+    .home-hero { padding: 32px; border-radius: 32px; gap: 22px; }
+    .home-chatto { width: 124px; height: 124px; padding: 8px; }
+    .home-bubble-title { font-size: 32px; }
+    .home-start { padding-right: 8px; min-width: 300px; }
+  }
+
+  .m-topbar { border-bottom-color: transparent; box-shadow: 0 1px 0 var(--border); }
+  .m-account { border-radius: 999px; background: var(--ink); color: var(--bg); font-weight: 600; }
+  .m-account.m-account--ghost { background: var(--surface); color: var(--ink); }
+  .m-signin { border-radius: 999px; font-weight: 600; }
+  .m-menu { border-radius: 999px; }
+
+  .home-label { font-size: 11.5px; letter-spacing: 0.12em; font-weight: 700; }
+
+  .journey-head { border-radius: 24px; padding: 20px 22px; gap: 14px; }
+  .journey-eyebrow { font-size: 11.5px; letter-spacing: 0.12em; }
+  .journey-unit { font-weight: 600; font-size: 22px; letter-spacing: -0.015em; }
+  .journey-count { font-size: 13px; font-weight: 500; }
+  .journey-steps { gap: 4px; }
+  .journey-steps i { height: 4px; border-radius: 2px; }
+  .journey-trail { gap: 28px; padding-top: 30px; }
+  .journey-node, .journey-node.done, .journey-node.open, .journey-node.locked, .journey-node.today { box-shadow: none; }
+  .journey-node { width: 48px; height: 48px; font-size: 15px; font-weight: 600; }
+  .journey-node.done { background: var(--surface); color: #14733f; border: 1.5px solid #14733f; }
+  :root[data-theme="dark"] .journey-node.done { background: var(--surface); box-shadow: none; color: #5fd394; border-color: #5fd394; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .journey-node.done { background: var(--surface); box-shadow: none; color: #5fd394; border-color: #5fd394; } }
+  .journey-node.open { background: var(--surface); color: var(--accent); border: 1.5px solid var(--accent); }
+  .journey-node.locked { background: var(--surface); color: var(--ink-soft); border: 1.5px solid var(--border); }
+  .journey-node.today { width: 60px; height: 60px; background: #cf4334; color: #fff; border: none; box-shadow: 0 0 0 6px var(--accent-soft), 0 12px 26px -10px rgba(207,67,52,0.7); }
+  @media (prefers-reduced-motion: no-preference) {
+    .journey-node.today { animation: journeyGlow 2.8s ease-in-out infinite; }
+    @keyframes journeyGlow { 0%,100% { box-shadow: 0 0 0 6px var(--accent-soft), 0 12px 26px -10px rgba(207,67,52,0.7); } 50% { box-shadow: 0 0 0 10px var(--accent-soft), 0 12px 26px -10px rgba(207,67,52,0.7); } }
+  }
+  .journey-node:not(.locked):active { transform: scale(0.96); }
+  .journey-name { font-weight: 500; }
+  .journey-stop.is-today .journey-name, .journey-stop.is-open .journey-name { font-weight: 600; }
+  .journey-stop.is-done .journey-name { color: var(--ink); }
+  .journey-sub--done { font-weight: 500; }
+  .journey-today-pill { font-weight: 600; letter-spacing: 0.02em; }
+  .journey-line .walked { stroke-width: 2.5; opacity: 0.7; }
+  .journey-line .ahead { stroke-width: 2; stroke-dasharray: 3 7; stroke-linecap: butt; opacity: 0.35; }
+  .journey-next { border: none; border-radius: 18px; padding: 14px 18px; }
+  .journey-next-label { font-size: 11px; letter-spacing: 0.12em; }
+  .journey-next-name { font-weight: 600; }
+  .journey-all { font-weight: 600; }
+
+  .home-list { border-radius: 24px; border-color: transparent; }
+  .home-row { min-height: 70px; padding: 12px 20px; gap: 16px; }
+  .home-row-ico { background: var(--bg); color: var(--ink); border: 1px solid var(--border); border-radius: 12px; width: 40px; height: 40px; }
+  .home-row-ico.avatar { border: none; background: var(--accent-soft); color: var(--accent); }
+  @media (max-width: 860px) {
+    .home-chatto { width: 74px; height: 74px; padding: 5px; }
+    .home-bubble-title { font-size: 23px; }
+  }
+  .home-row-text b { font-weight: 600; }
+  .home-row-chev { opacity: 0.6; }
+  .home-review { border-radius: 24px; border-color: transparent; padding: 18px 20px; }
+  .home-review-ico { background: var(--bg); color: var(--ink); border: 1px solid var(--border); border-radius: 12px; width: 40px; height: 40px; }
+  .home-review-btn { border-radius: 999px; background: var(--ink); color: var(--bg); font-weight: 600; padding: 0 18px; }
+  .home-review-btn:disabled { background: var(--bg); color: var(--ink-soft); }
+
   /* -------- Chat screen -------- */
   .lookup-panel {
     display: none; border-bottom: 1px solid var(--border); background: var(--accent-soft);
