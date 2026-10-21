@@ -223,11 +223,19 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
      in TikTok/Instagram's in-app browser and mobile Safari the bottom bar
      (reply box, Start lesson) could sit off-screen with no way to scroll. */
   .screen { display: none; height: 100vh; height: 100dvh; flex-direction: column; }
-  /* iOS Safari scrolls the whole page up when the keyboard opens, which
-     pushed the chat's header up under the clock/battery and left it there.
-     --vvh (set from visualViewport in script) sizes the chat to exactly the
-     visible area so nothing needs to scroll. */
-  #chatScreen.screen { height: var(--vvh, 100dvh); }
+  /* iOS Safari pans the page when the keyboard opens, which pushed the
+     chat's header up under the clock/battery (and a plain height change
+     left a blank white screen while the keyboard was up). So while the chat
+     is open it is pinned to exactly the visible area: fixed, as tall as the
+     visible viewport (--vvh, never taller than 100dvh), and moved down by
+     however far Safari has panned (--vvtop). Both are set from
+     visualViewport in script; the page itself can't scroll meanwhile. */
+  html.chat-open, html.chat-open body { overflow: hidden; overscroll-behavior: none; }
+  #chatScreen.screen.active {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 100dvh; height: min(var(--vvh, 100dvh), 100dvh);
+    transform: translateY(var(--vvtop, 0px));
+  }
   .screen.active { display: flex; }
 
   /* -------- Account modal: visitors can try Echoly as a guest first, so
@@ -2788,21 +2796,33 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   const gateLoadingScreen = document.getElementById("gateLoadingScreen");
   const introScreen = document.getElementById("introScreen");
   const chatScreen = document.getElementById("chatScreen");
-  // See #chatScreen's --vvh rule in the CSS: keep the chat exactly as tall
-  // as the visible area (shrinks when the iPhone keyboard opens) and undo
-  // Safari's page scroll, so the header never slides under the status bar.
-  if (window.visualViewport) {
+  // See #chatScreen's rule in the CSS: while the chat is open it is pinned
+  // to the part of the screen that's actually visible — above the iPhone
+  // keyboard, and following Safari when it pans — so the header never
+  // slides under the status bar and the screen never shows blank white.
+  (function pinChatToVisibleArea() {
+    const root = document.documentElement;
     const vv = window.visualViewport;
-    const fitChatToViewport = () => {
-      document.documentElement.style.setProperty("--vvh", Math.round(vv.height) + "px");
-      if (chatScreen.classList.contains("active") && (window.scrollY || document.documentElement.scrollTop)) {
-        window.scrollTo(0, 0);
-      }
+    const fit = () => {
+      if (!vv) return;
+      root.style.setProperty("--vvh", Math.round(vv.height) + "px");
+      root.style.setProperty("--vvtop", Math.max(0, Math.round(vv.offsetTop)) + "px");
     };
-    vv.addEventListener("resize", fitChatToViewport);
-    vv.addEventListener("scroll", fitChatToViewport);
-    fitChatToViewport();
-  }
+    const syncOpen = () => {
+      const open = chatScreen.classList.contains("active");
+      if (open !== root.classList.contains("chat-open")) {
+        root.classList.toggle("chat-open", open);
+        if (open) window.scrollTo(0, 0);
+      }
+      fit();
+    };
+    if (vv) {
+      vv.addEventListener("resize", fit);
+      vv.addEventListener("scroll", fit);
+    }
+    new MutationObserver(syncOpen).observe(chatScreen, { attributes: true, attributeFilter: ["class"] });
+    syncOpen();
+  })();
   const accountCardEl = document.getElementById("accountCard");
   const authOverlayEl = document.getElementById("authOverlay");
   const authModalTitleEl = document.getElementById("authModalTitle");
@@ -7504,7 +7524,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       if (billingStatus && !billingStatus.premium) refreshBillingStatus();
 
       if (Array.isArray(data.completedObjectives)) {
-        completedObjectiveIndices = data.completedObjectives;
+        // A goal, once ticked, stays ticked: the model is asked to repeat the
+        // full cumulative list every turn but sometimes drops one, which
+        // un-ticked "Order a café drink" mid-lesson (2/3 back to 1/3).
+        const valid = data.completedObjectives.filter(i => Number.isInteger(i) && i >= 0 && i < currentObjectives.length);
+        completedObjectiveIndices = Array.from(new Set([...completedObjectiveIndices, ...valid])).sort((a, b) => a - b);
         renderObjectivesCard();
       }
 
