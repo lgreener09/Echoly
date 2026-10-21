@@ -2009,6 +2009,54 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .wp-input { border-radius: 999px; }
   .wp-submit-btn { background: var(--ink); color: var(--bg); border-radius: 999px; font-weight: 600; }
   .lc-play-btn { background: var(--ink); color: var(--bg); box-shadow: 0 0 0 8px var(--accent-soft); }
+
+  /* ======== Onboarding plan + sign-up modal (elegant) ======== */
+  .onb-top { margin-bottom: 26px; }
+  .onb-brand { font-family: inherit; font-weight: 700; }
+  .onb-dots { gap: 5px; margin-bottom: 18px; }
+  .onb-dot { flex: 1; max-width: 56px; height: 4px; }
+  .onb-dot.on { background: var(--ink); }
+  .onb-bubble, .onb-bubble::before { border-width: 1px; }
+  .onb-bubble { font-weight: 500; font-size: 14.5px; box-shadow: 0 10px 24px -18px rgba(50,34,52,0.3); }
+  .onb-title { font-family: inherit; font-weight: 600; letter-spacing: -0.025em; }
+  .onb-choice {
+    border: 1px solid transparent; border-radius: 18px; padding: 15px 16px; font-weight: 600; font-size: 15px; min-height: 58px;
+    box-shadow: 0 1px 2px rgba(34,24,37,0.05), 0 10px 24px -18px rgba(50,34,52,0.25);
+  }
+  .onb-choice:hover { border-color: var(--ink-soft); transform: none; }
+  .onb-choice.selected { border-color: var(--ink); background: var(--surface); box-shadow: 0 0 0 1px var(--ink); }
+  .onb-choice-emoji { width: 40px; height: 40px; border-radius: 12px; background: var(--bg); display: inline-flex; align-items: center; justify-content: center; font-size: 19px; }
+  .onb-goal-text small { font-size: 13px; margin-top: 2px; }
+  .onb-back { margin-top: 20px; font-weight: 600; }
+  .onb-plan {
+    list-style: none; margin: 18px 0 0; padding: 0; background: var(--surface); border-radius: 22px; overflow: hidden;
+    box-shadow: 0 1px 2px rgba(34,24,37,0.04), 0 14px 34px -18px rgba(50,34,52,0.2);
+  }
+  .onb-plan li { display: flex; align-items: center; gap: 14px; padding: 14px 18px; font-size: 15px; line-height: 1.35; }
+  .onb-plan li + li { border-top: 1px solid var(--border); }
+  .onb-plan-ico { width: 34px; height: 34px; border-radius: 10px; background: var(--bg); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; }
+  .onb-plan-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); margin: 26px 4px 10px; }
+  .onb-first { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 20px; background: var(--accent-soft); }
+  .onb-first-emoji { width: 48px; height: 48px; border-radius: 50%; background: var(--surface); display: inline-flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .onb-first-text b { display: block; font-size: 16.5px; font-weight: 600; color: var(--ink); }
+  .onb-first-text span { font-size: 13.5px; color: var(--ink-soft); }
+  .onb-go {
+    width: 100%; margin-top: 18px; min-height: 58px; border: none; border-radius: 999px; background: var(--ink); color: var(--bg);
+    display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 24px; font: inherit; font-size: 16.5px; font-weight: 600; cursor: pointer;
+  }
+  .onb-go svg { width: 42px; height: 42px; padding: 12px; box-sizing: border-box; border-radius: 50%; background: #cf4334; color: #fff; }
+  .onb-go:hover { opacity: 0.92; }
+  .onb-signin { text-align: center; font-size: 13.5px; color: var(--ink-soft); margin: 14px 0 0; }
+  .onb-signin button { background: none; border: none; padding: 0 0 0 4px; font: inherit; font-weight: 600; color: var(--ink); cursor: pointer; text-decoration: underline; }
+
+  .modal-title { font-family: inherit; font-weight: 600; letter-spacing: -0.02em; font-size: 22px; }
+  .modal-subtitle { font-size: 14px; }
+  .modal-google-btn { min-height: 52px; border-radius: 999px; font-size: 15px; font-weight: 600; border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(34,24,37,0.05); }
+  .modal-google-btn svg { width: 18px; height: 18px; }
+  .modal-field input { border-width: 1px; border-radius: 12px; padding: 12px 14px; font-size: 15px; color: var(--ink); }
+  .modal-field input:focus { border-color: var(--ink-soft); }
+  .modal-submit { background: var(--ink); color: var(--bg); border-radius: 999px; min-height: 48px; font-weight: 600; font-size: 15px; }
+  .modal-link { color: var(--ink); font-weight: 600; text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -2044,6 +2092,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     <h2 class="modal-title" id="authModalTitle">Sign in</h2>
     <p class="modal-subtitle" id="authModalSubtitle">Sign in to start practicing.</p>
     <div class="error-banner" id="authErrorBanner"></div>
+    <button type="button" class="modal-google-btn" id="authGoogleBtn">
+      <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 01-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.87 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 009 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 013.68 9c0-.59.1-1.17.27-1.7V4.97H.98A9 9 0 000 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 00.98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+      Continue with Google
+    </button>
+    <div class="modal-divider"><span>or use email</span></div>
     <form id="authForm">
       <label class="modal-field">
         <span>Email</span>
@@ -2055,11 +2108,6 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       </label>
       <button type="submit" class="modal-submit" id="authSubmitBtn">Sign in</button>
     </form>
-    <div class="modal-divider"><span>or</span></div>
-    <button type="button" class="modal-google-btn" id="authGoogleBtn">
-      <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 01-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.87 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 009 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 013.68 9c0-.59.1-1.17.27-1.7V4.97H.98A9 9 0 000 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 00.98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
-      Continue with Google
-    </button>
     <p class="modal-switch">
       <span id="authSwitchText">Don't have an account?</span>
       <button type="button" class="modal-link" id="authSwitchBtn">Sign up</button>
@@ -2083,9 +2131,9 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     </div>
     <div class="onb-hello">
       <img class="onb-mascot" src="/mascot/mascot-wave.webp" width="560" height="670" alt="Chatto, Echoly's monkey mascot, waving hello">
-      <span class="onb-bubble">Hi, I'm Chatto! Pick a language and you'll be talking.</span>
+      <span class="onb-bubble" id="onbBubble">Hi, I'm Chatto! Let's build your plan. Four quick taps.</span>
     </div>
-    <div class="onb-dots"><span class="onb-dot" data-dot="1"></span><span class="onb-dot" data-dot="3"></span></div>
+    <div class="onb-dots" aria-hidden="true"><span class="onb-dot" data-dot="1"></span><span class="onb-dot" data-dot="2"></span><span class="onb-dot" data-dot="3"></span><span class="onb-dot" data-dot="4"></span><span class="onb-dot" data-dot="5"></span></div>
 
     <div class="onb-step" id="onbStep1">
       <h2 class="onb-title">What language do you want to speak?</h2>
@@ -2095,25 +2143,47 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
 
     <div class="onb-step" id="onbStep2">
       <h2 class="onb-title" id="onbStep2Title">What's it for?</h2>
-      <p class="onb-sub">We'll pick conversations that match.</p>
+      <p class="onb-sub">Chatto will pick conversations that match.</p>
       <div class="onb-grid onb-goals" id="onbGoalGrid"></div>
       <button type="button" class="onb-back" data-onb-back="1">← Back</button>
     </div>
 
     <div class="onb-step" id="onbStep3">
-      <h2 class="onb-title">Let's have your first conversation.</h2>
-      <p class="onb-sub" id="onbStep3Sub">It takes about two minutes. Hints and translations are one tap away.</p>
-      <div class="onb-start-grid">
-        <button type="button" class="onb-start onb-start--primary" id="onbStartScenarioBtn">
-          <span class="onb-start-emoji" id="onbStartScenarioEmoji">✈️</span>
-          <span><b id="onbStartScenarioTitle">Jump into a real situation</b><span id="onbStartScenarioSub">I know a little</span></span>
-        </button>
-        <button type="button" class="onb-start" id="onbStartBasicsBtn">
-          <span class="onb-start-emoji">👋</span>
-          <span><b>I'm brand new</b><span>Start from zero: learn to say hello, with a patient tutor</span></span>
-        </button>
+      <h2 class="onb-title" id="onbStep3Title">How much do you know already?</h2>
+      <p class="onb-sub">So your first lesson is the right size.</p>
+      <div class="onb-grid onb-goals" id="onbLevelGrid">
+        <button type="button" class="onb-choice" data-level="new"><span class="onb-choice-emoji">🌱</span><span class="onb-goal-text">Brand new<small>I don't know any yet</small></span></button>
+        <button type="button" class="onb-choice" data-level="some"><span class="onb-choice-emoji">🙂</span><span class="onb-goal-text">A few words<small>Hello, thank you, a couple of numbers</small></span></button>
+        <button type="button" class="onb-choice" data-level="okay"><span class="onb-choice-emoji">💬</span><span class="onb-goal-text">I can get by<small>Simple chats, with a bit of help</small></span></button>
       </div>
-      <button type="button" class="onb-back" data-onb-back="1">← Back</button>
+      <button type="button" class="onb-back" data-onb-back="2">← Back</button>
+    </div>
+
+    <div class="onb-step" id="onbStep4">
+      <h2 class="onb-title">How much time a day?</h2>
+      <p class="onb-sub">Little and often works best. You can change it later.</p>
+      <div class="onb-grid onb-goals" id="onbTimeGrid">
+        <button type="button" class="onb-choice" data-goal-n="1"><span class="onb-choice-emoji">☕</span><span class="onb-goal-text">5 minutes<small>Casual: one lesson a day</small></span></button>
+        <button type="button" class="onb-choice" data-goal-n="2"><span class="onb-choice-emoji">🚶</span><span class="onb-goal-text">10 minutes<small>Regular: two lessons a day</small></span></button>
+        <button type="button" class="onb-choice" data-goal-n="3"><span class="onb-choice-emoji">🚀</span><span class="onb-goal-text">15 minutes or more<small>Serious: three lessons a day</small></span></button>
+      </div>
+      <button type="button" class="onb-back" data-onb-back="3">← Back</button>
+    </div>
+
+    <div class="onb-step" id="onbStep5">
+      <h2 class="onb-title">Your plan is ready</h2>
+      <ul class="onb-plan" id="onbPlanList"></ul>
+      <p class="onb-plan-label">Your first lesson</p>
+      <div class="onb-first">
+        <span class="onb-first-emoji" id="onbFirstEmoji">👋</span>
+        <span class="onb-first-text"><b id="onbFirstTitle">Greetings</b><span>Learn the key phrases, then try them out with Chatto.</span></span>
+      </div>
+      <button type="button" class="onb-go" id="onbGoBtn">
+        <span>Start my first lesson</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+      <p class="onb-signin">Already have an account? <button type="button" id="onbSignInBtn">Sign in</button></p>
+      <button type="button" class="onb-back" data-onb-back="4">← Back</button>
     </div>
   </div>
 </div>
@@ -3138,8 +3208,22 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   const IN_APP_BROWSER = /TikTok|musical_ly|Bytedance|BytedanceWebview|Instagram|FBAN|FBAV|FB_IAB|Snapchat/i.test(navigator.userAgent || "");
   const GOOGLE_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 01-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.87 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 009 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 013.68 9c0-.59.1-1.17.27-1.7V4.97H.98A9 9 0 000 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 00.98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>';
   let lessonFinishedThisVisit = false;
-  const GUEST_FREE_CONVERSATIONS = 3;
+  // Guests get one full lesson free; starting the next one asks them to
+  // make a free account (their progress comes with them). Unfinished
+  // starts are capped too, so the wall can't be dodged by quitting early.
+  const GUEST_FREE_LESSONS = 1;
+  const GUEST_FREE_CONVERSATIONS = 3; // unfinished starts allowed
   const GUEST_CONVOS_KEY = "echoly_guest_convos_v1";
+  const GUEST_DONE_KEY = "echoly_guest_done_v1";
+  function loadGuestDoneCount() {
+    try { return parseInt(localStorage.getItem(GUEST_DONE_KEY) || "0", 10) || 0; } catch (e) { return 0; }
+  }
+  function bumpGuestDoneCount() {
+    try { localStorage.setItem(GUEST_DONE_KEY, String(loadGuestDoneCount() + 1)); } catch (e) { /* non-fatal */ }
+  }
+  function guestOutOfFree() {
+    return loadGuestDoneCount() >= GUEST_FREE_LESSONS || loadGuestConvoCount() >= GUEST_FREE_CONVERSATIONS;
+  }
   function loadGuestConvoCount() {
     try { return parseInt(localStorage.getItem(GUEST_CONVOS_KEY) || "0", 10) || 0; } catch (e) { return 0; }
   }
@@ -3152,9 +3236,9 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // Returns true (and opens the sign-up modal) when a guest has used up
   // their free conversations — callers stop what they were about to start.
   function guestLimitReached() {
-    if (!isGuest() || loadGuestConvoCount() < GUEST_FREE_CONVERSATIONS) return false;
-    trackEvent("guest_limit_reached");
-    openAuthModal("signup", "Nice work! You've used your free guest conversations. Create a free account to keep going, and your progress comes with you.");
+    if (!isGuest() || !guestOutOfFree()) return false;
+    trackEvent("guest_limit_reached", { done: loadGuestDoneCount(), started: loadGuestConvoCount() });
+    openAuthModal("signup", "Nice work on your first lesson! Create a free account to keep going. Your streak and phrases come with you.");
     return true;
   }
 
@@ -5120,9 +5204,9 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       // is kept in this browser and carried into their account when they
       // sign up (see handleSignedIn: a brand-new account starts from
       // whatever's already saved locally).
-      const left = Math.max(0, GUEST_FREE_CONVERSATIONS - loadGuestConvoCount());
+      const freeNote = guestOutOfFree() ? "your free lesson is done" : "your first lesson is free";
       accountCardEl.innerHTML = `
-        <p class="account-blurb">👋 <b style="color:#fff">You're trying Echoly as a guest</b> (${left} free conversation${left === 1 ? "" : "s"} left). Create a free account to keep your progress and streak on any device.</p>
+        <p class="account-blurb">👋 <b style="color:#fff">You're trying Echoly as a guest</b> (${freeNote}). Create a free account to keep going and keep your progress and streak on any device.</p>
         <button class="account-btn" id="accountSignUpBtn">Create free account</button>
         <button class="account-btn account-btn--ghost" id="accountSignInBtn">Sign in</button>`;
       document.getElementById("accountSignUpBtn").addEventListener("click", () => openAuthModal("signup"));
@@ -5368,7 +5452,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     // Hide it there and say why; email sign-up works everywhere.
     if (IN_APP_BROWSER) {
       authGoogleBtn.style.display = "none";
-      const divider = authGoogleBtn.previousElementSibling;
+      const divider = authGoogleBtn.nextElementSibling;
       if (divider && divider.classList.contains("modal-divider")) divider.style.display = "none";
       if (!document.getElementById("authInAppNote")) {
         const note = document.createElement("p");
@@ -5402,7 +5486,10 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     updateAuthModalMode();
     if (subtitle) authModalSubtitleEl.textContent = subtitle;
     authOverlayEl.style.display = "flex";
-    setTimeout(() => authEmailInput.focus(), 50);
+    trackEvent("auth_modal_shown", { mode: authMode, in_app: IN_APP_BROWSER ? 1 : 0 });
+    // On phones, focusing the email box pops the keyboard over the Google
+    // button, so only focus it on a computer.
+    if (!window.matchMedia("(pointer: coarse)").matches) setTimeout(() => authEmailInput.focus(), 50);
   }
   function closeAuthModal() {
     authOverlayEl.style.display = "none";
@@ -5730,6 +5817,10 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   let onboardingShowing = false;
   let onbLanguage = null;
   let onbGoal = null;
+  let onbLevel = null;
+  let onbDailyGoal = null;
+  const onbBubbleEl = document.getElementById("onbBubble");
+  const ONB_STEP_NAMES = { 1: "language", 2: "goal", 3: "level", 4: "time", 5: "plan" };
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -5801,8 +5892,10 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   }
   function openOnboarding() {
     onboardingShowing = true;
-    onbGoal = null;
-    onbLanguage = (requestedLanguage && LANGUAGES.includes(requestedLanguage)) ? requestedLanguage : null;
+    onbGoal = null; onbLevel = null; onbDailyGoal = null;
+    // ?lang=spanish (any case) from an ad or link answers the first question.
+    const wanted = String(requestedLanguage || "").toLowerCase();
+    onbLanguage = LANGUAGES.find(l => l.toLowerCase() === wanted) || null;
     onbLangGridEl.innerHTML = LANGUAGES.map(lang => `
       <button type="button" class="onb-choice" data-lang="${escapeHtml(lang)}">
         <span class="onb-goal-text">${escapeHtml(lang)}<small>${escapeHtml(LANGUAGE_HELLOS[lang] || "")}</small></span>
@@ -5813,67 +5906,126 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         <span class="onb-goal-text">${g.label}<small>${g.sub}</small></span>
       </button>`).join("");
     onbOverlayEl.classList.add("shown");
-    // One question only: language. The "why are you learning" step (2) is
-    // no longer shown — every extra screen before the first conversation
-    // cost visitors. Goal stays null; the home screen copes without one.
-    showOnbStep(onbLanguage ? 3 : 1);
-    trackEvent("onboarding_started");
+    trackEvent("onboarding_started", { preset_language: onbLanguage ? 1 : 0 });
+    showOnbStep(onbLanguage ? 2 : 1);
+  }
+  // The lesson the plan starts with: the basics for a brand-new learner,
+  // otherwise the first real situation for the reason they gave.
+  function onbFirstLesson() {
+    if (onbLevel === "new" && PATH.length) return { kind: "path", lesson: PATH[0], icon: PATH[0].icon, title: PATH[0].title };
+    const g = GOALS[onbGoal] || GOALS.travel;
+    const t = g.topics[0];
+    return { kind: "topic", topic: t, icon: t[0], title: t[1] };
+  }
+  function renderOnbPlan() {
+    const g = GOALS[onbGoal] || null;
+    const lang = onbLanguage || selectedLanguage;
+    const levelText = { new: "Starting from zero, at your pace", some: "Building on the words you know", okay: "Straight into real conversations" }[onbLevel] || "At your pace";
+    const n = onbDailyGoal || 1;
+    const rows = [
+      ["🗣️", `Speak ${lang}${g ? " " + g.eyebrow : ""}`],
+      ["📍", levelText],
+      ["⏱️", `${n} lesson${n === 1 ? "" : "s"} a day, about ${n * 5} minutes`],
+      ["🔁", "Phrases come back for review right before you'd forget them"],
+    ];
+    document.getElementById("onbPlanList").innerHTML = rows.map(([e, t]) =>
+      `<li><span class="onb-plan-ico" aria-hidden="true">${e}</span><span>${escapeHtml(t)}</span></li>`).join("");
+    const first = onbFirstLesson();
+    document.getElementById("onbFirstEmoji").textContent = first.icon || "💬";
+    document.getElementById("onbFirstTitle").textContent = first.title;
   }
   function showOnbStep(n) {
-    [1, 2, 3].forEach(i => document.getElementById("onbStep" + i).classList.toggle("shown", i === n));
+    [1, 2, 3, 4, 5].forEach(i => document.getElementById("onbStep" + i).classList.toggle("shown", i === n));
     onbOverlayEl.querySelectorAll(".onb-dot").forEach(d => d.classList.toggle("on", Number(d.dataset.dot) <= n));
-    if (n === 2) {
-      document.getElementById("onbStep2Title").textContent = `Why are you learning ${onbLanguage}?`;
-    }
-    if (n === 3) {
-      const g = GOALS[onbGoal] || GOALS.travel;
-      const first = g.topics[0];
-      document.getElementById("onbStartScenarioEmoji").textContent = first[0];
-      document.getElementById("onbStartScenarioTitle").textContent = `${first[1]} in ${onbLanguage}`;
-      document.getElementById("onbStartScenarioSub").textContent = "I know a little: drop me into a real conversation";
-    }
+    const lang = onbLanguage || selectedLanguage;
+    const g = GOALS[onbGoal] || null;
+    const bubbles = {
+      1: "Hi, I'm Chatto! Let's build your plan. Four quick taps.",
+      2: `${LANGUAGE_HELLOS[lang] || "Hi!"} ${lang} it is. Great choice.`,
+      3: g ? `Got it, ${g.eyebrow}. I'll pick situations that match.` : "Got it. I'll pick situations that match.",
+      4: "Little and often beats cramming.",
+      5: "Your plan is ready. Let's go!",
+    };
+    onbBubbleEl.textContent = bubbles[n];
+    if (n === 2) document.getElementById("onbStep2Title").textContent = `Why are you learning ${lang}?`;
+    if (n === 3) document.getElementById("onbStep3Title").textContent = `How much ${lang} do you know?`;
+    if (n === 5) renderOnbPlan();
+    // Mark the earlier answer when someone comes back a step.
+    const mark = (grid, attr, val) => grid.querySelectorAll(`[${attr}]`).forEach(b => b.classList.toggle("selected", val != null && b.getAttribute(attr) === String(val)));
+    mark(onbLangGridEl, "data-lang", onbLanguage);
+    mark(onbGoalGridEl, "data-goal", onbGoal);
+    mark(document.getElementById("onbLevelGrid"), "data-level", onbLevel);
+    mark(document.getElementById("onbTimeGrid"), "data-goal-n", onbDailyGoal);
     onbOverlayEl.scrollTop = 0;
+    trackEvent("onboarding_step", { step: n, name: ONB_STEP_NAMES[n] });
   }
   function closeOnboarding() {
     onbOverlayEl.classList.remove("shown");
     onboardingShowing = false;
     const ob = loadOnboarding();
-    saveOnboarding({ ...ob, done: true, language: onbLanguage || ob.language || selectedLanguage, goal: onbGoal || ob.goal || null });
+    saveOnboarding({ ...ob, done: true, language: onbLanguage || ob.language || selectedLanguage, goal: onbGoal || ob.goal || null, level: onbLevel || ob.level || null });
   }
   function finishOnboarding(how) {
     closeOnboarding();
-    trackEvent("onboarding_completed", { goal: onbGoal || "none", language: onbLanguage || selectedLanguage, start: how });
+    if (onbDailyGoal) setDailyGoal(onbDailyGoal);
+    trackEvent("onboarding_completed", { goal: onbGoal || "none", language: onbLanguage || selectedLanguage, level: onbLevel || "none", daily_goal: onbDailyGoal || 0, start: how });
     if (onbLanguage && onbLanguage !== selectedLanguage) {
       selectedLanguage = onbLanguage;
       populateLangSelect();
     }
     selectedTier = pickDefaultTier(selectedLanguage);
     renderHome();
+    try { renderStreakCard(); } catch (e) { /* non-fatal */ }
     syncToCloud();
+  }
+  function onbAnswer(question, value, next) {
+    trackEvent("onboarding_answer", { question, answer: String(value) });
+    // A short beat so the tap visibly lands before the next question.
+    setTimeout(() => showOnbStep(next), 160);
   }
   onbLangGridEl.addEventListener("click", e => {
     const btn = e.target.closest("[data-lang]");
     if (!btn) return;
     onbLanguage = btn.dataset.lang;
-    showOnbStep(3);
+    btn.classList.add("selected");
+    onbAnswer("language", onbLanguage, 2);
   });
   onbGoalGridEl.addEventListener("click", e => {
     const btn = e.target.closest("[data-goal]");
     if (!btn) return;
     onbGoal = btn.dataset.goal;
-    showOnbStep(3);
+    btn.classList.add("selected");
+    onbAnswer("goal", onbGoal, 3);
+  });
+  document.getElementById("onbLevelGrid").addEventListener("click", e => {
+    const btn = e.target.closest("[data-level]");
+    if (!btn) return;
+    onbLevel = btn.dataset.level;
+    btn.classList.add("selected");
+    onbAnswer("level", onbLevel, 4);
+  });
+  document.getElementById("onbTimeGrid").addEventListener("click", e => {
+    const btn = e.target.closest("[data-goal-n]");
+    if (!btn) return;
+    onbDailyGoal = Number(btn.dataset.goalN);
+    btn.classList.add("selected");
+    onbAnswer("daily_goal", onbDailyGoal, 5);
   });
   onbOverlayEl.querySelectorAll("[data-onb-back]").forEach(b => b.addEventListener("click", () => showOnbStep(Number(b.dataset.onbBack))));
   document.getElementById("onbSkipBtn").addEventListener("click", () => finishOnboarding("skipped"));
-  document.getElementById("onbStartScenarioBtn").addEventListener("click", () => {
-    const g = GOALS[onbGoal] || GOALS.travel;
-    finishOnboarding("scenario");
-    const firstLesson = customLessonFor(g.topics[0][2], { icon: g.topics[0][0], title: g.topics[0][1] });
-    if (firstLesson) openIntro(firstLesson);
+  document.getElementById("onbGoBtn").addEventListener("click", () => {
+    const first = onbFirstLesson();
+    finishOnboarding(first.kind === "path" ? "basics" : "scenario");
+    if (first.kind === "path") openIntro(first.lesson);
+    else {
+      const lesson = customLessonFor(first.topic[2], { icon: first.topic[0], title: first.topic[1] });
+      if (lesson) openIntro(lesson);
+    }
   });
-  document.getElementById("onbStartBasicsBtn").addEventListener("click", () => {
-    finishOnboarding("basics");
-    if (PATH.length) openIntro(PATH[0]);
+  document.getElementById("onbSignInBtn").addEventListener("click", () => {
+    trackEvent("onboarding_signin_clicked");
+    closeOnboarding();
+    openAuthModal("signin");
   });
 
   // ---------- Home: "Today's conversation" card ----------
@@ -6292,8 +6444,9 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     // Guest / plan line under the button.
     const guestEl = document.getElementById("heroGuest");
     if (accountsEnabled && isGuest()) {
-      const left = Math.max(0, GUEST_FREE_CONVERSATIONS - loadGuestConvoCount());
-      guestEl.innerHTML = `<strong>${left} free conversation${left === 1 ? "" : "s"} left</strong> · <button type="button">save your streak</button>`;
+      guestEl.innerHTML = guestOutOfFree()
+        ? `<button type="button"><strong>Create your free account</strong></button> to keep going`
+        : `<strong>Your first lesson is free</strong> · <button type="button">save your streak</button>`;
       guestEl.hidden = false;
     } else if (currentUser && billingStatus && !billingStatus.premium && typeof billingStatus.dailyRemaining === "number") {
       const n = billingStatus.dailyRemaining;
@@ -8503,7 +8656,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       if (roundEndNow) roundEndHandled = true;
       if (justCompleted) addCompletionBanner(streakIncreased, streakAfter);
       if (justCompleted) lessonFinishedThisVisit = true;
-      if (justCompleted && isGuest()) addGuestSaveCard();
+      if (justCompleted && isGuest()) { bumpGuestDoneCount(); renderAccountCard(); addGuestSaveCard(); }
       if (roundEndNow) {
         addReviewUsedNote();
         const isRealLesson = currentScenario.id !== CUSTOM_SCENARIO_ID && currentScenario.id !== FRIEND_SCENARIO_ID
