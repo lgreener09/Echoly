@@ -222,12 +222,13 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
      phone. Plain 100vh includes the area behind the browser's toolbars, so
      in TikTok/Instagram's in-app browser and mobile Safari the bottom bar
      (reply box, Start lesson) could sit off-screen with no way to scroll. */
-  .screen { display: none; height: 100vh; height: 100dvh; flex-direction: column; }
-  /* The chat stays in normal page flow (no fixed/transform pinning: on
-     iPhone that made taps land in the wrong place after the keyboard
-     closed, so the recap quiz couldn't be answered). The header-under-the-
-     clock problem is handled in script instead, by scrolling the page back
-     to the top once the keyboard closes. */
+  .screen { display: none; height: 100vh; height: 100dvh; height: var(--appH, 100dvh); flex-direction: column; }
+  /* --appH (set in script from window.innerHeight) replaces 100dvh as the
+     screen height: after the keyboard closes, iPhone Safari's toolbar can
+     take ~44px more than before, and 100dvh didn't follow, so the page ended
+     up 44px too tall and scrolled the chat header under the clock (measured
+     with ?debug=1: innerHeight 655 vs page 699, scrollY 43). The chat stays
+     in normal page flow — fixed/transform pinning broke taps on iPhone. */
   .screen.active { display: flex; }
 
   /* -------- Account modal: visitors can try Echoly as a guest first, so
@@ -2794,31 +2795,48 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // gone (the visible area is full height again), scroll back to the top.
   (function resetScrollAfterKeyboard() {
     const vv = window.visualViewport;
+    const root = document.documentElement;
     const timers = [];
+    const typing = () => {
+      const el = document.activeElement;
+      return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+    };
+    // Size every screen to the height Safari is actually showing. Not while
+    // typing: the keyboard shrinks innerHeight too, and resizing then is what
+    // caused the blank white screen earlier.
+    const setAppH = () => {
+      if (typing()) return;
+      root.style.setProperty("--appH", window.innerHeight + "px");
+    };
     const resetNow = () => {
-      if (!chatScreen.classList.contains("active")) return;
+      setAppH();
+      if (!chatScreen.classList.contains("active") || typing()) return;
       const se = document.scrollingElement || document.documentElement;
-      // A 1px nudge first: iOS sometimes ignores scrollTo(0, 0) when it
-      // already thinks the page is at the top while it's drawn shifted.
-      window.scrollTo(0, 1);
       window.scrollTo(0, 0);
       se.scrollTop = 0;
       document.body.scrollTop = 0;
     };
-    // Run a few times, since the keyboard's closing animation can undo an
-    // early reset.
+    // Run a few times, since the keyboard's closing animation and Safari's
+    // toolbar change can land after an early reset.
     const settle = () => {
       timers.splice(0).forEach(clearTimeout);
       [150, 400, 900].forEach(ms => timers.push(setTimeout(resetNow, ms)));
     };
+    window.addEventListener("resize", setAppH);
+    window.addEventListener("orientationchange", settle);
     let lastH = vv ? vv.height : 0;
     if (vv) vv.addEventListener("resize", () => {
+      setAppH();
       if (vv.height > lastH + 40) settle(); // keyboard just closed
       lastH = vv.height;
     });
-    document.addEventListener("focusout", e => { if (e.target && e.target.id === "messageInput") settle(); });
+    document.addEventListener("focusout", e => {
+      const t = e.target;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) settle();
+    });
     new MutationObserver(() => { if (chatScreen.classList.contains("active")) resetNow(); })
       .observe(chatScreen, { attributes: true, attributeFilter: ["class"] });
+    setAppH();
 
     // Hidden diagnostic readout: open the app with ?debug=1 (it then stays
     // on for that browser tab) to see the live viewport numbers on screen.
@@ -2839,6 +2857,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           "scrollY " + r(window.scrollY) + "  seTop " + r(se.scrollTop) + "\n" +
           "innerH " + window.innerHeight + "  docH " + se.scrollHeight + "\n" +
           (vv ? "vvH " + r(vv.height) + "  vvTop " + r(vv.offsetTop) + "  vvPageTop " + r(vv.pageTop) + "\n" : "no vv\n") +
+          "appH " + (root.style.getPropertyValue("--appH") || "-") + "\n" +
           "chatTop " + r(top) + "  focus " + ((document.activeElement && document.activeElement.id === "messageInput") ? "input" : "-");
       }, 200);
     }
