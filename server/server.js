@@ -327,6 +327,10 @@ const lookupCache = new Map();
 // miss, so they survive deploys. Falls back to Map-only when Firestore
 // isn't configured. Never throws: a Firestore hiccup just means a cache miss.
 const LESSON_CACHE_COLLECTION = "lessonCache";
+// Bump when the lesson-intro prompt changes in a way that should replace
+// already-cached goals/phrases (each lesson then regenerates once, ~5s, on
+// its next open). v2: goals must always be completable by the learner.
+const INTRO_CACHE_KIND = "intro-v2";
 function lessonCacheDocId(kind, key) {
     return `${kind}::${key}`.replace(/\//g, "_").slice(0, 700);
 }
@@ -395,7 +399,7 @@ app.post("/admin/cache/clear", async (req, res) => {
     if (scenarioId && language) {
         nativeLanguages.forEach(n => {
             const key = scenarioCacheKey(scenarioId, language, n);
-            deleteLessonCache("intro", lessonIntroCache, key);
+            deleteLessonCache(INTRO_CACHE_KIND, lessonIntroCache, key);
             deleteLessonCache("practice", lessonPracticeCache, key);
         });
         return res.json({ success: true, cleared: "lesson", scenarioId, language });
@@ -1656,7 +1660,7 @@ function buildSystemPrompt(language, scenario, objectives, keyPhrases, vocabHist
     const mode = feedbackMode || {};
     const hasObjectives = Array.isArray(objectives) && objectives.length > 0;
     const objectivesSection = hasObjectives
-        ? `\n\nThis conversation also has a short list of lesson objectives the learner is trying to accomplish:\n${objectives.map((o, i) => `${i}. ${o}`).join("\n")}\nAfter the learner's latest message, and considering the whole conversation so far (not just this one message), decide which of these objectives (by their 0-based index above) have now been reasonably satisfied — be a little generous about it, not a strict grader; near enough counts. But an objective only counts when the LEARNER did it in their own words: if an objective is for the learner to ask for something or ask a question (e.g. "Ask for the total", "Ask the price"), it is only satisfied once the learner has asked it themselves — the learner just answering "yes" to you offering it does NOT count. So don't do the learner's objectives for them: never ask on their behalf the question an objective wants them to ask (e.g. don't say "Do you want the total?" when they're supposed to ask for it); instead leave a natural opening for them to do it (e.g. "Anything else?" / "Is that everything?"). Never repeat a question the learner has just answered: once they've closed something off (e.g. said "that's all"), move the scene forward with a new line, and if one of their objectives is still open, make that new line give them a natural reason to do it (e.g. at a counter, move on to paying: "How would you like to pay?"). Once an objective is satisfied, keep including its index in every later turn too, even if the conversation has moved on. Put the full, cumulative list of satisfied indices in "completedObjectives" (empty array if none yet).`
+        ? `\n\nThis conversation also has a short list of lesson objectives the learner is trying to accomplish:\n${objectives.map((o, i) => `${i}. ${o}`).join("\n")}\nAfter the learner's latest message, and considering the whole conversation so far (not just this one message), decide which of these objectives (by their 0-based index above) have now been reasonably satisfied — be a little generous about it, not a strict grader; near enough counts. But an objective only counts when the LEARNER did it in their own words: if an objective is for the learner to ask for something or ask a question (e.g. "Ask for the total", "Ask the price"), it is only satisfied once the learner has asked it themselves — the learner just answering "yes" to you offering it does NOT count. So don't do the learner's objectives for them: never ask on their behalf the question an objective wants them to ask (e.g. don't say "Do you want the total?" when they're supposed to ask for it); instead leave a natural opening for them to do it (e.g. "Anything else?" / "Is that everything?"). If an objective bundles an optional extra that the learner reasonably declined (e.g. "Order a drink and pastry" and they said no to a pastry), count it as satisfied once they've done the core part. Never repeat a question the learner has just answered: once they've closed something off (e.g. said "that's all"), move the scene forward with a new line, and if one of their objectives is still open, make that new line give them a natural reason to do it (e.g. at a counter, move on to paying: "How would you like to pay?"). Once an objective is satisfied, keep including its index in every later turn too, even if the conversation has moved on. Put the full, cumulative list of satisfied indices in "completedObjectives" (empty array if none yet).`
         : `\n\nThere are no lesson objectives being tracked for this conversation — always return an empty array for "completedObjectives".`;
 
     const safeKeyPhrases = Array.isArray(keyPhrases) ? keyPhrases : [];
@@ -1797,7 +1801,7 @@ function buildLessonIntroPrompt(language, scenario, nativeLanguage) {
     }
     return `The learner is about to practice this scenario in ${language}: ${scenario.blurb} They'll be roleplaying with ${scenario.character}.
 
-- "objectives": exactly 3 short, concrete goals for what the learner should try to accomplish during this conversation (in ${nativeLanguage}, each under 8 words, phrased like a checklist item — e.g. "Greet the barista", "Order a drink", "Ask the price"). Make them specific to this scenario, not generic filler.
+- "objectives": exactly 3 short, concrete goals for what the learner should try to accomplish during this conversation (in ${nativeLanguage}, each under 8 words, phrased like a checklist item — e.g. "Greet the barista", "Order a drink", "Ask the price"). Make them specific to this scenario, not generic filler. Each goal must be something the learner can ALWAYS complete by their own choice, whatever the other person says: one action per goal, and never a goal that depends on the learner agreeing to an extra or optional thing (not "Order a drink and pastry" — the learner may not want a pastry; "Order a drink" is right).
 - "keyPhrases": 4 to 6 short, useful phrases in ${language} the learner will likely want for this scenario, each with its plain ${nativeLanguage} translation — natural, everyday phrasing a native speaker would actually use, not textbook-formal. ${romanizationLine}`;
 }
 
@@ -2363,7 +2367,7 @@ app.post("/lesson-intro", introLimiter, async (req, res) => {
         }
 
         const cacheKey = lessonCacheKeyFor(scenarioId, scenario, language, nativeLanguage);
-        const cached = await getLessonCache("intro", lessonIntroCache, cacheKey);
+        const cached = await getLessonCache(INTRO_CACHE_KIND, lessonIntroCache, cacheKey);
         if (cached) {
             return res.json({ success: true, ...cached });
         }
@@ -2379,7 +2383,7 @@ app.post("/lesson-intro", introLimiter, async (req, res) => {
         });
 
         const result = JSON.parse(response.output_text);
-        setLessonCache("intro", lessonIntroCache, cacheKey, result);
+        setLessonCache(INTRO_CACHE_KIND, lessonIntroCache, cacheKey, result);
         res.json({ success: true, ...result });
 
     } catch (error) {
