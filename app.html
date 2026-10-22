@@ -2149,14 +2149,14 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     </div>
     <div class="onb-hello">
       <img class="onb-mascot" src="/mascot/mascot-wave.webp" width="560" height="670" alt="Chatto, Echoly's monkey mascot, waving hello">
-      <span class="onb-bubble" id="onbBubble">Hi, I'm Chatto! Let's build your plan. Four quick taps.</span>
+      <span class="onb-bubble" id="onbBubble">Hi, I'm Chatto! Pick a language and we'll start talking.</span>
     </div>
-    <div class="onb-dots" aria-hidden="true"><span class="onb-dot" data-dot="1"></span><span class="onb-dot" data-dot="2"></span><span class="onb-dot" data-dot="3"></span><span class="onb-dot" data-dot="4"></span><span class="onb-dot" data-dot="5"></span></div>
-
+    
     <div class="onb-step" id="onbStep1">
       <h2 class="onb-title">What language do you want to speak?</h2>
-      <p class="onb-sub">You can switch any time.</p>
+      <p class="onb-sub">One tap and your first 5-minute lesson starts. No account needed.</p>
       <div class="onb-grid" id="onbLangGrid"></div>
+      <p class="onb-signin">Already have an account? <button type="button" id="onbSignInBtn">Sign in</button></p>
     </div>
 
     <div class="onb-step" id="onbStep2">
@@ -2200,7 +2200,6 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         <span>Start my first lesson</span>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
       </button>
-      <p class="onb-signin">Already have an account? <button type="button" id="onbSignInBtn">Sign in</button></p>
       <button type="button" class="onb-back" data-onb-back="4">← Back</button>
     </div>
   </div>
@@ -5973,8 +5972,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         <span class="onb-goal-text">${g.label}<small>${g.sub}</small></span>
       </button>`).join("");
     onbOverlayEl.classList.add("shown");
-    trackEvent("onboarding_started", { preset_language: onbLanguage ? 1 : 0 });
-    showOnbStep(onbLanguage ? 2 : 1);
+    trackEvent("onboarding_started", { preset_language: onbLanguage ? 1 : 0, v: 2 });
+    // One-tap onboarding (v2): the language screen is the only question.
+    // Goal, level and daily time were dropped from the first visit because
+    // 98% of people who saw the 5-step plan quiz left before finishing it.
+    showOnbStep(1);
   }
   // The lesson the plan starts with: the basics for a brand-new learner,
   // otherwise the first real situation for the reason they gave.
@@ -6007,7 +6009,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     const lang = onbLanguage || selectedLanguage;
     const g = GOALS[onbGoal] || null;
     const bubbles = {
-      1: "Hi, I'm Chatto! Let's build your plan. Four quick taps.",
+      1: onbLanguage ? `${LANGUAGE_HELLOS[onbLanguage] || "Hi!"} I'm Chatto. Tap ${onbLanguage} and we'll start talking.` : "Hi, I'm Chatto! Pick a language and we'll start talking.",
       2: `${LANGUAGE_HELLOS[lang] || "Hi!"} ${lang} it is. Great choice.`,
       3: g ? `Got it, ${g.eyebrow}. I'll pick situations that match.` : "Got it. I'll pick situations that match.",
       4: "Little and often beats cramming.",
@@ -6055,7 +6057,12 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     if (!btn) return;
     onbLanguage = btn.dataset.lang;
     btn.classList.add("selected");
-    onbAnswer("language", onbLanguage, 2);
+    trackEvent("onboarding_answer", { question: "language", answer: onbLanguage });
+    // Straight into the first lesson (Learn step first, then the chat).
+    setTimeout(() => {
+      finishOnboarding("one_tap");
+      if (PATH.length) openIntro(PATH[0]);
+    }, 160);
   });
   onbGoalGridEl.addEventListener("click", e => {
     const btn = e.target.closest("[data-goal]");
