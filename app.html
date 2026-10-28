@@ -1962,6 +1962,13 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .reply-ideas-label { font-size: 12px; font-weight: 500; }
   .reply-idea { border: 1px solid var(--border); border-radius: 16px; padding: 8px 14px; font-size: 14px; background: var(--surface); }
   .reply-idea:hover { background: var(--surface); border-color: var(--ink-soft); }
+  /* First reply of a conversation: big, full-width, one-tap answers. */
+  .reply-ideas--first { align-self: stretch; align-items: stretch; max-width: 100%; gap: 8px; }
+  .reply-ideas--first .reply-ideas-label { font-size: 13.5px; font-weight: 600; color: var(--ink); text-align: center; }
+  .reply-ideas--first .reply-ideas-row { flex-direction: column; gap: 8px; }
+  .reply-ideas--first .reply-idea { width: 100%; text-align: center; font-size: 16px; font-weight: 600; padding: 13px 16px; border: 1.5px solid var(--accent); border-radius: 14px; }
+  .reply-ideas--first .reply-idea small { font-size: 12.5px; font-weight: 400; margin-top: 2px; }
+  .reply-ideas--first .reply-idea:hover { background: var(--accent-soft); border-color: var(--accent); }
   .tip-card {
     background: var(--surface); border: none; border-radius: 18px; padding: 12px 15px; color: var(--ink); font-size: 13.5px; line-height: 1.45;
     box-shadow: inset 3px 0 0 var(--tip), 0 1px 2px rgba(34,24,37,0.04);
@@ -8624,6 +8631,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           trackEvent("guest_limit_reached", { source: "server" });
           openAuthModal("signup", data.error || "Create a free account to keep going — your progress comes with you.");
         } else if (opts.silent && text === "__START__") {
+          trackEvent("opener_failed", { reason: "server", status: res.status, wait_ms: Date.now() - sentAt });
           showStartRetry(data.error || "Couldn't start the conversation.");
         } else {
           restoreUnsentText();
@@ -8727,6 +8735,16 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       // After a "nudge" the learner should fix their own sentence, so no
       // ready-made answers then (and none in a hint-free replay round).
       if (!replayMode && lastFeedbackType !== "nudge") addReplyIdeas(data.suggestions);
+      // How long learners wait for Chatto's first line, and whether answer
+      // ideas came with it, so a slow or empty start shows up in GA4.
+      if (opts.silent && text === "__START__") {
+        trackEvent("opener_shown", {
+          scenario: currentScenario && currentScenario.id,
+          language: selectedLanguage,
+          wait_ms: Date.now() - sentAt,
+          suggestions: Array.isArray(data.suggestions) ? data.suggestions.length : 0
+        });
+      }
       lastAiTurnAt = Date.now();
       // End of a round: the objectives are all done or enough messages
       // were sent (and no "try again" is waiting). Also true for lessons
@@ -8788,6 +8806,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       if (myGen !== conversationGen) return;
       hideTyping();
       if (opts.silent && text === "__START__") {
+        trackEvent("opener_failed", { reason: "network", wait_ms: Date.now() - sentAt });
         showStartRetry("Couldn't reach the server. Check your connection and try again.");
       } else {
         restoreUnsentText();
@@ -8816,11 +8835,18 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     clearReplyIdeas();
     const items = (Array.isArray(list) ? list : []).filter(x => x && typeof x.phrase === "string" && x.phrase.trim()).slice(0, 2);
     if (!items.length) return;
+    // The very first reply is where most learners gave up (73% of people
+    // who opened a conversation never replied). So for that first turn the
+    // ideas are big, front-and-centre buttons, and one tap sends the answer
+    // straight away: no keyboard popping up over the chat, no second tap on
+    // Send. Later turns keep the tap-to-fill-the-box behaviour, so learners
+    // can tweak the sentence once they've got going.
+    const firstReply = userMessageCount === 0;
     const wrap = document.createElement("div");
-    wrap.className = "reply-ideas";
+    wrap.className = firstReply ? "reply-ideas reply-ideas--first" : "reply-ideas";
     const label = document.createElement("span");
     label.className = "reply-ideas-label";
-    label.textContent = "Not sure what to say? Tap one:";
+    label.textContent = firstReply ? "Your turn! Tap an answer to reply:" : "Not sure what to say? Tap one:";
     const row = document.createElement("div");
     row.className = "reply-ideas-row";
     items.forEach(it => {
@@ -8834,9 +8860,17 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         b.appendChild(sm);
       }
       b.addEventListener("click", () => {
+        if (firstReply) {
+          if (sending) return;
+          trackEvent("reply_idea_used", { scenario: currentScenario && currentScenario.id, language: selectedLanguage, first: 1 });
+          clearReplyIdeas();
+          messageInput.value = "";
+          sendMessage(it.phrase);
+          return;
+        }
         messageInput.value = it.phrase;
         messageInput.focus();
-        trackEvent("reply_idea_used", { scenario: currentScenario && currentScenario.id, language: selectedLanguage });
+        trackEvent("reply_idea_used", { scenario: currentScenario && currentScenario.id, language: selectedLanguage, first: 0 });
       });
       row.appendChild(b);
     });
