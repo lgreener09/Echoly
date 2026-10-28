@@ -539,6 +539,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .recap-score img { width: 90px; display: block; margin: 0 auto 6px; }
   .recap-score b { display: block; font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 800; }
   .recap-score span { font-size: 14px; color: var(--ink-soft); }
+  .recap-score .recap-score-line { display: block; margin-top: 8px; font-size: 13px; color: var(--ink-soft); opacity: 0.85; }
 
   .guest-save-card {
     align-self: center; max-width: 420px; width: 100%; text-align: center; background: var(--surface);
@@ -8351,10 +8352,18 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       card.innerHTML = "";
       const box = document.createElement("div");
       box.className = "recap-score";
-      box.innerHTML = `<img src="/mascot/mascot-${perfect ? "trophy" : "thumbsup"}.webp" alt="Chatto"><b>${score} / ${questions.length}</b><span></span>`;
-      box.querySelector("span").textContent = perfect
-        ? "Perfect! Chatto's impressed."
-        : "Good effort! These phrases will come back in your review deck.";
+      // Lead with what the learner just did (they finished a real
+      // conversation), not the quiz score: a "0 / 2" headline right before
+      // the sign-up ask made the best moment of the lesson feel like a fail.
+      // The score is still shown, as a small line underneath.
+      const doneTitle = currentScenario && currentScenario.title ? currentScenario.title : "a real conversation";
+      const doneIcon = currentScenario && currentScenario.icon ? currentScenario.icon + " " : "";
+      box.innerHTML = `<img src="/mascot/mascot-${perfect ? "trophy" : "celebrate"}.webp" alt="Chatto"><b></b><span></span><small class="recap-score-line"></small>`;
+      box.querySelector("b").textContent = `${doneIcon}You did it in ${lang}!`;
+      box.querySelector("span").textContent = `You just finished "${doneTitle}", a real back-and-forth conversation.`;
+      box.querySelector("small").textContent = perfect
+        ? `Quick recap: ${score} / ${questions.length}. Perfect, Chatto's impressed.`
+        : `Quick recap: ${score} / ${questions.length}. Those phrases will come back in your review deck.`;
       card.appendChild(box);
       const offerReplay = canOfferReplay();
       if (offerReplay) {
