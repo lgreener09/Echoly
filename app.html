@@ -7770,7 +7770,10 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     const type = data.feedbackType || "none";
     const corrected = (data.correctedMessage || "").trim();
     const keep = (said, correct) => {
-      if (!said || !correct || said.trim().toLowerCase() === correct.toLowerCase()) return;
+      // Capitals and punctuation don't count as mistakes: "Mi Chiamo Liam"
+      // was turned into a "fix it" recap question for "Mi chiamo Liam."
+      // and then accepted the same text as a "Perfect fix!".
+      if (!said || !correct || normalizeForMatch(said) === normalizeForMatch(correct)) return;
       convoMistakes = convoMistakes.filter(m => m.correct !== correct);
       convoMistakes.push({ said: said.trim(), correct });
       if (convoMistakes.length > 3) convoMistakes.shift();
@@ -8913,7 +8916,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // chatting), but it says the lesson is done instead of inviting more.
   function setComposerFinished(done) {
     if (!messageInput.dataset.defaultPlaceholder) messageInput.dataset.defaultPlaceholder = messageInput.placeholder;
-    messageInput.placeholder = done ? "Lesson done! Keep chatting…" : messageInput.dataset.defaultPlaceholder;
+    messageInput.placeholder = done ? "Lesson done 🎉" : messageInput.dataset.defaultPlaceholder;
   }
   // The clear finish line every lesson needs: Chatto celebrates, then one
   // big button to the next lesson. Before this, replaying a lesson you'd
