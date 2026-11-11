@@ -1991,6 +1991,20 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .send-btn { background: var(--ink); color: var(--bg); border-radius: 999px; padding: 0 20px; font-weight: 600; }
   .mic-btn { border: 1px solid var(--border); border-radius: 50%; width: 48px; height: 48px; align-self: center; }
   .mic-btn:hover { border-color: var(--ink-soft); }
+  /* Talk mode: a spoken conversation (Chatto speaks, the mic listens). */
+  .talk-toggle {
+    display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; height: 36px; padding: 0 12px;
+    border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--ink);
+    font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+  }
+  .talk-toggle[hidden] { display: none; }
+  /* Small phones: the back arrow already goes home, so the logo makes way
+     for the lesson title next to the Talk button. */
+  @media (max-width: 420px) { #chatBrandBtn { display: none; } }
+  .talk-toggle.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .mic-btn.your-turn { border-color: var(--accent); animation: micPulse 1.2s infinite; }
+  .talk-hint { align-self: center; max-width: 92%; text-align: center; font-size: 13px; color: var(--ink-soft); }
+  .talk-hint button { border: none; background: none; padding: 0; font: inherit; font-weight: 600; color: var(--accent); cursor: pointer; text-decoration: underline; }
   .completion-banner { font-weight: 600; }
   .lesson-done-card {
     align-self: stretch; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
@@ -2826,6 +2840,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       <b id="chatScenarioTitle">Scenario</b>
       <span id="chatLanguageLabel">Language</span>
     </div>
+    <button class="talk-toggle" id="talkToggleBtn" type="button" aria-pressed="false" aria-label="Talk mode: speak and hear replies" hidden>🎧<span>Talk</span></button>
     <button class="lookup-toggle" id="lookupToggleBtn" aria-label="Look up a word or phrase">🔍</button>
   </div>
   <div class="lookup-panel" id="lookupPanel">
@@ -3059,17 +3074,46 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     return networkVoice || pool[0];
   }
 
-  function speakText(text, language) {
-    if (!ttsSupported || !text || !text.trim()) return;
+  function speakText(text, language, onEnd) {
+    if (!ttsSupported || !text || !text.trim()) { if (onEnd) onEnd(); return; }
+    speakSequence([{ text, language }], onEnd);
+  }
+  // Says several lines one after another (e.g. Chatto's reply in Italian,
+  // then "Almost. Say it like this:" in English, then the fixed sentence),
+  // each in its own language's voice, then calls onEnd once. onEnd also
+  // fires if the browser never reports the end (iPhone sometimes doesn't),
+  // so Talk mode can't get stuck waiting.
+  let speechRunId = 0;
+  function speakSequence(parts, onEnd) {
+    const runId = ++speechRunId;
+    const items = (parts || []).filter(p => p && typeof p.text === "string" && p.text.trim());
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(safety);
+      if (onEnd && runId === speechRunId) onEnd();
+    };
+    const words = items.reduce((n, p) => n + p.text.split(/\s+/).length, 0);
+    const safety = setTimeout(finish, 2500 + words * 650);
+    if (!ttsSupported || !items.length) { finish(); return; }
     try {
       window.speechSynthesis.cancel(); // stop any prior utterance so repeated clicks don't queue up
-      const utter = new SpeechSynthesisUtterance(text);
-      const locale = getLocaleForLanguage(language);
-      utter.lang = locale;
-      const bestVoice = pickBestVoice(locale);
-      if (bestVoice) utter.voice = bestVoice;
-      window.speechSynthesis.speak(utter);
-    } catch (e) { /* best-effort — a speech hiccup shouldn't break the app */ }
+      items.forEach((p, i) => {
+        const utter = new SpeechSynthesisUtterance(p.text);
+        const locale = getLocaleForLanguage(p.language);
+        utter.lang = locale;
+        const bestVoice = pickBestVoice(locale);
+        if (bestVoice) utter.voice = bestVoice;
+        if (p.rate) utter.rate = p.rate;
+        if (i === items.length - 1) { utter.onend = finish; utter.onerror = finish; }
+        window.speechSynthesis.speak(utter);
+      });
+    } catch (e) { finish(); /* best-effort — a speech hiccup shouldn't break the app */ }
+  }
+  function stopSpeaking() {
+    speechRunId++;
+    if (ttsSupported) { try { window.speechSynthesis.cancel(); } catch (e) {} }
   }
 
   // ---------- Audio: speak your reply instead of typing it (Web Speech API — Chrome/Edge only today, feature-detected below) ----------
@@ -3133,8 +3177,12 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     return text.trim();
   }
 
-  function toggleListening() {
+  function toggleListening(listenOpts) {
+    listenOpts = listenOpts || {};
     if (!sttSupported) return;
+    // A tap on the mic always beats Chatto still talking.
+    if (!listenOpts.auto) stopSpeaking();
+    micBtn.classList.remove("your-turn");
     if (listening) {
       if (activeRecognition) activeRecognition.stop(); // onend below resets `listening` and the button state
       return;
@@ -3148,6 +3196,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     }
     // Whatever was already typed stays; speech is added after it.
     const typedBefore = messageInput.value.trim();
+    const placeholderBefore = messageInput.placeholder;
+    const startedGen = conversationGen;
     let heard = "";
     let errorCode = "";
     recognition.lang = getLocaleForLanguage(selectedLanguage);
@@ -3174,10 +3224,18 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       listening = false;
       activeRecognition = null;
       micBtn.classList.remove("listening");
-      messageInput.placeholder = "Type your reply…";
-      if (heard) {
+      messageInput.placeholder = placeholderBefore === "Listening…" ? "Type your reply…" : placeholderBefore;
+      if (heard && talkMode && startedGen === conversationGen && chatScreen.classList.contains("active")) {
+        // Talk mode: what you said goes straight to Chatto, like speaking.
+        trackEvent("mic_used", { language: selectedLanguage, talk: 1 });
+        setTimeout(() => { if (!sending && startedGen === conversationGen) submitComposer(); }, 250);
+      } else if (heard) {
         messageInput.focus();
         trackEvent("mic_used", { language: selectedLanguage });
+      } else if (listenOpts.auto) {
+        // Talk mode started the mic on its own and heard nothing (or the
+        // phone wants a tap first). No error, just show it's their turn.
+        if (startedGen === conversationGen && !roundEndHandled) markYourTurn();
       } else if (errorCode !== "aborted") {
         const code = errorCode || "no-speech";
         showMicError(micErrorMessage(code));
@@ -3190,9 +3248,81 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     } catch (e) {
       listening = false;
       micBtn.classList.remove("listening");
-      showMicError(micErrorMessage("start-failed"));
+      if (listenOpts.auto) markYourTurn();
+      else showMicError(micErrorMessage("start-failed"));
     }
   }
+  function stopListening() {
+    if (listening && activeRecognition) { try { activeRecognition.abort(); } catch (e) {} }
+    micBtn.classList.remove("your-turn");
+  }
+  function markYourTurn() {
+    micBtn.classList.add("your-turn");
+    if (!roundEndHandled) messageInput.placeholder = "Your turn — tap 🎤 and speak";
+  }
+
+  // ---------- Talk mode: a spoken conversation ----------
+  // Christina (Nov 2026) expected Echoly to be a conversation "that
+  // corrected you as you spoke". With Talk mode on, Chatto says each line
+  // out loud, says the corrected version when you slip up, and then the mic
+  // listens for your answer, which is sent as soon as you stop talking.
+  const TALK_MODE_KEY = "echoly_talk_mode";
+  let talkMode = false;
+  try { talkMode = localStorage.getItem(TALK_MODE_KEY) === "1"; } catch (e) {}
+  const talkAvailable = sttSupported && ttsSupported && !inAppBrowserName;
+  // Spoken cues in the learner's own language; other languages just hear
+  // the target-language lines.
+  const TALK_CUES = {
+    English: { fix: "Almost. Say it like this:", retry: "Almost. Have another go.", next: "Try saying:" },
+    Spanish: { fix: "Casi. Dilo así:", retry: "Casi. Inténtalo otra vez.", next: "Intenta decir:" },
+    Portuguese: { fix: "Quase. Diga assim:", retry: "Quase. Tente de novo.", next: "Tente dizer:" },
+    French: { fix: "Presque. Dis-le comme ça :", retry: "Presque. Essaie encore.", next: "Essaie de dire :" }
+  };
+  // "Now try: Buongiorno (bwon-JOR-noh) — Good morning." → "Buongiorno"
+  function nextPhraseFromTip(tip) {
+    if (typeof tip !== "string") return "";
+    const m = tip.match(/(?:now|next,?)\s+try(?:\s+saying)?\s*:?\s*([^(\u2014\n]+)/i) || tip.match(/try saying\s*:?\s*([^(\u2014\n]+)/i);
+    if (!m) return "";
+    return m[1].replace(/[\u201c\u201d"]/g, "").replace(/\s*[-\u2013]\s*$/, "").trim().slice(0, 80);
+  }
+  function talkAfterAiTurn(data, lessonOver, gen) {
+    if (!talkMode || !talkAvailable || !data) return;
+    const cues = TALK_CUES[selectedNativeLanguage] || null;
+    const parts = [{ text: data.reply, language: selectedLanguage }];
+    const type = data.feedbackType || "none";
+    const fixed = (data.correctedMessage || "").trim();
+    if (type === "nudge") {
+      if (cues) parts.push({ text: cues.retry, language: selectedNativeLanguage });
+    } else if (type === "correction" && fixed) {
+      if (cues) parts.push({ text: cues.fix, language: selectedNativeLanguage });
+      parts.push({ text: fixed, language: selectedLanguage, rate: 0.9 });
+    } else if (!lessonOver && currentScenario && currentScenario.tier === "Intro") {
+      // Beginners also hear the phrase they're meant to try next.
+      const next = nextPhraseFromTip(data.tip);
+      if (next) {
+        if (cues) parts.push({ text: cues.next, language: selectedNativeLanguage });
+        parts.push({ text: next, language: selectedLanguage, rate: 0.9 });
+      }
+    }
+    speakSequence(parts, () => listenWhenReady(gen, lessonOver));
+  }
+  // Starts the mic for the learner's answer once the app has finished
+  // handling Chatto's turn (a short line can end before that).
+  function listenWhenReady(gen, lessonOver, tries) {
+    tries = tries || 0;
+    if (!talkMode || gen !== conversationGen || lessonOver || roundEndHandled || listening) return;
+    if (!chatScreen.classList.contains("active")) return;
+    if (sending) { if (tries < 40) setTimeout(() => listenWhenReady(gen, lessonOver, tries + 1), 150); return; }
+    toggleListening({ auto: true });
+  }
+  // iPhone only lets a page talk after a tap, so the first tap anywhere
+  // (while Talk mode is on) unlocks speech for the rest of the visit.
+  let speechUnlocked = false;
+  document.addEventListener("click", () => {
+    if (speechUnlocked || !talkMode || !ttsSupported) return;
+    speechUnlocked = true;
+    try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; window.speechSynthesis.speak(u); } catch (e) {}
+  }, true);
 
   // One-shot speech capture for the speaking/pronunciation practice exercise
   // — deliberately separate from toggleListening/activeRecognition above
@@ -6750,6 +6880,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // Leaving the chat abandons whatever reply was still on its way — see
   // conversationGen in sendMessage.
   function leaveConversation() {
+    stopSpeaking();
+    stopListening();
     conversationGen++;
     sending = false;
     sendBtn.disabled = false;
@@ -7688,8 +7820,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     if (replayMode && lesson.id === CUSTOM_SCENARIO_ID) customConversationCompleted = true;
     lastConversationArgs = { lesson, objectives: objectives || [], keyPhrases: keyPhrases || [] };
     stopReplayTimer();
+    stopSpeaking();
+    stopListening();
     chatLogEl.innerHTML = "";
     hideError();
+    addTalkHint();
     lookupPanel.classList.remove("shown");
     lookupToggleBtn.classList.remove("active");
     lookupInput.value = "";
@@ -8791,6 +8926,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       // once the lesson is over).
       if (lessonOver) clearReplyIdeas();
       else if (!replayMode && lastFeedbackType !== "nudge") addReplyIdeas(data.suggestions);
+      talkAfterAiTurn(Object.assign({}, data, { tip: tipToShow }), lessonOver, myGen);
       // How long learners wait for Chatto's first line, and whether answer
       // ideas came with it, so a slow or empty start shows up in GA4.
       if (opts.silent && text === "__START__") {
@@ -9040,6 +9176,55 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   });
 
   if (sttSupported) micBtn.classList.add("supported"); // hidden by default in CSS otherwise
+  const talkToggleBtn = document.getElementById("talkToggleBtn");
+  function renderTalkToggle() {
+    talkToggleBtn.hidden = !talkAvailable;
+    talkToggleBtn.classList.toggle("on", talkMode);
+    talkToggleBtn.setAttribute("aria-pressed", talkMode ? "true" : "false");
+    talkToggleBtn.querySelector("span").textContent = talkMode ? "Talk on" : "Talk";
+  }
+  function setTalkMode(on) {
+    talkMode = !!on;
+    try { localStorage.setItem(TALK_MODE_KEY, talkMode ? "1" : "0"); } catch (e) {}
+    renderTalkToggle();
+    trackEvent(talkMode ? "talk_mode_on" : "talk_mode_off", { language: selectedLanguage, scenario: currentScenario && currentScenario.id });
+    chatLogEl.querySelectorAll(".talk-hint").forEach(el => el.remove());
+    if (!talkMode) { stopSpeaking(); stopListening(); messageInput.placeholder = roundEndHandled ? "Lesson done 🎉" : "Type your reply…"; return; }
+    speechUnlocked = true;
+    const note = document.createElement("div");
+    note.className = "round-note";
+    note.textContent = "🎧 Talk mode on: Chatto speaks, then the mic listens. Just answer out loud, and he'll correct you as you go.";
+    chatLogEl.appendChild(note);
+    scrollToBottom();
+    // Replay Chatto's latest line (this tap also lets iPhone play speech),
+    // then it's the learner's turn.
+    if (sending || roundEndHandled) return;
+    const lastAi = history.slice().reverse().find(m => m.role === "assistant");
+    const gen = conversationGen;
+    if (lastAi) speakSequence([{ text: lastAi.content, language: selectedLanguage }], () => listenWhenReady(gen, false));
+    else listenWhenReady(gen, false);
+  }
+  talkToggleBtn.addEventListener("click", () => setTalkMode(!talkMode));
+  renderTalkToggle();
+  // First few conversations: say plainly how the chat works, since people
+  // arrive expecting a spoken conversation that corrects them.
+  const TALK_HINT_KEY = "echoly_talk_hint_count";
+  function addTalkHint() {
+    if (!talkAvailable || talkMode) return;
+    let n = 0;
+    try { n = Number(localStorage.getItem(TALK_HINT_KEY)) || 0; } catch (e) {}
+    if (n >= 3) return;
+    try { localStorage.setItem(TALK_HINT_KEY, String(n + 1)); } catch (e) {}
+    const hint = document.createElement("div");
+    hint.className = "talk-hint";
+    hint.append("Answer by typing or tapping 🎤. Chatto corrects you as you go. Prefer to talk? ");
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = "Turn on 🎧 Talk mode";
+    b.addEventListener("click", () => setTalkMode(true));
+    hint.appendChild(b);
+    chatLogEl.appendChild(hint);
+  }
   micBtn.addEventListener("click", toggleListening);
 
   // -------- Phrase lookup (inside a lesson, separate from the roleplay) --------
