@@ -230,6 +230,15 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
      with ?debug=1: innerHeight 655 vs page 699, scrollY 43). The chat stays
      in normal page flow — fixed/transform pinning broke taps on iPhone. */
   .screen.active { display: flex; }
+  /* iPhone Safari zooms the whole page in when you tap a text box whose
+     text is smaller than 16px, and stays zoomed after the keyboard closes.
+     That's what cut off "Tap one", the answer chips and the Send button on
+     the right, and slid the chat header up under the clock (seen in the
+     Nov 11 screen recording). 16px on touch screens stops the zoom. */
+  @media (pointer: coarse) {
+    input[type="text"], input[type="email"], input[type="password"], input[type="search"],
+    input:not([type]), textarea, select { font-size: 16px !important; }
+  }
 
   /* -------- Account modal: visitors can try Echoly as a guest first, so
      this is dismissable — it opens when they choose to sign in/up, or when
@@ -1589,7 +1598,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   /* On phones the goals + phrase list could fill most of the screen and
      squeeze the chat into a sliver. Cap it; it scrolls on its own. */
   @media (max-width: 700px) {
-    .objectives-card:not(.collapsed) { max-height: 32vh; max-height: 32dvh; overflow-y: auto; overscroll-behavior: contain; }
+    .objectives-card:not(.collapsed) { max-height: 26vh; max-height: 26dvh; overflow-y: auto; overscroll-behavior: contain; }
     .objectives-card-header { position: sticky; top: 0; background: var(--surface); z-index: 1; }
   }
   .objectives-phrases:empty { display: none; border-top: none; padding-top: 0; }
@@ -1983,6 +1992,14 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .mic-btn { border: 1px solid var(--border); border-radius: 50%; width: 48px; height: 48px; align-self: center; }
   .mic-btn:hover { border-color: var(--ink-soft); }
   .completion-banner { font-weight: 600; }
+  .lesson-done-card {
+    align-self: stretch; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 18px 16px 16px;
+  }
+  .lesson-done-card img { width: 76px; height: auto; }
+  .lesson-done-card h4 { margin: 0; font-size: 17px; font-weight: 700; }
+  .lesson-done-card p { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .lesson-done-card .recap-next { width: 100%; }
 
   /* End-of-lesson recap, score and the guest "save progress" card */
   .recap-card, .guest-save-card {
@@ -2896,9 +2913,21 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // Until then the app runs exactly as it does today: fully usable with
   // progress kept in this browser only, and every account UI element stays
   // hidden (same feature-detected pattern as the audio buttons).
+  // Google's "Choose an account to continue to ___" line shows authDomain.
+  // On getecholy.com it shows getecholy.com instead of
+  // echoly-98a95.firebaseapp.com (server.js passes /__/auth/ through to
+  // Firebase). Needs https://getecholy.com/__/auth/handler added as an
+  // authorized redirect URI on the Google Cloud OAuth client first, so it
+  // stays off until OWN_AUTH_DOMAIN_READY is switched to true.
+  const OWN_AUTH_DOMAIN_READY = false;
+  function authDomainForSignIn() {
+    const host = location.hostname.toLowerCase();
+    if (OWN_AUTH_DOMAIN_READY && (host === "getecholy.com" || host === "www.getecholy.com")) return location.host;
+    return "echoly-98a95.firebaseapp.com";
+  }
   const FIREBASE_CONFIG = {
     apiKey: "AIzaSyBtzBBr8TUtLoeNZen6zTquOIDlES5xyL4",
-    authDomain: "echoly-98a95.firebaseapp.com",
+    authDomain: authDomainForSignIn(),
     projectId: "echoly-98a95",
     storageBucket: "echoly-98a95.firebasestorage.app",
     messagingSenderId: "699853002224",
@@ -7649,6 +7678,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         : pickReviewPhrases(selectedLanguage, keyPhrases || []);
     replayMode = !!startOpts.replay;
     roundEndHandled = false;
+    setComposerFinished(false);
     lastAiTurnAt = 0;
     turnGaps = [];
     turnWords = [];
@@ -8609,6 +8639,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           // Self-correction: this message is the retry after a "nudge".
           retrying: !opts.silent && lastFeedbackType === "nudge",
           replayRound: replayMode,
+          lessonDone: roundEndHandled,
           twist: currentTwist,
           reviewPhrases: convoReviewPhrases,
           friendMemory: currentScenario.id === FRIEND_SCENARIO_ID ? friendStateFor(selectedLanguage).notes : undefined,
@@ -8673,6 +8704,12 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       let streakAfter = 0;
       let newlyEarnedBadges = [];
       if (!opts.silent) {
+        // On phones the goals panel took half the screen and squeezed the
+        // chat. Fold it after the first reply (one tap on the header opens
+        // it again, and the 2/3 count stays visible).
+        if (userMessageCount === 0 && window.matchMedia && window.matchMedia("(max-width: 700px)").matches) {
+          objectivesCardEl.classList.add("collapsed");
+        }
         history.push({ role: "user", content: text });
         trackEvent("message_sent", { scenario: currentScenario.id, language: selectedLanguage });
         userMessageCount++;
@@ -8731,10 +8768,26 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       }
       history.push({ role: "assistant", content: data.reply });
       lastFeedbackType = data.feedbackType || "none";
-      addAiTurn(data.reply, data.replyTranslation, data.tip, data.replyRomanization, { type: lastFeedbackType, answer: data.nudgeAnswer });
+      // Worked out before Chatto's turn is drawn, so the turn that finishes
+      // the lesson doesn't also say "Now try: ..." or offer more answers.
+      // (In the Nov 11 recording the goals hit 3/3, Chatto said "The
+      // conversation is complete", and then kept handing out new phrases.)
+      const lessonOverBefore = roundEndHandled;
+      let roundEndNow = false;
+      if (!opts.silent && !roundEndHandled && lastFeedbackType !== "nudge") {
+        const allDone = currentObjectives.length > 0 && completedObjectiveIndices.length >= currentObjectives.length;
+        roundEndNow = allDone || userMessageCount >= LESSON_COMPLETE_AFTER;
+      }
+      const lessonOver = lessonOverBefore || roundEndNow;
+      if (roundEndNow) markAllIntroPhrasesSeen();
+      const tipToShow = lessonOver ? stripNextPhrasePrompt(data.tip) : data.tip;
+      addAiTurn(data.reply, data.replyTranslation, tipToShow, data.replyRomanization, { type: lastFeedbackType, answer: data.nudgeAnswer });
+      if (!opts.silent && !lessonOver) markLearnerPhrasesSeen(text);
       // After a "nudge" the learner should fix their own sentence, so no
-      // ready-made answers then (and none in a hint-free replay round).
-      if (!replayMode && lastFeedbackType !== "nudge") addReplyIdeas(data.suggestions);
+      // ready-made answers then (and none in a hint-free replay round, or
+      // once the lesson is over).
+      if (lessonOver) clearReplyIdeas();
+      else if (!replayMode && lastFeedbackType !== "nudge") addReplyIdeas(data.suggestions);
       // How long learners wait for Chatto's first line, and whether answer
       // ideas came with it, so a slow or empty start shows up in GA4.
       if (opts.silent && text === "__START__") {
@@ -8749,12 +8802,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       // End of a round: the objectives are all done or enough messages
       // were sent (and no "try again" is waiting). Also true for lessons
       // the learner had already completed before, which skip the banner.
-      let roundEndNow = false;
-      if (!opts.silent && !roundEndHandled && lastFeedbackType !== "nudge") {
-        const allDone = currentObjectives.length > 0 && completedObjectiveIndices.length >= currentObjectives.length;
-        roundEndNow = allDone || userMessageCount >= LESSON_COMPLETE_AFTER;
-      }
-      if (roundEndNow) roundEndHandled = true;
+      if (roundEndNow) { roundEndHandled = true; setComposerFinished(true); }
       if (justCompleted) addCompletionBanner(streakIncreased, streakAfter);
       if (justCompleted) lessonFinishedThisVisit = true;
       if (justCompleted && isGuest()) { bumpGuestDoneCount(); renderAccountCard(); addGuestSaveCard(); }
@@ -8798,7 +8846,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       // faster" (inside the recap's score screen when there is one).
       if (roundEndNow) {
         if (replayMode) addReplayResultsCard();
-        else if (!recapShown && canOfferReplay()) addReplayOfferCard();
+        else if (!recapShown && canOfferReplay()) { addReplayOfferCard(); addLessonDoneCard(justCompleted, { buttonsOnly: true }); }
+        else if (!recapShown) addLessonDoneCard(justCompleted);
       }
       if (!roundEndHandled) startReplayTimer();
 
@@ -8828,6 +8877,92 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // Sends what's in the box — but only clears the box once the message is
   // actually going out. Previously pressing Enter while the AI was still
   // replying cleared the box and then dropped the message.
+  // Chatto's tip names the next phrase to try ("Now try: ..."). Once the
+  // lesson is over there's nothing left to try, so that part is dropped.
+  function stripNextPhrasePrompt(tip) {
+    if (typeof tip !== "string") return tip;
+    const cut = tip.search(/\s*(?:now|next,?)\s+try\b/i);
+    if (cut <= 0) return cut === 0 ? "" : tip;
+    return tip.slice(0, cut).trim().replace(/[,;:\u2014-]+$/, "").trim();
+  }
+  // "Phrases you've learned" only counted phrases Chatto named in a tip, so
+  // it stalled at 4/6 even though the learner had used them. Count the ones
+  // the learner says too, and fill the list once the lesson is finished
+  // (they all came up in the Learn step before the chat).
+  function markLearnerPhrasesSeen(text) {
+    if (!currentScenario || currentScenario.tier !== "Intro" || !currentKeyPhrases.length || typeof text !== "string") return;
+    const said = normalizeForMatch(text);
+    let changed = false;
+    currentKeyPhrases.forEach((item, i) => {
+      if (introPhrasesSeen.has(i) || !item || !item.phrase) return;
+      const p = normalizeForMatch(item.phrase.replace(/\.{2,}|\u2026/g, " "));
+      if (p && said.includes(p)) { introPhrasesSeen.add(i); changed = true; }
+    });
+    if (changed) renderObjectivesCard();
+  }
+  function markAllIntroPhrasesSeen() {
+    if (!currentScenario || currentScenario.tier !== "Intro" || !currentKeyPhrases.length) return;
+    currentKeyPhrases.forEach((_, i) => introPhrasesSeen.add(i));
+    renderObjectivesCard();
+  }
+  function normalizeForMatch(str) {
+    return String(str).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
+  }
+  // After the lesson the reply box stays usable (some people like to keep
+  // chatting), but it says the lesson is done instead of inviting more.
+  function setComposerFinished(done) {
+    if (!messageInput.dataset.defaultPlaceholder) messageInput.dataset.defaultPlaceholder = messageInput.placeholder;
+    messageInput.placeholder = done ? "Lesson done! Keep chatting…" : messageInput.dataset.defaultPlaceholder;
+  }
+  // The clear finish line every lesson needs: Chatto celebrates, then one
+  // big button to the next lesson. Before this, replaying a lesson you'd
+  // already finished just carried on forever with no way forward.
+  function addLessonDoneCard(firstTime, cardOpts) {
+    cardOpts = cardOpts || {};
+    const isCustom = currentScenario && (currentScenario.id === CUSTOM_SCENARIO_ID || currentScenario.id === FRIEND_SCENARIO_ID);
+    const next = !isCustom ? findNextLesson(selectedLanguage) : null;
+    const card = document.createElement("div");
+    card.className = "lesson-done-card";
+    if (!cardOpts.buttonsOnly) {
+      if (!firstTime) {
+        const img = document.createElement("img");
+        img.src = "/mascot/mascot-celebrate.webp";
+        img.alt = "Chatto";
+        card.appendChild(img);
+        const h = document.createElement("h4");
+        h.textContent = isCustom ? "Conversation done!" : "Practice done — nice work!";
+        card.appendChild(h);
+      }
+      const p = document.createElement("p");
+      p.textContent = next
+        ? `Up next: ${next.title}.`
+        : (isCustom ? "Pick another topic whenever you're ready." : "You can keep chatting, or head back home.");
+      card.appendChild(p);
+    }
+    if (next) {
+      const go = document.createElement("button");
+      go.type = "button";
+      go.className = cardOpts.buttonsOnly ? "recap-next recap-next--ghost" : "recap-next";
+      go.textContent = `Next lesson: ${next.icon} ${next.title} →`;
+      go.addEventListener("click", () => {
+        trackEvent("lesson_done_next_clicked", { scenario: currentScenario && currentScenario.id, next: next.id, language: selectedLanguage });
+        chatScreen.classList.remove("active");
+        openIntro(next);
+      });
+      card.appendChild(go);
+    }
+    const home = document.createElement("button");
+    home.type = "button";
+    home.className = next ? "recap-next recap-next--ghost" : "recap-next";
+    home.textContent = "Back to home";
+    home.addEventListener("click", goHome);
+    card.appendChild(home);
+    trackEvent("lesson_done_card_shown", { scenario: currentScenario && currentScenario.id, language: selectedLanguage, first: firstTime ? 1 : 0 });
+    chatLogEl.appendChild(card);
+    scrollToBottom();
+  }
+
   function clearReplyIdeas() {
     chatLogEl.querySelectorAll(".reply-ideas").forEach(el => el.remove());
   }

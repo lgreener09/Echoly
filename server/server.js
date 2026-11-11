@@ -502,6 +502,39 @@ app.use((req, res, next) => {
 });
 
 app.use("/server", (req, res) => res.status(404).end());
+
+// Google sign-in on our own domain: Google's account picker says "to
+// continue to getecholy.com" instead of "echoly-98a95.firebaseapp.com"
+// when the app's authDomain is getecholy.com. Firebase's sign-in helper
+// pages still live on firebaseapp.com, so pass /__/auth/* and
+// /__/firebase/* straight through to them (Firebase's documented
+// "proxy auth requests" setup). Only used once OWN_AUTH_DOMAIN_READY is
+// true in app.html.
+const FIREBASE_AUTH_ORIGIN = "https://echoly-98a95.firebaseapp.com";
+app.use(["/__/auth", "/__/firebase"], async (req, res) => {
+    if (req.method !== "GET" && req.method !== "HEAD") return res.status(405).end();
+    try {
+        const upstream = await fetch(FIREBASE_AUTH_ORIGIN + req.originalUrl, {
+            method: req.method,
+            headers: {
+                accept: req.get("accept") || "*/*",
+                "accept-language": req.get("accept-language") || "en",
+                "user-agent": req.get("user-agent") || "Echoly"
+            },
+            redirect: "manual"
+        });
+        res.status(upstream.status);
+        ["content-type", "cache-control", "location", "x-frame-options", "content-security-policy"].forEach(h => {
+            const v = upstream.headers.get(h);
+            if (v) res.setHeader(h, v);
+        });
+        if (req.method === "HEAD") return res.end();
+        res.send(Buffer.from(await upstream.arrayBuffer()));
+    } catch (err) {
+        console.error("Firebase auth proxy failed:", err.message);
+        res.status(502).send("Sign-in is temporarily unavailable. Please try again.");
+    }
+});
 // Fonts and mascot images rarely change, so browsers may keep them for a
 // day instead of re-checking each one on every visit (pages themselves are
 // still re-checked every time, so deploys show up immediately).
@@ -1656,6 +1689,14 @@ function suggestionRules(language, nativeLanguage, replayRound) {
 - Also: whenever you ask the learner a question, make it one they can realistically answer with the phrases they've been taught plus very simple words (yes, no, this one, a number) — don't ask about things they have no vocabulary for.`;
 }
 
+// The learner has already hit every lesson goal (the app shows its
+// "lesson complete" card), but they can keep chatting. Without this, Chatto
+// kept saying "Now try: ..." and handing out answer ideas after it had
+// already said the conversation was complete, so the lesson never felt done.
+function lessonDoneSection(nativeLanguage) {
+    return `\n\nTHE LESSON IS FINISHED: the learner has already completed every goal for this conversation, and the app has shown them a "lesson complete" card. This overrides the "tip" and "suggestions" rules above. If they keep chatting, answer naturally and briefly in character, but do not start a new task or push the scene on. In "tip" (in ${nativeLanguage}), give feedback on their last message only — never a "Now try" or a next phrase to practise. Return an empty "suggestions" array.`;
+}
+
 function buildSystemPrompt(language, scenario, objectives, keyPhrases, vocabHistory, nativeLanguage, feedbackMode) {
     const mode = feedbackMode || {};
     const hasObjectives = Array.isArray(objectives) && objectives.length > 0;
@@ -1725,7 +1766,7 @@ Rules for every turn:
         allowNudge: !isIntro && !isMilestone && !mode.replayRound && !mode.retrying,
         retrying: !!mode.retrying && !isIntro && !isMilestone && !mode.replayRound,
         replayRound: !!mode.replayRound
-    })}${levelGuidance}${suggestionRules(language, nativeLanguage, !!mode.replayRound)}${objectivesSection}${(isIntro || isMilestone) ? "" : levelAdaptSection(scenario)}${mode.twist && !isIntro && !isMilestone ? `\n\nThis is a REVISIT: the learner already did this scenario a few days ago. Keep the same situation, but add one small, realistic complication early on that they have to handle (e.g. the thing they want is sold out, the price has changed, there's a mix-up with their order or booking, or someone asks an unexpected question) — and keep it at their level.` : ""}${reviewSection((isIntro || isMilestone) ? [] : (mode.reviewPhrases || []), language)}${scenario.friend ? friendPromptSection(scenario, nativeLanguage) : ""}`;
+    })}${levelGuidance}${suggestionRules(language, nativeLanguage, !!mode.replayRound)}${objectivesSection}${(isIntro || isMilestone) ? "" : levelAdaptSection(scenario)}${mode.twist && !isIntro && !isMilestone ? `\n\nThis is a REVISIT: the learner already did this scenario a few days ago. Keep the same situation, but add one small, realistic complication early on that they have to handle (e.g. the thing they want is sold out, the price has changed, there's a mix-up with their order or booking, or someone asks an unexpected question) — and keep it at their level.` : ""}${reviewSection((isIntro || isMilestone) ? [] : (mode.reviewPhrases || []), language)}${scenario.friend ? friendPromptSection(scenario, nativeLanguage) : ""}${mode.lessonDone ? lessonDoneSection(nativeLanguage) : ""}`;
 }
 
 const CONVERSATION_JSON_SCHEMA = {
@@ -2299,6 +2340,7 @@ app.post("/converse", attachUserIfSignedIn, conversationLimiter, async (req, res
                     retrying: req.body.retrying === true && !isNewConversation,
                     replayRound: req.body.replayRound === true,
                     twist: req.body.twist === true,
+                    lessonDone: req.body.lessonDone === true && !isNewConversation,
                     reviewPhrases: safeReviewPhrases
                 }) },
                 ...historyInput,
