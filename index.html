@@ -224,7 +224,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .b-ai { align-self: flex-start; background: var(--bg-deep); border-bottom-left-radius: 5px; }
   .b-me { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 5px; }
   .b-tip {
-    align-self: flex-start; max-width: 88%; background: var(--tip-bg); border: 1px solid var(--tip-border); color: var(--tip);
+    align-self: flex-end; max-width: 88%; background: var(--tip-bg); border: 1px solid var(--tip-border); color: var(--tip);
     border-radius: 12px; padding: 9px 12px; font-size: 13px; display: flex; gap: 8px;
   }
   .b-tip b { color: #7d5307; }
@@ -358,6 +358,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   .level-tag { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 99px; margin-bottom: 12px; }
   .level h3 { font-size: 18px; margin-bottom: 4px; }
   .level > p { margin: 0 0 14px; font-size: 13.5px; color: var(--ink-soft); }
+  .level-eg { margin: 10px 0 0; font-size: 13.5px; color: var(--ink-soft); }
   .level ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
   .lv-intro .level-tag { background: var(--tip-bg); color: var(--tip); }
   .lv-beg .level-tag { background: #e4f5ea; color: #14733f; }
@@ -375,6 +376,18 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   @media (max-width: 560px) { .levels { grid-template-columns: 1fr; } }
 
   /* Features */
+  .extras { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .extra { display: flex; gap: 12px; align-items: flex-start; padding: 16px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); }
+  .extra > span { font-size: 22px; line-height: 1; }
+  .extra b { font-size: 15px; }
+  .extra p { margin: 3px 0 0; font-size: 13.5px; color: var(--ink-soft); }
+  @media (max-width: 960px) { .extras { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .extras { grid-template-columns: 1fr; gap: 8px; } .extra { padding: 12px 14px; } }
+  /* Phones show 10 languages and a "+24 more" button; wide screens have
+     room for all of them in a few rows. */
+  @media (max-width: 899px) { .langs:not(.all) .lang-more { display: none; } }
+  @media (min-width: 900px) { .lang-toggle { display: none !important; } }
+  .lang-toggle { font: inherit; font-weight: 700; cursor: pointer; color: var(--accent); }
   .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
   .feature { padding: 24px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); }
   .feature-ico { font-size: 26px; margin-bottom: 12px; }
@@ -508,7 +521,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       <div class="hero-copy">
         <span class="eyebrow">AI conversation practice · 34 languages</span>
         <h1>Stop memorizing words.<br>Start <em>having conversations.</em></h1>
-        <p class="hero-sub">Echoly drops you into real-life situations, like ordering dinner, meeting your partner's parents or a job interview. Speak out loud or type: Chatto answers you, corrects your mistakes as you go, and helps the moment you get stuck.</p>
+        <p class="hero-sub">Real-life situations, from ordering dinner to a job interview. Talk or type: Chatto answers you and corrects your mistakes as you go.</p>
         <div class="hero-ctas">
           <a class="btn btn-primary js-app-cta" href="/app.html" data-track="hero_try">Start a free conversation →</a>
           <a class="btn btn-ghost" href="#how">See how it works</a>
@@ -548,63 +561,32 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     </div>
   </section>
 
-  <!-- Problem -->
-  <section class="section problem">
-    <div class="wrap">
-      <div class="section-head">
-        <span class="eyebrow">Why Echoly</span>
-        <h2>A 300-day streak, and you still freeze when the waiter asks you something.</h2>
-        <p>Most language apps teach you strings of words. Real life asks you questions you didn't see coming. Echoly is built for that moment.</p>
-      </div>
-      <div class="compare">
-        <div class="compare-col compare-old">
-          <h3>Typical language apps</h3>
-          <ul>
-            <li>Tap the right word out of four</li>
-            <li>Translate sentences nobody actually says</li>
-            <li>Memorize vocabulary lists out of context</li>
-            <li>Never practice replying in real time</li>
-          </ul>
-        </div>
-        <div class="compare-col compare-new">
-          <h3>Echoly</h3>
-          <ul>
-            <li>Back-and-forth conversations in real situations</li>
-            <li>Learn the phrases locals use, then use them right away</li>
-            <li>Gentle tips when something sounds off</li>
-            <li>You do the talking, out loud if you want</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- How it works -->
   <section class="section" id="how">
     <div class="wrap">
       <div class="section-head">
         <span class="eyebrow">How it works</span>
-        <h2>Learn the phrases. Then use them for real.</h2>
-        <p>No placement test or setup. Pick a language, learn the handful of phrases a situation needs, then put them to work in a real conversation.</p>
+        <h2>A 300-day streak, and you still freeze when the waiter asks you something.</h2>
+        <p>Most apps teach you strings of words. Echoly teaches you the phrases a situation needs, then has you use them in a real back-and-forth.</p>
       </div>
       <div class="steps">
         <div class="step">
           <img class="step-mascot" src="/mascot/mascot-thinking.webp" width="84" height="84" alt="" loading="lazy">
           <div class="step-num">1</div>
           <h3>Pick a situation</h3>
-          <p>Choose from 106 guided lessons, from "say hello" to "negotiate a salary," or type any situation you're nervous about.</p>
+          <p>Follow the guided path from "say hello" to "negotiate a salary," or describe anything you're nervous about.</p>
         </div>
         <div class="step">
           <img class="step-mascot" src="/mascot/mascot-reading2.webp" width="84" height="84" alt="" loading="lazy">
           <div class="step-num">2</div>
           <h3>Learn the key phrases</h3>
-          <p>Each lesson starts with the phrases you'll actually need, with audio and a quick warm-up, so you know what you're saying before you say it.</p>
+          <p>A quick warm-up with audio, so you know what you're saying before you say it.</p>
         </div>
         <div class="step">
           <img class="step-mascot" src="/mascot/mascot-microphone.webp" width="84" height="84" alt="" loading="lazy">
           <div class="step-num">3</div>
           <h3>Have the conversation</h3>
-          <p>Your AI partner plays the barista, the landlord or the in-laws. Use what you just learned, type it or say it out loud, and get a quick tip when your phrasing isn't quite natural.</p>
+          <p>Chatto plays the barista, the landlord or the in-laws. Type or talk out loud with 🎧 Talk mode, and he corrects you right under what you said.</p>
         </div>
       </div>
     </div>
@@ -623,25 +605,25 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           <span class="level-tag">Intro · 16 lessons</span>
           <h3>Never studied it?</h3>
           <p>A patient tutor hands you each phrase to try.</p>
-          <ul><li>👋 Greetings &amp; farewells</li><li>🙋 Introduce yourself</li><li>🥤 Ordering food &amp; drinks</li><li>🏆 Your first real conversation</li></ul>
+          <p class="level-eg">Greetings &amp; farewells · Introduce yourself · Ordering food &amp; drinks</p>
         </div>
         <div class="level lv-beg">
           <span class="level-tag">Beginner · 30 lessons</span>
           <h3>Everyday errands</h3>
           <p>The situations you'll hit on day one.</p>
-          <ul><li>☕ Order a coffee</li><li>🧭 Ask for directions</li><li>🎫 Buy a train ticket</li><li>🚻 Ask where the bathroom is</li></ul>
+          <p class="level-eg">Order a coffee · Ask for directions · Buy a train ticket</p>
         </div>
         <div class="level lv-int">
           <span class="level-tag">Intermediate · 30 lessons</span>
           <h3>Living your life</h3>
           <p>Real back-and-forth with real stakes.</p>
-          <ul><li>🏨 Check into a hotel</li><li>🤝 Meet a new coworker</li><li>📞 Book a doctor's appointment</li><li>🏠 Ask about renting an apartment</li></ul>
+          <p class="level-eg">Check into a hotel · Meet a new coworker · Book a doctor's appointment</p>
         </div>
         <div class="level lv-adv">
           <span class="level-tag">Advanced · 30 lessons</span>
           <h3>The hard ones</h3>
           <p>Where fluency actually gets tested.</p>
-          <ul><li>💼 Interview for a job</li><li>💰 Negotiate a salary offer</li><li>🩺 Describe symptoms to a doctor</li><li>💑 Discuss future plans with a partner</li></ul>
+          <p class="level-eg">Interview for a job · Negotiate a salary offer · Describe symptoms to a doctor</p>
         </div>
       </div>
       <div class="custom-banner">
@@ -655,20 +637,14 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     </div>
   </section>
 
-  <!-- Features -->
-  <section class="section">
+  <!-- Extras -->
+  <section class="section extras-section" style="padding-top:40px">
     <div class="wrap">
-      <div class="section-head">
-        <span class="eyebrow">What's inside</span>
-        <h2>Everything you need to actually speak.</h2>
-      </div>
-      <div class="features">
-        <div class="feature"><div class="feature-ico">🎤</div><h3>Talk mode</h3><p>Turn on 🎧 Talk mode for a spoken conversation: Chatto says his line out loud, the mic listens for your answer, and if you slip up he says the right version back to you.</p></div>
-        <div class="feature"><div class="feature-ico">💡</div><h3>Gentle, in-the-moment tips</h3><p>Echoly keeps the conversation going and adds a quick note when a native speaker would say it differently.</p></div>
-        <div class="feature"><div class="feature-ico">🌐</div><h3>Translations on tap</h3><p>Stuck on a reply? Reveal the translation or look up any word or phrase without leaving the conversation.</p></div>
-        <div class="feature"><div class="feature-ico">🧠</div><h3>Phrases that stick</h3><p>Phrases you learn come back as quick flashcard reviews on a spaced schedule (1, 2, 4, 7, 14 and 30 days) so you remember them.</p></div>
-        <div class="feature"><div class="feature-ico">🎮</div><h3>Quick games</h3><p>Got 60 seconds? Speed rounds, listening challenges and sentence scrambles built from your own saved words.</p></div>
-        <div class="feature"><div class="feature-ico">🔥</div><h3>Streaks &amp; daily goals</h3><p>Set a daily goal of 1 to 5 conversations, keep your streak alive and sync progress across all your devices.</p></div>
+      <div class="extras">
+        <div class="extra"><span>🌐</span><div><b>Translations on tap</b><p>Tap any line to see it in your language.</p></div></div>
+        <div class="extra"><span>🧠</span><div><b>Phrases that stick</b><p>Quick reviews bring them back before you forget.</p></div></div>
+        <div class="extra"><span>🎮</span><div><b>60-second games</b><p>Speed rounds built from your own words.</p></div></div>
+        <div class="extra"><span>🔥</span><div><b>Streaks &amp; goals</b><p>A daily goal, synced on all your devices.</p></div></div>
       </div>
     </div>
   </section>
@@ -705,9 +681,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           <ul>
             <li>5 conversations a day</li>
             <li>All 34 languages and 106 lessons</li>
-            <li>Practice any situation you describe</li>
             <li>Review, games and streaks</li>
-            <li>Progress synced across devices</li>
           </ul>
           <a class="btn btn-ghost js-app-cta" href="/app.html" data-track="pricing_free">Start for free</a>
         </div>
@@ -718,7 +692,6 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           <ul>
             <li>Everything in Free</li>
             <li>No daily conversation cap</li>
-            <li>7-day free trial for new members</li>
             <li>Cancel anytime from your account</li>
           </ul>
           <a class="btn btn-primary js-app-cta" href="/app.html" data-track="pricing_premium">Start free, try Premium in the app</a>
@@ -817,9 +790,10 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     ["Urdu", "السلام علیکم"], ["Bengali", "নমস্কার"], ["Malay", "Helo"], ["Punjabi", "ਸਤ ਸ੍ਰੀ ਅਕਾਲ"]
   ];
   var list = document.getElementById("langList");
-  LANGS.forEach(function (l) {
+  var SHOW_FIRST = 10;
+  LANGS.forEach(function (l, i) {
     var a = document.createElement("a");
-    a.className = "lang";
+    a.className = i < SHOW_FIRST ? "lang" : "lang lang-more";
     a.href = "/app.html?lang=" + encodeURIComponent(l[0]);
     a.setAttribute("data-track", "language_click");
     a.setAttribute("data-lang", l[0]);
@@ -828,6 +802,14 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     a.appendChild(b); a.appendChild(s);
     list.appendChild(a);
   });
+  if (LANGS.length > SHOW_FIRST) {
+    var more = document.createElement("button");
+    more.type = "button";
+    more.className = "lang lang-toggle";
+    more.textContent = "+" + (LANGS.length - SHOW_FIRST) + " more";
+    more.addEventListener("click", function () { list.classList.add("all"); more.remove(); });
+    list.appendChild(more);
+  }
 
   // Returning learners (anything saved in this browser) get a "continue"
   // call-to-action instead of "try it free".
