@@ -1998,9 +1998,25 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
   }
   .talk-toggle[hidden] { display: none; }
+  /* Tap Chatto's message to see it in your language. Only his first
+     message shows the "Tap to translate" hint, instead of a "Show
+     translation" link under every single bubble. */
+  .turn.ai .bubble { cursor: pointer; }
+  .turn.ai:not(.first-ai) .translate-toggle { display: none; }
+  /* In Talk mode Chatto already reads every line out loud. */
+  #chatScreen.talking .speak-btn--bubble { display: none; }
+  /* Feedback under the learner's message: a quiet green line when it was
+     right, a highlighted box when Chatto fixed something. */
+  .tip-card.tip-card--praise { background: none; border: none; box-shadow: none; padding: 0 2px; margin-top: -4px; font-size: 13.5px; color: var(--ok-fg); }
+  .tip-card--praise .tip-icon { display: none; }
+  .tip-card--praise > span:last-child::before { content: "✓ "; font-weight: 700; }
+  .tip-card--on-user { align-self: flex-end; text-align: right; max-width: 85%; margin-top: -6px; }
+  .tip-card.tip-card--correction.tip-card--on-user { text-align: left; font-size: 14px; }
   /* Small phones: the back arrow already goes home, so the logo makes way
      for the lesson title next to the Talk button. */
-  @media (max-width: 420px) { #chatBrandBtn { display: none; } }
+  /* The back arrow already goes home, so the chat header drops the logo
+     and gives the lesson title the room. */
+  #chatBrandBtn { display: none; }
   .talk-toggle.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
   .mic-btn.your-turn { border-color: var(--accent); animation: micPulse 1.2s infinite; }
   .talk-hint { align-self: center; max-width: 92%; text-align: center; font-size: 13px; color: var(--ink-soft); }
@@ -3258,7 +3274,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   }
   function markYourTurn() {
     micBtn.classList.add("your-turn");
-    if (!roundEndHandled) messageInput.placeholder = "Your turn — tap 🎤 and speak";
+    if (!roundEndHandled) messageInput.placeholder = "Tap 🎤 to answer";
   }
 
   // ---------- Talk mode: a spoken conversation ----------
@@ -7829,7 +7845,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     lookupToggleBtn.classList.remove("active");
     lookupInput.value = "";
     lookupResultsEl.innerHTML = "";
-    objectivesCardEl.classList.remove("collapsed");
+    // Phones: the learner has just seen the goals and phrases on the intro
+    // screen, so in the chat they start folded into one line ("Lesson
+    // goals 0/3 ▾") and open with a tap. Bigger screens keep them open.
+    const foldGoals = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
+    objectivesCardEl.classList.toggle("collapsed", !!foldGoals);
     objectivesCardEl.classList.toggle("objectives-card--intro", lesson.tier === "Intro");
     renderObjectivesCard();
     if (currentCulturalNote) {
@@ -8157,14 +8177,19 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
 
     const toggle = document.createElement("button");
     toggle.className = "translate-toggle";
-    toggle.textContent = "Show translation";
+    const isFirstAi = !chatLogEl.querySelector(".turn.ai");
+    if (isFirstAi) div.classList.add("first-ai");
+    const hintText = "Tap Chatto's message to translate";
+    toggle.textContent = isFirstAi ? hintText : "Show translation";
     const translation = document.createElement("div");
     translation.className = "translation";
     translation.textContent = replyTranslation;
-    toggle.addEventListener("click", () => {
+    const flipTranslation = () => {
       translation.classList.toggle("shown");
-      toggle.textContent = translation.classList.contains("shown") ? "Hide translation" : "Show translation";
-    });
+      toggle.textContent = translation.classList.contains("shown") ? "Hide translation" : (isFirstAi ? hintText : "Show translation");
+    };
+    toggle.addEventListener("click", flipTranslation);
+    bubble.addEventListener("click", flipTranslation);
     div.appendChild(toggle);
     div.appendChild(translation);
     chatLogEl.appendChild(div);
@@ -8207,10 +8232,18 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       trackEvent("self_correction_fixed", { scenario: currentScenario && currentScenario.id, language: selectedLanguage });
     } else if (tip && tip.trim()) {
       const tipDiv = document.createElement("div");
-      tipDiv.className = "tip-card";
+      // "praise" = nothing to fix; "correction" = Chatto fixed something.
+      tipDiv.className = "tip-card " + (feedback.type === "correction" ? "tip-card--correction" : "tip-card--praise");
+      // Feedback sits right under the learner's own message, before
+      // Chatto's reply, so it reads like being corrected as you speak.
+      const prevUser = div.previousElementSibling;
+      if (prevUser && prevUser.classList.contains("user")) {
+        tipDiv.classList.add("tip-card--on-user");
+        chatLogEl.insertBefore(tipDiv, div);
+      }
       tipDiv.innerHTML = `<span class="tip-icon">💡</span><span></span>`;
       tipDiv.querySelector("span:last-child").textContent = tip;
-      chatLogEl.appendChild(tipDiv);
+      if (!tipDiv.parentNode) chatLogEl.appendChild(tipDiv);
       // In an Intro lesson, "tip" is always just "here's the next word to
       // try" (see buildSystemPrompt's hard rules for this tier) — that's
       // vocabulary being introduced, not a coaching correction, so it
@@ -8918,7 +8951,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       }
       const lessonOver = lessonOverBefore || roundEndNow;
       if (roundEndNow) markAllIntroPhrasesSeen();
-      const tipToShow = lessonOver ? stripNextPhrasePrompt(data.tip) : data.tip;
+      // The answer chips below already offer the next thing to say, so the
+      // tip sticks to feedback whenever chips will be shown (and always
+      // once the lesson is over).
+      const chipsWillShow = !lessonOver && !replayMode && lastFeedbackType !== "nudge" && Array.isArray(data.suggestions) && data.suggestions.length > 0;
+      const tipToShow = (lessonOver || chipsWillShow) ? stripNextPhrasePrompt(data.tip) : data.tip;
       addAiTurn(data.reply, data.replyTranslation, tipToShow, data.replyRomanization, { type: lastFeedbackType, answer: data.nudgeAnswer });
       if (!opts.silent && !lessonOver) markLearnerPhrasesSeen(text);
       // After a "nudge" the learner should fix their own sentence, so no
@@ -8926,7 +8963,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       // once the lesson is over).
       if (lessonOver) clearReplyIdeas();
       else if (!replayMode && lastFeedbackType !== "nudge") addReplyIdeas(data.suggestions);
-      talkAfterAiTurn(Object.assign({}, data, { tip: tipToShow }), lessonOver, myGen);
+      talkAfterAiTurn(Object.assign({}, data, { tip: lessonOver ? tipToShow : data.tip }), lessonOver, myGen);
       // How long learners wait for Chatto's first line, and whether answer
       // ideas came with it, so a slow or empty start shows up in GA4.
       if (opts.silent && text === "__START__") {
@@ -9182,6 +9219,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     talkToggleBtn.classList.toggle("on", talkMode);
     talkToggleBtn.setAttribute("aria-pressed", talkMode ? "true" : "false");
     talkToggleBtn.querySelector("span").textContent = talkMode ? "Talk on" : "Talk";
+    chatScreen.classList.toggle("talking", talkMode);
   }
   function setTalkMode(on) {
     talkMode = !!on;
