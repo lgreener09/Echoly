@@ -460,6 +460,19 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   /* Same ask, shown inside the chat right after a finished conversation. */
   .chat-reminder-card { display: flex; align-self: center; width: 100%; max-width: 460px; margin: 8px auto; }
   .chat-reminder-done { font-size: 13.5px; font-weight: 700; color: var(--ok-fg); }
+  /* Trip countdown: asked once after a finished lesson, then shown on home
+     ("✈️ 12 days to your trip") and used in the reminder email's subject. */
+  .trip-card { display: flex; flex-direction: column; gap: 10px; align-self: center; width: 100%; max-width: 460px; margin: 8px auto;
+    padding: 13px 15px; background: var(--surface); border: 1.5px solid var(--accent); border-radius: 14px; font-size: 13.5px; line-height: 1.4; }
+  .trip-card b { display: block; font-family: 'Bricolage Grotesque', sans-serif; font-size: 15px; }
+  .trip-card-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .trip-card input[type="date"] { font: inherit; font-size: 14px; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 9px; background: var(--bg); color: var(--ink); }
+  .trip-card button { border-radius: 9px; padding: 8px 14px; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit; }
+  .trip-countdown { display: flex; align-items: center; gap: 12px; max-width: 640px; margin: 0 0 16px; padding: 13px 15px;
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px; font-size: 13.5px; line-height: 1.4; }
+  .trip-countdown[hidden] { display: none; }
+  .trip-countdown b { display: block; font-family: 'Bricolage Grotesque', sans-serif; font-size: 15px; }
+  .trip-countdown .trip-edit { margin-left: auto; background: none; border: none; color: var(--ink-soft); font: inherit; font-size: 12.5px; text-decoration: underline; cursor: pointer; }
 
   /* -------- Home: recurring friend, "things you can do", install -------- */
   .friend-card {
@@ -2483,6 +2496,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
             <span class="home-row-text"><b id="homeReviewTitle">Phrases to review</b><span id="homeReviewSub">A couple of minutes keeps them fresh</span></span>
             <button type="button" class="home-review-btn" id="homeReviewBtn">Review</button>
           </div>
+      <div class="trip-countdown" id="tripCountdown" hidden></div>
       <div class="reminder-prompt" id="reminderPrompt">
         <span style="font-size:22px">📬</span>
         <span class="reminder-prompt-text"><b>Want a nudge each evening?</b>Get one short email with your next conversation, only on days you haven't practiced yet.</span>
@@ -3492,6 +3506,102 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   function saveReminderPrefs(o) {
     try { localStorage.setItem(REMINDERS_KEY, JSON.stringify(o)); } catch (e) { /* non-fatal */ }
   }
+  // ---------- Trip date (optional) ----------
+  // { date: "YYYY-MM-DD" | "", decided: bool, updatedAt } — asked once after
+  // a finished lesson. Synced with the rest of the snapshot so the reminder
+  // email can say "12 days to your trip" (see server/reminders.js).
+  const TRIP_KEY = "echoly_trip_v1";
+  function loadTrip() {
+    try {
+      const o = JSON.parse(localStorage.getItem(TRIP_KEY) || "null");
+      return (o && typeof o === "object") ? o : {};
+    } catch (e) { return {}; }
+  }
+  function saveTrip(o) {
+    try { localStorage.setItem(TRIP_KEY, JSON.stringify(o)); } catch (e) { /* non-fatal */ }
+  }
+  function localDateStr(d) {
+    const z = n => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+  }
+  // Whole days from today (local) to the trip; null when there's no trip.
+  function tripDaysLeft() {
+    const t = loadTrip();
+    if (!t.date || !/^\d{4}-\d{2}-\d{2}$/.test(t.date)) return null;
+    const [y, m, d] = t.date.split("-").map(Number);
+    const [ty, tm, td] = localDateStr(new Date()).split("-").map(Number);
+    return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(ty, tm - 1, td)) / 86400000);
+  }
+  function tripDaysText(n) {
+    if (n === 0) return "Your trip starts today!";
+    if (n === 1) return "1 day to your trip";
+    return `${n} days to your trip`;
+  }
+  function renderTripCountdown() {
+    const el = document.getElementById("tripCountdown");
+    if (!el) return;
+    const n = tripDaysLeft();
+    if (n === null || n < 0 || n > 365) { el.hidden = true; el.innerHTML = ""; return; }
+    el.hidden = false;
+    el.innerHTML = `<span style="font-size:22px">✈️</span>
+      <span><b>${escapeHtml(tripDaysText(n))}</b>${n <= 1 ? "Have a great trip. One quick warm-up?" : "One short conversation a day gets you ready."}</span>
+      <button type="button" class="trip-edit">Change</button>`;
+    el.querySelector(".trip-edit").addEventListener("click", () => {
+      el.hidden = true;
+      el.innerHTML = "";
+      const card = buildTripCard("home");
+      el.parentNode.insertBefore(card, el.nextSibling);
+    });
+  }
+  // The ask itself: a date picker plus "No trip planned".
+  function buildTripCard(source) {
+    const card = document.createElement("div");
+    card.className = "trip-card";
+    const min = localDateStr(new Date());
+    card.innerHTML = `<span><b>✈️ Got a trip coming up?</b>Tell us when you leave and we'll count down with you, one short conversation a day.</span>
+      <span class="trip-card-row">
+        <input type="date" min="${min}" aria-label="Trip date">
+        <button type="button" class="reminder-yes">Save</button>
+        <button type="button" class="reminder-no">No trip planned</button>
+      </span>`;
+    const input = card.querySelector("input");
+    const done = msg => {
+      card.innerHTML = "";
+      const d = document.createElement("span");
+      d.className = "chat-reminder-done";
+      d.textContent = msg;
+      card.appendChild(d);
+    };
+    card.querySelector(".reminder-yes").addEventListener("click", () => {
+      if (!input.value) { input.focus(); return; }
+      saveTrip({ date: input.value, decided: true, updatedAt: new Date().toISOString() });
+      const n = tripDaysLeft();
+      trackEvent("trip_date_set", { source, days_left: n });
+      syncToCloud();
+      renderTripCountdown();
+      done(n === null ? "Saved." : `✓ Saved. ${tripDaysText(n)}!`);
+      if (source === "home") setTimeout(() => card.remove(), 1500);
+    });
+    card.querySelector(".reminder-no").addEventListener("click", () => {
+      saveTrip({ date: "", decided: true, updatedAt: new Date().toISOString() });
+      trackEvent("trip_date_declined", { source });
+      syncToCloud();
+      renderTripCountdown();
+      done("No problem. You can add one any time from home.");
+      if (source === "home") setTimeout(() => card.remove(), 1500);
+    });
+    return card;
+  }
+  // Inline in the chat, once, right after a finished lesson.
+  function maybeAddTripAsk() {
+    if (loadTrip().decided) return;
+    const goal = (loadOnboarding() || {}).goal;
+    if (goal && goal !== "travel" && goal !== "moving" && goal !== "fun") return;
+    chatLogEl.appendChild(buildTripCard("chat"));
+    trackEvent("trip_ask_shown");
+    scrollToBottom();
+  }
+
   function setRemindersEnabled(enabled) {
     let tz = "America/Toronto";
     try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || tz; } catch (e) { /* keep default */ }
@@ -5208,7 +5318,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   // progress, streak, and vocab — as a single snapshot. Firestore security
   // rules restrict a document to its own owner (see the project README).
   function localDataSnapshot() {
-    return { progress: loadAllProgress(), streak: loadStreakData(), vocab: loadVocabBank(), tips: loadTipsHistory(), convoCounts: loadConvoCounts(), nativeLanguage: selectedNativeLanguage, onboarding: loadOnboarding(), reminders: loadReminderPrefs(), friend: loadFriendData() };
+    return { progress: loadAllProgress(), streak: loadStreakData(), vocab: loadVocabBank(), tips: loadTipsHistory(), convoCounts: loadConvoCounts(), nativeLanguage: selectedNativeLanguage, onboarding: loadOnboarding(), reminders: loadReminderPrefs(), friend: loadFriendData(), trip: loadTrip() };
   }
   function applyCloudSnapshot(data) {
     if (data && data.progress) saveAllProgress(data.progress);
@@ -5217,6 +5327,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     if (data && data.tips) saveTipsHistory(data.tips);
     if (data && data.convoCounts) saveConvoCounts(data.convoCounts);
     if (data && data.friend && typeof data.friend === "object") saveFriendData(data.friend);
+    if (data && data.trip && typeof data.trip === "object") { saveTrip(data.trip); try { renderTripCountdown(); } catch (e) { /* before first paint */ } }
     if (data && data.reminders && typeof data.reminders === "object") {
       saveReminderPrefs(data.reminders);
     }
@@ -6577,6 +6688,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
 
   function renderHome() {
     renderMobileBar();
+    renderTripCountdown();
     renderReminderPrompt();
     renderInstallCard();
     renderFriendCard();
@@ -9008,6 +9120,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         afterRecapDone = true;
         if (justCompleted && scenarioAtEnd.id === FRIEND_SCENARIO_ID) addFriendByeCard();
         if (justCompleted) addShareRow();
+        if (justCompleted) maybeAddTripAsk();
         if (justCompleted && !isGuest()) maybeAddChatReminderAsk();
         // Tier-completion badges get the bigger celebration overlay; everything
         // else gets the small inline pill. At most one tier badge can realistically

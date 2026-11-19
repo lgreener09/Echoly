@@ -186,7 +186,10 @@ function buildPlan(userDoc, SCENARIOS) {
     // FRIENDS in server.js) — the most personal reason to come back.
     const friendData = userDoc && userDoc.friend && userDoc.friend[language];
     const friendHook = friendData && typeof friendData.hook === "string" ? friendData.hook.slice(0, 160) : "";
-    return { language, next, topics, completedCount: completed.length, canDo, friendHook };
+    // Optional trip date the learner gave in the app ("YYYY-MM-DD").
+    const tripDate = userDoc && userDoc.trip && typeof userDoc.trip.date === "string"
+        && /^\d{4}-\d{2}-\d{2}$/.test(userDoc.trip.date) ? userDoc.trip.date : "";
+    return { language, next, topics, completedCount: completed.length, canDo, friendHook, tripDate };
 }
 
 function buildEmail({ plan, decision, uid }) {
@@ -196,9 +199,20 @@ function buildEmail({ plan, decision, uid }) {
     const link = `${appUrl()}/app.html?utm_source=reminder&utm_medium=email${useFriend ? `&friend=1&lang=${encodeURIComponent(language)}` : ""}`;
     const unsub = unsubscribeUrl(uid);
 
+    // Days until their trip, in their own time zone; only used when it's
+    // coming up soon enough to be a real reason to practice today.
+    const tripDays = plan.tripDate && decision.today ? daysBetween(decision.today, plan.tripDate) : null;
+    const tripSoon = tripDays !== null && tripDays >= 0 && tripDays <= 60;
+
     let subject;
     let headline;
-    if (decision.streakAlive) {
+    if (tripSoon) {
+        const left = tripDays === 0 ? "Your trip starts today" : tripDays === 1 ? "1 day to your trip" : `${tripDays} days to your trip`;
+        subject = tripDays === 0 ? `✈️ ${left}! One last ${language} warm-up?` : `✈️ ${left}: today's ${language} conversation`;
+        headline = tripDays === 0
+            ? `${left}! Two minutes of ${language} before you go?`
+            : `${left}. One short ${language} conversation today gets you a little more ready.`;
+    } else if (decision.streakAlive) {
         subject = `🔥 Keep your ${decision.currentStreak}-day streak alive`;
         headline = `Your ${decision.currentStreak}-day streak ends at midnight.`;
     } else if (useFriend) {
