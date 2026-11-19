@@ -253,7 +253,7 @@ function buildEmail({ plan, decision, uid }) {
   <tr><td style="padding-top:28px;font-size:12px;color:#8a7f8c;line-height:1.5;border-top:1px solid #eae1e6;">
     You're getting this because you turned on daily practice reminders in Echoly.
     <a href="${unsub}" style="color:#8a7f8c;">Unsubscribe</a> or switch them off any time in the app.<br>
-    Echoly · <a href="mailto:echolylanguage@yahoo.com" style="color:#8a7f8c;">echolylanguage@yahoo.com</a>${mailing}
+    Echoly · <a href="mailto:echolylanguage@gmail.com" style="color:#8a7f8c;">echolylanguage@gmail.com</a>${mailing}
   </td></tr>
 </table></td></tr></table></body></html>`;
 
@@ -264,7 +264,7 @@ function buildEmail({ plan, decision, uid }) {
         `\nOr practice a real situation: ${topics.join(", ")}`,
         `\n—\nYou're getting this because you turned on daily practice reminders in Echoly.`,
         `Unsubscribe: ${unsub}`,
-        `Echoly · echolylanguage@yahoo.com${process.env.EMAIL_MAILING_ADDRESS ? `\n${process.env.EMAIL_MAILING_ADDRESS}` : ""}`
+        `Echoly · echolylanguage@gmail.com${process.env.EMAIL_MAILING_ADDRESS ? `\n${process.env.EMAIL_MAILING_ADDRESS}` : ""}`
     ].join("\n");
 
     return { subject, html, text, unsub };
@@ -313,7 +313,7 @@ function buildWeeklyEmail({ plan, decision, uid }) {
   <tr><td style="padding-top:28px;font-size:12px;color:#8a7f8c;line-height:1.5;border-top:1px solid #eae1e6;">
     You're getting this because you turned on practice reminders in Echoly.
     <a href="${unsub}" style="color:#8a7f8c;">Unsubscribe</a> or switch them off any time in the app.<br>
-    Echoly · <a href="mailto:echolylanguage@yahoo.com" style="color:#8a7f8c;">echolylanguage@yahoo.com</a>${mailing}
+    Echoly · <a href="mailto:echolylanguage@gmail.com" style="color:#8a7f8c;">echolylanguage@gmail.com</a>${mailing}
   </td></tr>
 </table></td></tr></table></body></html>`;
     const text = [
@@ -324,7 +324,7 @@ function buildWeeklyEmail({ plan, decision, uid }) {
         `\nStart this week's first conversation: ${link}`,
         `\n—\nYou're getting this because you turned on practice reminders in Echoly.`,
         `Unsubscribe: ${unsub}`,
-        `Echoly · echolylanguage@yahoo.com${process.env.EMAIL_MAILING_ADDRESS ? `\n${process.env.EMAIL_MAILING_ADDRESS}` : ""}`
+        `Echoly · echolylanguage@gmail.com${process.env.EMAIL_MAILING_ADDRESS ? `\n${process.env.EMAIL_MAILING_ADDRESS}` : ""}`
     ].filter(Boolean).join("\n");
     return { subject, html, text, unsub };
 }
@@ -458,12 +458,12 @@ module.exports = function registerReminders({ app, getDb, getAuth, SCENARIOS }) 
         const token = String(req.query.t || "");
         const db = getDb();
         if (!uid || !db || !process.env.CRON_SECRET || !tokenMatches(uid, token)) {
-            return res.status(400).send(unsubPage("That unsubscribe link isn't valid.", "If you keep getting emails you don't want, reply to one of them or email echolylanguage@yahoo.com and we'll stop them."));
+            return res.status(400).send(unsubPage("That unsubscribe link isn't valid.", "If you keep getting emails you don't want, reply to one of them or email echolylanguage@gmail.com and we'll stop them."));
         }
         try {
             await db.collection("reminderLog").doc(uid).set({ unsubscribedAt: new Date().toISOString() }, { merge: true });
         } catch (e) {
-            return res.status(500).send(unsubPage("Something went wrong.", "Please try the link again in a minute, or email echolylanguage@yahoo.com."));
+            return res.status(500).send(unsubPage("Something went wrong.", "Please try the link again in a minute, or email echolylanguage@gmail.com."));
         }
         res.send(unsubPage("You're unsubscribed.", "You won't get any more practice reminders. You can turn them back on any time from the app's sidebar."));
     }
@@ -477,7 +477,7 @@ module.exports = function registerReminders({ app, getDb, getAuth, SCENARIOS }) 
         const uid = String(req.query.u || "");
         const token = String(req.query.t || "");
         if (!uid || !process.env.CRON_SECRET || !tokenMatches(uid, token)) {
-            return res.status(400).send(unsubPage("That unsubscribe link isn't valid.", "If you keep getting emails you don't want, reply to one of them or email echolylanguage@yahoo.com and we'll stop them."));
+            return res.status(400).send(unsubPage("That unsubscribe link isn't valid.", "If you keep getting emails you don't want, reply to one of them or email echolylanguage@gmail.com and we'll stop them."));
         }
         const action = `/unsubscribe?u=${encodeURIComponent(uid)}&t=${encodeURIComponent(token)}`;
         res.send(unsubPage(
