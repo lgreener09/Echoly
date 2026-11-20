@@ -122,8 +122,12 @@ function decideReminder(userDoc, logDoc, now, reminderHour) {
     }
     if (!SEND_ON_INACTIVE_DAYS.has(inactiveDays)) return { send: false, reason: `inactive ${inactiveDays} days (not a send day)` };
 
-    const streakAlive = inactiveDays === 1 && (streak.currentStreak || 0) > 0;
-    return { send: true, reason: "ok", today, tz, inactiveDays, streakAlive, currentStreak: streak.currentStreak || 0 };
+    // Streak Freeze (mirrors app.html): one free freeze per 7 days covers a
+    // single missed day, so after missing yesterday the streak is still alive.
+    const missedDay = lastActive && inactiveDays === 2 ? shiftDate(lastActive, 1) : null;
+    const frozen = !!missedDay && (typeof streak.lastFreezeDate !== "string" || daysBetween(streak.lastFreezeDate, missedDay) >= 7);
+    const streakAlive = (inactiveDays === 1 || frozen) && (streak.currentStreak || 0) > 0;
+    return { send: true, reason: "ok", today, tz, inactiveDays, streakAlive, frozen: frozen && streakAlive, currentStreak: streak.currentStreak || 0 };
 }
 
 // Sunday-evening weekly recap: replaces that day's daily reminder for
@@ -212,6 +216,9 @@ function buildEmail({ plan, decision, uid }) {
         headline = tripDays === 0
             ? `${left}! Two minutes of ${language} before you go?`
             : `${left}. One short ${language} conversation today gets you a little more ready.`;
+    } else if (decision.streakAlive && decision.frozen) {
+        subject = `🧊 Your streak freeze saved yesterday`;
+        headline = `Your streak freeze covered yesterday. One short conversation today keeps your ${decision.currentStreak}-day streak going.`;
     } else if (decision.streakAlive) {
         subject = `🔥 Keep your ${decision.currentStreak}-day streak alive`;
         headline = `Your ${decision.currentStreak}-day streak ends at midnight.`;

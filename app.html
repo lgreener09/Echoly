@@ -685,6 +685,9 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
   }
   .streak-goal-select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   .streak-goal-track { height: 5px; border-radius: 999px; background: rgba(255,255,255,0.14); overflow: hidden; }
+  /* Streak Freeze status line under the daily goal. */
+  .streak-freeze { margin-top: 9px; font-size: 12px; line-height: 1.35; color: rgba(242,236,230,0.78); }
+  .streak-freeze b { color: #bfe3ff; font-weight: 700; }
   .streak-goal-fill { height: 100%; background: #f5a623; border-radius: 999px; transition: width 0.3s ease; }
 
   /* Vocab review card — only shown once a learner has phrases in their deck
@@ -2318,6 +2321,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
           </div>
           <div class="streak-goal-track"><div class="streak-goal-fill" id="streakGoalFill"></div></div>
         </div>
+        <div class="streak-freeze" id="streakFreeze" hidden></div>
       </div>
 
       <div class="review-card" id="reviewCard" style="display:none">
@@ -4074,11 +4078,34 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
         currentStreak: typeof data.currentStreak === "number" ? data.currentStreak : 0,
         longestStreak: typeof data.longestStreak === "number" ? data.longestStreak : 0,
         todayCount: typeof data.todayCount === "number" ? data.todayCount : 0,
-        dailyGoal: (typeof data.dailyGoal === "number" && data.dailyGoal > 0) ? data.dailyGoal : DEFAULT_DAILY_GOAL
+        dailyGoal: (typeof data.dailyGoal === "number" && data.dailyGoal > 0) ? data.dailyGoal : DEFAULT_DAILY_GOAL,
+        lastFreezeDate: typeof data.lastFreezeDate === "string" ? data.lastFreezeDate : null
       };
     } catch (e) {
-      return { lastActiveDate: null, currentStreak: 0, longestStreak: 0, todayCount: 0, dailyGoal: DEFAULT_DAILY_GOAL };
+      return { lastActiveDate: null, currentStreak: 0, longestStreak: 0, todayCount: 0, dailyGoal: DEFAULT_DAILY_GOAL, lastFreezeDate: null };
     }
+  }
+  // ---------- Streak Freeze ----------
+  // One free freeze per 7 days, used automatically: if a learner misses
+  // exactly one day, the streak survives (it doesn't grow for the missed
+  // day). lastFreezeDate is the day that was covered. Mirrored on the server
+  // so reminder emails know the streak is still alive (see reminders.js).
+  const FREEZE_EVERY_DAYS = 7;
+  function shiftDateStr(dateStr, days) {
+    const d = new Date(dateStr + "T00:00:00");
+    d.setDate(d.getDate() + days);
+    const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0"), day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  // Can a freeze cover `missedDate`? Only if none was used in the 7 days before it.
+  function freezeAvailableFor(data, missedDate) {
+    if (!data.lastFreezeDate) return true;
+    return daysBetween(data.lastFreezeDate, missedDate) >= FREEZE_EVERY_DAYS;
+  }
+  // Days until a freeze is ready again (0 = ready now).
+  function daysUntilFreeze(data) {
+    if (!data.lastFreezeDate) return 0;
+    return Math.max(0, FREEZE_EVERY_DAYS - daysBetween(data.lastFreezeDate, todayDateStr()));
   }
   function saveStreakData(data) {
     try { localStorage.setItem(STREAK_KEY, JSON.stringify(data)); } catch (e) { /* non-fatal */ }
@@ -4093,7 +4120,17 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       data.todayCount += 1;
     } else {
       const gap = data.lastActiveDate ? daysBetween(data.lastActiveDate, today) : null;
-      data.currentStreak = (gap === 1) ? data.currentStreak + 1 : 1;
+      const missed = gap === 2 ? shiftDateStr(data.lastActiveDate, 1) : null;
+      if (gap === 1) {
+        data.currentStreak = data.currentStreak + 1;
+      } else if (gap === 2 && data.currentStreak > 0 && freezeAvailableFor(data, missed)) {
+        // Missed exactly one day and a freeze was ready: the streak lives on.
+        data.lastFreezeDate = missed;
+        data.currentStreak = data.currentStreak + 1;
+        try { trackEvent("streak_freeze_used", { streak: data.currentStreak }); } catch (e) { /* non-fatal */ }
+      } else {
+        data.currentStreak = 1;
+      }
       data.todayCount = 1;
       data.lastActiveDate = today;
     }
@@ -4110,6 +4147,10 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     const gap = daysBetween(data.lastActiveDate, todayDateStr());
     if (gap === 0) return data; // already active today
     if (gap === 1) return Object.assign({}, data, { todayCount: 0 }); // streak still alive, nothing done today yet
+    // Missed yesterday, but a freeze covers it: still alive, must practise today.
+    if (gap === 2 && data.currentStreak > 0 && freezeAvailableFor(data, shiftDateStr(data.lastActiveDate, 1))) {
+      return Object.assign({}, data, { todayCount: 0, frozenYesterday: true });
+    }
     return Object.assign({}, data, { currentStreak: 0, todayCount: 0 }); // gap too big — streak broken
   }
   function setDailyGoal(n) {
@@ -4127,6 +4168,17 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     streakGoalFracEl.textContent = `${doneToday}/${data.dailyGoal} today`;
     streakGoalFillEl.style.width = `${Math.round((doneToday / data.dailyGoal) * 100)}%`;
     streakGoalSelectEl.value = String(data.dailyGoal);
+    const fz = document.getElementById("streakFreeze");
+    if (fz) {
+      const raw = loadStreakData();
+      const wait = daysUntilFreeze(raw);
+      let html = "";
+      if (data.frozenYesterday) html = `🧊 <b>Streak freeze saved yesterday.</b> Practise today to keep your ${data.currentStreak}-day streak.`;
+      else if (data.currentStreak > 0 && wait === 0) html = `🧊 <b>Streak freeze ready.</b> Miss a day and your streak is safe.`;
+      else if (data.currentStreak > 0) html = `🧊 Next streak freeze in ${wait} day${wait === 1 ? "" : "s"}.`;
+      fz.hidden = !html;
+      fz.innerHTML = html;
+    }
   }
 
   streakGoalSelectEl.addEventListener("change", () => {
@@ -4153,7 +4205,9 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       streakNudgeBannerEl.style.display = "none";
       return;
     }
-    streakNudgeTextEl.textContent = `🔥 Your ${data.currentStreak}-day streak is still going — one quick conversation today keeps it alive.`;
+    streakNudgeTextEl.textContent = data.frozenYesterday
+      ? `🧊 Your streak freeze covered yesterday. One quick conversation today keeps your ${data.currentStreak}-day streak alive.`
+      : `🔥 Your ${data.currentStreak}-day streak is still going — one quick conversation today keeps it alive.`;
     streakNudgeBannerEl.style.display = "flex";
   }
   streakNudgeDismissBtn.addEventListener("click", () => {
@@ -5392,6 +5446,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     }
     merged.longestStreak = Math.max(x.longestStreak || 0, y.longestStreak || 0, merged.currentStreak || 0);
     merged.dailyGoal = y.dailyGoal || x.dailyGoal || DEFAULT_DAILY_GOAL; // the account's own setting wins
+    const fx = x.lastFreezeDate || "", fy = y.lastFreezeDate || "";
+    merged.lastFreezeDate = (fx > fy ? fx : fy) || null;
     return merged;
   }
 
